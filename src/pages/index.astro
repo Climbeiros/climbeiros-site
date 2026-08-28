@@ -5,7 +5,7 @@ import { getSiteConfig } from '../lib/supabase';
 
 const config = await getSiteConfig();
 const headline = config.home_headline || 'Amigos que escalam juntos';
-const fotoCapa = config.home_foto_capa || '/logo.png';
+const fotoCapa = config.home_foto_capa || '/hero-capa.jpg';
 
 const destaques = [
   { titulo: 'Rotas & Setores', texto: 'Encontre vias e croquis pelo Brasil.', href: '/rotas', cor: 'var(--verde)' },
@@ -71,6 +71,7 @@ const destaques = [
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center 70%;
   }
   .hero__sombra {
     position: absolute;
