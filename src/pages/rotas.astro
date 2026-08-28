@@ -1,0 +1,144 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+import type { Setor, Rota } from '../lib/supabase';
+
+const { data: setores } = await supabase.from('setores').select('*').order('nome') as { data: Setor[] | null };
+const { data: rotas } = await supabase.from('rotas').select('*').order('nome') as { data: Rota[] | null };
+
+const setoresComCoordenadas = (setores ?? []).filter((s) => s.latitude && s.longitude);
+
+function rotasDoSetor(setorId: string) {
+  return (rotas ?? []).filter((r) => r.setor_id === setorId);
+}
+---
+<Layout titulo="Rotas & Setores" descricao="Setores e vias de escalada catalogados pela comunidade Climbeiros.">
+  <section class="secao">
+    <div class="container">
+      <p class="eyebrow">Onde escalar</p>
+      <h1>Rotas & Setores</h1>
+      <p>Explore os setores catalogados pela comunidade — cada ficha traz grau, tipo de via e croqui, quando disponível.</p>
+    </div>
+
+    {setoresComCoordenadas.length > 0 && (
+      <div class="container">
+        <div id="mapa" class="mapa"></div>
+      </div>
+    )}
+
+    <div class="container">
+      {(!setores || setores.length === 0) && (
+        <p>Ainda estamos catalogando os primeiros setores. Volte em breve!</p>
+      )}
+
+      <div class="lista-setores">
+        {setores?.map((setor) => (
+          <article class="setor-card" id={`setor-${setor.id}`}>
+            <div class="setor-card__cabecalho">
+              <div>
+                <h2>{setor.nome}</h2>
+                <p class="setor-card__local">{[setor.regiao, setor.cidade, setor.estado].filter(Boolean).join(' · ')}</p>
+              </div>
+              <span class="etiqueta">{rotasDoSetor(setor.id).length} via(s)</span>
+            </div>
+            {setor.descricao && <p>{setor.descricao}</p>}
+
+            {rotasDoSetor(setor.id).length > 0 && (
+              <table class="tabela-rotas">
+                <thead>
+                  <tr>
+                    <th>Via</th>
+                    <th>Grau</th>
+                    <th>Tipo</th>
+                    <th>Enfiadas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rotasDoSetor(setor.id).map((rota) => (
+                    <tr>
+                      <td>{rota.nome}</td>
+                      <td>{rota.grau || '—'}</td>
+                      <td>{rota.tipo || '—'}</td>
+                      <td>{rota.numero_enfiadas ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>
+
+{setoresComCoordenadas.length > 0 && (
+  <script define:vars={{ setores: setoresComCoordenadas }}>
+    import('leaflet').then((L) => {
+      const mapa = L.map('mapa').setView([setores[0].latitude, setores[0].longitude], 6);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+      }).addTo(mapa);
+
+      const bounds = [];
+      setores.forEach((s) => {
+        const marker = L.marker([s.latitude, s.longitude]).addTo(mapa);
+        marker.bindPopup(`<strong>${s.nome}</strong><br/><a href="#setor-${s.id}">Ver vias</a>`);
+        bounds.push([s.latitude, s.longitude]);
+      });
+      if (bounds.length > 1) mapa.fitBounds(bounds, { padding: [30, 30] });
+    });
+  </script>
+)}
+
+<style is:global>
+  @import 'leaflet/dist/leaflet.css';
+</style>
+
+<style>
+  .mapa {
+    height: 380px;
+    border-radius: var(--raio);
+    margin: 28px 0 40px;
+    box-shadow: var(--sombra);
+  }
+  .lista-setores {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .setor-card {
+    background: var(--branco);
+    border: 1px solid rgba(42,31,22,0.08);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 24px;
+  }
+  .setor-card__cabecalho {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .setor-card__local { opacity: 0.7; font-size: 0.9rem; margin-top: -8px; }
+  .tabela-rotas {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    font-size: 0.9rem;
+  }
+  .tabela-rotas th {
+    text-align: left;
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    color: var(--verde-escuro);
+    border-bottom: 2px solid var(--creme);
+    padding: 6px 8px;
+  }
+  .tabela-rotas td {
+    padding: 8px;
+    border-bottom: 1px solid rgba(42,31,22,0.08);
+  }
+</style>

@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap');
+
+:root {
+  /* Paleta oficial Climbeiros */
+  --verde: #668062;
+  --verde-escuro: #3d5439;
+  --creme: #e7d18e;
+  --creme-claro: #f0e2b2;
+  --laranja: #da7326;
+  --amarelo: #e0931c;
+  --marrom: #2a1f16;
+
+  --branco: #fffdf7;
+
+  --fonte-display: 'Oswald', sans-serif;
+  --fonte-corpo: 'Work Sans', sans-serif;
+
+  --raio: 10px;
+  --sombra: 0 4px 16px rgba(42, 31, 22, 0.12);
+
+  --largura-max: 1160px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--fonte-corpo);
+  color: var(--marrom);
+  background: var(--branco);
+  line-height: 1.55;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--fonte-display);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  color: var(--verde-escuro);
+  margin: 0 0 0.5em;
+}
+
+h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); }
+h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); }
+h3 { font-size: 1.25rem; }
+
+p { margin: 0 0 1em; }
+
+a {
+  color: var(--laranja);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+img { max-width: 100%; display: block; }
+
+.container {
+  max-width: var(--largura-max);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.secao {
+  padding: 64px 0;
+}
+
+.secao--creme {
+  background: var(--creme-claro);
+}
+
+.secao--verde {
+  background: var(--verde-escuro);
+  color: var(--creme-claro);
+}
+.secao--verde h1, .secao--verde h2, .secao--verde h3 { color: var(--creme); }
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--fonte-display);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
+  color: var(--laranja);
+  margin-bottom: 12px;
+}
+.eyebrow::before {
+  content: '';
+  width: 18px;
+  height: 2px;
+  background: var(--laranja);
+  display: inline-block;
+}
+
+.botao {
+  display: inline-block;
+  font-family: var(--fonte-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.95rem;
+  padding: 12px 28px;
+  border-radius: var(--raio);
+  background: var(--laranja);
+  color: var(--branco);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.botao:hover {
+  background: var(--amarelo);
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+.botao--secundario {
+  background: transparent;
+  color: var(--verde-escuro);
+  border: 2px solid var(--verde-escuro);
+}
+.botao--secundario:hover {
+  background: var(--verde-escuro);
+  color: var(--creme-claro);
+}
+
+.grade {
+  display: grid;
+  gap: 28px;
+}
+.grade--3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.grade--2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+.card {
+  background: var(--branco);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  overflow: hidden;
+  border: 1px solid rgba(42, 31, 22, 0.08);
+}
+.card__corpo { padding: 20px; }
+.card__imagem {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  background: var(--creme);
+}
+
+.etiqueta {
+  display: inline-block;
+  font-family: var(--fonte-display);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--creme);
+  color: var(--verde-escuro);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

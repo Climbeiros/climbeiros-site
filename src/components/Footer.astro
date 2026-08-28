@@ -1,0 +1,39 @@
+---
+const ano = new Date().getFullYear();
+---
+<footer class="rodape">
+  <div class="container rodape__linha">
+    <img src="/logo.png" alt="Climbeiros" class="rodape__logo" />
+    <p class="rodape__texto">
+      Feito por escaladores, para escaladores. &copy; {ano} Climbeiros.
+    </p>
+    <div class="rodape__links">
+      <a href="/sobre">Sobre</a>
+      <a href="/contato">Contato</a>
+      <a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .rodape {
+    background: var(--marrom);
+    color: var(--creme-claro);
+    padding: 40px 0;
+    margin-top: 64px;
+  }
+  .rodape__linha {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .rodape__logo { height: 44px; opacity: 0.9; }
+  .rodape__texto { margin: 0; font-size: 0.9rem; opacity: 0.85; }
+  .rodape__links { display: flex; gap: 18px; }
+  .rodape__links a {
+    color: var(--creme);
+    font-size: 0.9rem;
+  }
+</style>

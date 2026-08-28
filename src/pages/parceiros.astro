@@ -1,0 +1,71 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+import type { Parceiro } from '../lib/supabase';
+
+const { data: parceiros } = await supabase.from('parceiros').select('*').order('nome_marca') as { data: Parceiro[] | null };
+---
+<Layout titulo="Parcerias & Cupons" descricao="Marcas parceiras do Climbeiros e cupons de desconto para a comunidade.">
+  <section class="secao">
+    <div class="container">
+      <p class="eyebrow">Marcas que apoiam a comunidade</p>
+      <h1>Parcerias & Cupons</h1>
+
+      {(!parceiros || parceiros.length === 0) && (
+        <p>Ainda estamos fechando as primeiras parcerias. Volte em breve!</p>
+      )}
+
+      <div class="grade grade--2">
+        {parceiros?.map((p) => (
+          <article class="parceiro-card">
+            <img src={p.logo_url || '/logo.png'} alt={p.nome_marca} class="parceiro-card__logo" />
+            <div class="parceiro-card__corpo">
+              <h3>{p.nome_marca}</h3>
+              {p.descricao && <p>{p.descricao}</p>}
+              <div class="parceiro-card__rodape">
+                {p.codigo_cupom && <span class="cupom">Cupom: {p.codigo_cupom}</span>}
+                {p.link_afiliado && <a href={p.link_afiliado} target="_blank" rel="noopener" class="botao">Ver oferta</a>}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .parceiro-card {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    background: var(--branco);
+    border: 1px solid rgba(42,31,22,0.08);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 24px;
+  }
+  .parceiro-card__logo {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .parceiro-card__rodape {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .cupom {
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    background: var(--creme);
+    color: var(--verde-escuro);
+    padding: 6px 12px;
+    border-radius: 6px;
+    letter-spacing: 0.03em;
+  }
+</style>

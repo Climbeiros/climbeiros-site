@@ -1,0 +1,121 @@
+---
+import Layout from '../layouts/Layout.astro';
+import RopeDivider from '../components/RopeDivider.astro';
+import { getSiteConfig } from '../lib/supabase';
+
+const config = await getSiteConfig();
+const headline = config.home_headline || 'Amigos que escalam juntos';
+const fotoCapa = config.home_foto_capa || '/logo.png';
+
+const destaques = [
+  { titulo: 'Rotas & Setores', texto: 'Encontre vias e croquis pelo Brasil.', href: '/rotas', cor: 'var(--verde)' },
+  { titulo: 'Guias & Dicas', texto: 'Aprenda com quem já pegou a via.', href: '/guias', cor: 'var(--laranja)' },
+  { titulo: 'Academias & Cursos', texto: 'Onde treinar e onde aprender.', href: '/academias', cor: 'var(--amarelo)' },
+  { titulo: 'Cupons & Parcerias', texto: 'Descontos com marcas parceiras.', href: '/parceiros', cor: 'var(--verde-escuro)' },
+];
+---
+<Layout titulo="Início">
+  <section class="hero">
+    <div class="hero__imagem">
+      <img src={fotoCapa} alt="Escalador em uma via de escalada" />
+      <div class="hero__sombra"></div>
+    </div>
+    <div class="container hero__conteudo">
+      <p class="eyebrow">Comunidade de escalada no Brasil</p>
+      <h1 class="hero__titulo">{headline}</h1>
+      <div class="hero__acoes">
+        <a href="/rotas" class="botao">Ver rotas & setores</a>
+        <a href="/guias" class="botao botao--secundario" style="border-color: var(--creme-claro); color: var(--creme-claro);">Ler os guias</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao">
+    <div class="container">
+      <div class="grade grade--3">
+        {destaques.map((d) => (
+          <a href={d.href} class="destaque-card" style={`--cor-destaque: ${d.cor}`}>
+            <h3>{d.titulo}</h3>
+            <p>{d.texto}</p>
+            <span class="destaque-card__seta">→</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <RopeDivider />
+
+  <section class="secao secao--verde">
+    <div class="container secao-cta">
+      <h2>Sua academia ou curso ainda não está aqui?</h2>
+      <p>O Climbeiros é feito pela e para a comunidade. Fale com a gente e vamos incluir.</p>
+      <a href="/contato" class="botao">Entrar em contato</a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 480px;
+    display: flex;
+    align-items: flex-end;
+    color: var(--branco);
+  }
+  .hero__imagem {
+    position: absolute;
+    inset: 0;
+  }
+  .hero__imagem img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .hero__sombra {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(42,31,22,0.15) 0%, rgba(42,31,22,0.85) 100%);
+  }
+  .hero__conteudo {
+    position: relative;
+    padding-bottom: 56px;
+    padding-top: 200px;
+  }
+  .hero__titulo {
+    color: var(--branco);
+    max-width: 680px;
+  }
+  .hero__acoes {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+
+  .destaque-card {
+    display: block;
+    padding: 26px;
+    border-radius: var(--raio);
+    background: var(--branco);
+    border: 1px solid rgba(42,31,22,0.08);
+    border-top: 4px solid var(--cor-destaque, var(--laranja));
+    box-shadow: var(--sombra);
+    transition: transform 0.15s ease;
+  }
+  .destaque-card:hover {
+    transform: translateY(-4px);
+    text-decoration: none;
+  }
+  .destaque-card h3 { margin-bottom: 8px; }
+  .destaque-card p { color: var(--marrom); opacity: 0.8; margin-bottom: 12px; }
+  .destaque-card__seta {
+    font-family: var(--fonte-display);
+    color: var(--cor-destaque, var(--laranja));
+  }
+
+  .secao-cta {
+    text-align: center;
+  }
+  .secao-cta p { max-width: 520px; margin: 0 auto 24px; opacity: 0.9; }
+</style>

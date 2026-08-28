@@ -1,0 +1,48 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+import type { Artigo } from '../../lib/supabase';
+
+const { data: artigos } = await supabase
+  .from('artigos')
+  .select('*')
+  .order('publicado_em', { ascending: false }) as { data: Artigo[] | null };
+
+const rotuloCategoria: Record<string, string> = {
+  guia: 'Guia',
+  dica: 'Dica',
+  noticia: 'Notícia',
+};
+---
+<Layout titulo="Guias & Dicas" descricao="Guias práticos e dicas de escalada escritos pela comunidade Climbeiros.">
+  <section class="secao">
+    <div class="container">
+      <p class="eyebrow">Aprenda com quem já pegou a via</p>
+      <h1>Guias & Dicas</h1>
+
+      {(!artigos || artigos.length === 0) && (
+        <p>Ainda estamos escrevendo os primeiros artigos. Volte em breve!</p>
+      )}
+
+      <div class="grade grade--3">
+        {artigos?.map((artigo) => (
+          <a href={`/guias/${artigo.slug}`} class="card artigo-card">
+            <img class="card__imagem" src={artigo.imagem_capa_url || '/logo.png'} alt={artigo.titulo} />
+            <div class="card__corpo">
+              {artigo.categoria && <span class="etiqueta">{rotuloCategoria[artigo.categoria] || artigo.categoria}</span>}
+              <h3>{artigo.titulo}</h3>
+              {artigo.resumo && <p>{artigo.resumo}</p>}
+              {artigo.autor && <p class="artigo-card__autor">Por {artigo.autor}</p>}
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .artigo-card { color: var(--marrom); }
+  .artigo-card:hover { text-decoration: none; }
+  .artigo-card__autor { font-size: 0.85rem; opacity: 0.6; margin-top: 8px; margin-bottom: 0; }
+</style>

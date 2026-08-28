@@ -1,0 +1,41 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getSiteConfig } from '../lib/supabase';
+
+const config = await getSiteConfig();
+const texto = config.sobre_texto ||
+  'O Climbeiros nasceu da vontade de um grupo de amigos de reunir, num só lugar, tudo que a comunidade de escalada no Brasil precisa: onde treinar, onde aprender, quais vias vale a pena pegar e quem são as marcas que realmente apoiam quem escala.';
+const fotoGrupo = config.sobre_foto_grupo || '/logo.png';
+---
+<Layout titulo="Sobre" descricao="Conheça a história e o time por trás do Climbeiros.">
+  <section class="secao">
+    <div class="container sobre">
+      <div class="sobre__texto">
+        <p class="eyebrow">Quem somos</p>
+        <h1>A escalada é melhor em grupo</h1>
+        <p>{texto}</p>
+        <a href="/contato" class="botao">Fale com a gente</a>
+      </div>
+      <div class="sobre__foto">
+        <img src={fotoGrupo} alt="Time Climbeiros" />
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .sobre {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .sobre__foto img {
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+  }
+  @media (max-width: 760px) {
+    .sobre { grid-template-columns: 1fr; }
+    .sobre__foto { order: -1; }
+  }
+</style>

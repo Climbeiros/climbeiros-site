@@ -1,0 +1,81 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+import type { Academia, Curso } from '../lib/supabase';
+
+const { data: academias } = await supabase
+  .from('academias')
+  .select('*')
+  .order('nome') as { data: Academia[] | null };
+
+const { data: cursos } = await supabase
+  .from('cursos')
+  .select('*')
+  .order('nome') as { data: Curso[] | null };
+---
+<Layout titulo="Academias & Cursos" descricao="Academias de escalada e cursos recomendados pela comunidade Climbeiros.">
+  <section class="secao">
+    <div class="container">
+      <p class="eyebrow">Onde treinar</p>
+      <h1>Academias de escalada</h1>
+
+      {(!academias || academias.length === 0) && (
+        <p>Ainda estamos cadastrando as primeiras academias. Volte em breve!</p>
+      )}
+
+      <div class="grade grade--3">
+        {academias?.map((a) => (
+          <article class="card">
+            <img class="card__imagem" src={a.imagem_url || '/logo.png'} alt={a.nome} />
+            <div class="card__corpo">
+              <h3>{a.nome}</h3>
+              <p class="card__local">{a.cidade}{a.estado ? `, ${a.estado}` : ''}</p>
+              {a.descricao && <p>{a.descricao}</p>}
+              <div class="card__links">
+                {a.website && <a href={a.website} target="_blank" rel="noopener">Site</a>}
+                {a.whatsapp && <a href={`https://wa.me/${a.whatsapp}`} target="_blank" rel="noopener">WhatsApp</a>}
+                {a.instagram && <a href={a.instagram} target="_blank" rel="noopener">Instagram</a>}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="secao secao--creme">
+    <div class="container">
+      <p class="eyebrow">Onde aprender</p>
+      <h1>Cursos de escalada</h1>
+
+      {(!cursos || cursos.length === 0) && (
+        <p>Ainda estamos cadastrando os primeiros cursos. Volte em breve!</p>
+      )}
+
+      <div class="grade grade--3">
+        {cursos?.map((c) => (
+          <article class="card">
+            <img class="card__imagem" src={c.imagem_url || '/logo.png'} alt={c.nome} />
+            <div class="card__corpo">
+              {c.nivel && <span class="etiqueta">{c.nivel}</span>}
+              <h3>{c.nome}</h3>
+              {c.instituicao && <p class="card__local">{c.instituicao} {c.cidade ? `· ${c.cidade}` : ''}</p>}
+              {c.descricao && <p>{c.descricao}</p>}
+              <div class="card__rodape">
+                {c.preco && <span class="card__preco">{c.preco}</span>}
+                {c.link_inscricao && <a href={c.link_inscricao} target="_blank" rel="noopener" class="botao botao--secundario">Inscrever-se</a>}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .card__local { font-size: 0.85rem; opacity: 0.7; margin-bottom: 8px; }
+  .card__links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .card__rodape { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+  .card__preco { font-family: var(--fonte-display); color: var(--verde-escuro); }
+</style>

@@ -1,0 +1,44 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+import type { Artigo } from '../../lib/supabase';
+
+export async function getStaticPaths() {
+  const { data: artigos } = await supabase.from('artigos').select('slug') as { data: { slug: string }[] | null };
+  return (artigos ?? []).map((a) => ({ params: { slug: a.slug } }));
+}
+
+const { slug } = Astro.params;
+const { data: artigo } = await supabase
+  .from('artigos')
+  .select('*')
+  .eq('slug', slug)
+  .single() as { data: Artigo | null };
+---
+<Layout titulo={artigo?.titulo || 'Artigo'} descricao={artigo?.resumo || undefined}>
+  {artigo ? (
+    <article class="secao">
+      <div class="container artigo">
+        <a href="/guias" class="voltar">← Guias & Dicas</a>
+        <h1>{artigo.titulo}</h1>
+        {artigo.autor && <p class="artigo__meta">Por {artigo.autor}</p>}
+        {artigo.imagem_capa_url && <img src={artigo.imagem_capa_url} alt={artigo.titulo} class="artigo__capa" />}
+        <div class="artigo__conteudo" set:html={artigo.conteudo} />
+      </div>
+    </article>
+  ) : (
+    <div class="container secao">
+      <h1>Artigo não encontrado</h1>
+      <a href="/guias">Voltar para Guias & Dicas</a>
+    </div>
+  )}
+</Layout>
+
+<style>
+  .artigo { max-width: 760px; }
+  .voltar { display: inline-block; margin-bottom: 20px; font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.85rem; }
+  .artigo__meta { opacity: 0.7; margin-top: -8px; }
+  .artigo__capa { border-radius: var(--raio); margin: 20px 0; box-shadow: var(--sombra); }
+  .artigo__conteudo { font-size: 1.05rem; }
+  .artigo__conteudo :global(h2) { margin-top: 1.4em; }
+</style>

@@ -1,0 +1,106 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
+---
+<Layout titulo="Contato" descricao="Fale com o time do Climbeiros.">
+  <section class="secao">
+    <div class="container contato">
+      <div>
+        <p class="eyebrow">Fale com a gente</p>
+        <h1>Sua academia, curso ou setor não está no site?</h1>
+        <p>Manda uma mensagem que a gente cadastra. Também recebemos sugestões de parceria e correções.</p>
+      </div>
+
+      <form id="form-contato" class="form-contato">
+        <label>
+          Nome
+          <input type="text" name="nome" required />
+        </label>
+        <label>
+          E-mail
+          <input type="email" name="email" required />
+        </label>
+        <label>
+          Mensagem
+          <textarea name="mensagem" rows="5" required></textarea>
+        </label>
+        <button type="submit" class="botao">Enviar mensagem</button>
+        <p id="form-status" class="form-status" role="status"></p>
+      </form>
+    </div>
+  </section>
+</Layout>
+
+<script define:vars={{ supabaseUrl, supabaseKey }}>
+  import('@supabase/supabase-js').then(({ createClient }) => {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const form = document.getElementById('form-contato');
+    const status = document.getElementById('form-status');
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const dados = new FormData(form);
+      const botao = form.querySelector('button');
+      botao.disabled = true;
+      status.textContent = 'Enviando...';
+
+      const { error } = await supabase.from('mensagens_contato').insert({
+        nome: dados.get('nome'),
+        email: dados.get('email'),
+        mensagem: dados.get('mensagem'),
+      });
+
+      if (error) {
+        status.textContent = 'Não foi possível enviar agora. Tenta de novo em instantes.';
+      } else {
+        status.textContent = 'Mensagem enviada! Vamos te responder em breve.';
+        form.reset();
+      }
+      botao.disabled = false;
+    });
+  });
+</script>
+
+<style>
+  .contato {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  .form-contato {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--creme-claro);
+    padding: 28px;
+    border-radius: var(--raio);
+  }
+  .form-contato label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    color: var(--verde-escuro);
+    letter-spacing: 0.03em;
+  }
+  .form-contato input,
+  .form-contato textarea {
+    font-family: var(--fonte-corpo);
+    font-size: 1rem;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(42,31,22,0.2);
+    color: var(--marrom);
+  }
+  .form-contato button { align-self: flex-start; }
+  .form-status { font-size: 0.9rem; min-height: 1.2em; margin: 0; }
+
+  @media (max-width: 760px) {
+    .contato { grid-template-columns: 1fr; }
+  }
+</style>

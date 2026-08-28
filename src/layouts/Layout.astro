@@ -1,0 +1,35 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+interface Props {
+  titulo: string;
+  descricao?: string;
+}
+const {
+  titulo,
+  descricao = 'Climbeiros — o hub da comunidade de escalada no Brasil: academias, cursos, rotas, guias e parcerias.',
+} = Astro.props;
+---
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <title>{titulo} · Climbeiros</title>
+    <meta name="description" content={descricao} />
+    <meta property="og:title" content={`${titulo} · Climbeiros`} />
+    <meta property="og:description" content={descricao} />
+    <meta property="og:image" content="/logo.png" />
+    <meta name="theme-color" content="#3D5439" />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
