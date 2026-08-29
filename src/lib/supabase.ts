@@ -12,6 +12,7 @@ export type Academia = {
   cidade: string;
   estado: string | null;
   endereco: string | null;
+  Modalidades: string | null;
   telefone: string | null;
   whatsapp: string | null;
   website: string | null;
