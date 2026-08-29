@@ -23,10 +23,25 @@ const { data: cursos } = await supabase
         <p>Ainda estamos cadastrando as primeiras academias. Volte em breve!</p>
       )}
 
-      <div class="grade grade--3">
+      {academias && academias.length > 0 && (
+        <>
+          <div class="busca-local" data-busca-grupo="academias">
+            <input
+              type="text"
+              class="busca-input"
+              placeholder="Buscar por cidade ou CEP..."
+              aria-label="Buscar academias por cidade ou CEP"
+            />
+            <button type="button" class="botao busca-botao">Buscar</button>
+            <button type="button" class="botao botao--secundario busca-limpar" hidden>Limpar</button>
+          </div>
+          <p class="busca-status" role="status"></p>
+        </>
+      )}
+
+      <div class="grade grade--3" data-busca-lista="academias">
         {academias?.map((a) => (
-          <article class="card">
-            <img class="card__imagem" src={a.imagem_url || '/logo.png'} alt={a.nome} />
+          <article class="card" data-cidade={(a.cidade || '').toLowerCase()}>
             <div class="card__corpo">
               <h3>{a.nome}</h3>
               <p class="card__local">{a.cidade}{a.estado ? `, ${a.estado}` : ''}</p>
@@ -52,10 +67,25 @@ const { data: cursos } = await supabase
         <p>Ainda estamos cadastrando os primeiros cursos. Volte em breve!</p>
       )}
 
-      <div class="grade grade--3">
+      {cursos && cursos.length > 0 && (
+        <>
+          <div class="busca-local" data-busca-grupo="cursos">
+            <input
+              type="text"
+              class="busca-input"
+              placeholder="Buscar por cidade ou CEP..."
+              aria-label="Buscar cursos por cidade ou CEP"
+            />
+            <button type="button" class="botao busca-botao">Buscar</button>
+            <button type="button" class="botao botao--secundario busca-limpar" hidden>Limpar</button>
+          </div>
+          <p class="busca-status" role="status"></p>
+        </>
+      )}
+
+      <div class="grade grade--3" data-busca-lista="cursos">
         {cursos?.map((c) => (
-          <article class="card">
-            <img class="card__imagem" src={c.imagem_url || '/logo.png'} alt={c.nome} />
+          <article class="card" data-cidade={(c.cidade || '').toLowerCase()}>
             <div class="card__corpo">
               {c.nivel && <span class="etiqueta">{c.nivel}</span>}
               <h3>{c.nome}</h3>
@@ -69,13 +99,130 @@ const { data: cursos } = await supabase
           </article>
         ))}
       </div>
+      <p class="busca-obs">Cursos online aparecem sempre, independente da cidade buscada.</p>
     </div>
   </section>
 </Layout>
+
+<script>
+  function normalizar(texto: string) {
+    return texto
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
+
+  async function buscarCidadePorCep(cep: string) {
+    const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const dados = await resposta.json();
+    if (dados.erro) return null;
+    return dados.localidade as string;
+  }
+
+  // Configura a busca de forma independente para cada grupo (academias e cursos),
+  // já que as duas seções da página têm sua própria barra de busca e sua própria lista.
+  document.querySelectorAll<HTMLElement>('[data-busca-grupo]').forEach((grupo) => {
+    const nomeGrupo = grupo.dataset.buscaGrupo;
+    const lista = document.querySelector<HTMLElement>(`[data-busca-lista="${nomeGrupo}"]`);
+    const input = grupo.querySelector<HTMLInputElement>('.busca-input');
+    const botaoBuscar = grupo.querySelector('.busca-botao');
+    const botaoLimpar = grupo.querySelector('.busca-limpar');
+    const status = grupo.nextElementSibling?.classList.contains('busca-status')
+      ? (grupo.nextElementSibling as HTMLElement)
+      : null;
+
+    if (!lista || !input) return;
+
+    function filtrar(cidade: string) {
+      const termo = normalizar(cidade);
+      let visiveis = 0;
+      lista?.querySelectorAll<HTMLElement>('.card').forEach((card) => {
+        const cidadeCard = normalizar(card.dataset.cidade || '');
+        const semCidade = !card.dataset.cidade;
+        // Itens sem cidade (ex: cursos online) continuam sempre visíveis.
+        const bate = !termo || semCidade || cidadeCard.includes(termo);
+        card.hidden = !bate;
+        if (bate) visiveis++;
+      });
+      return visiveis;
+    }
+
+    async function executarBusca() {
+      const valor = input.value.trim();
+      if (!valor) {
+        filtrar('');
+        if (status) status.textContent = '';
+        botaoLimpar?.setAttribute('hidden', '');
+        return;
+      }
+
+      const somenteNumeros = valor.replace(/\D/g, '');
+      let cidadeParaFiltrar = valor;
+
+      if (somenteNumeros.length === 8) {
+        if (status) status.textContent = 'Buscando cidade pelo CEP...';
+        const cidade = await buscarCidadePorCep(somenteNumeros);
+        if (!cidade) {
+          if (status) status.textContent = 'CEP não encontrado. Tente digitar o nome da cidade.';
+          return;
+        }
+        cidadeParaFiltrar = cidade;
+      }
+
+      const encontrados = filtrar(cidadeParaFiltrar);
+      if (status) {
+        status.textContent = encontrados > 0
+          ? `${encontrados} resultado(s) para ${cidadeParaFiltrar}.`
+          : `Nada encontrado em ${cidadeParaFiltrar} ainda.`;
+      }
+      botaoLimpar?.removeAttribute('hidden');
+    }
+
+    botaoBuscar?.addEventListener('click', executarBusca);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') executarBusca();
+    });
+    botaoLimpar?.addEventListener('click', () => {
+      input.value = '';
+      filtrar('');
+      if (status) status.textContent = '';
+      botaoLimpar.setAttribute('hidden', '');
+    });
+  });
+</script>
 
 <style>
   .card__local { font-size: 0.85rem; opacity: 0.7; margin-bottom: 8px; }
   .card__links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
   .card__rodape { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
   .card__preco { font-family: var(--fonte-display); color: var(--verde-escuro); }
+
+  .busca-local {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 20px 0 8px;
+  }
+  .busca-local input {
+    flex: 1;
+    min-width: 220px;
+    font-family: var(--fonte-corpo);
+    font-size: 1rem;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(42,31,22,0.25);
+    color: var(--marrom);
+  }
+  .busca-status {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 24px;
+    min-height: 1.2em;
+  }
+  .busca-obs {
+    font-size: 0.85rem;
+    opacity: 0.65;
+    margin-top: 20px;
+  }
 </style>
