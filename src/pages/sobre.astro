@@ -4,7 +4,7 @@ import { getSiteConfig } from '../lib/supabase';
 
 const config = await getSiteConfig();
 const texto = config.sobre_texto ||
-  'O Climbeiros nasceu da vontade de um grupo de amigos de reunir, num só lugar, tudo que a comunidade de escalada no Brasil precisa: onde treinar, onde aprender, quais vias vale a pena pegar e quem são as marcas que realmente apoiam quem escala.';
+  'Os Climbeiros nasceu da vontade de um grupo de amigos de reunir, num só lugar, tudo que a comunidade de escalada no Brasil precisa: onde treinar, onde aprender, quais vias vale a pena pegar e quem são as marcas que realmente apoiam quem escala.';
 const fotoGrupo = config.sobre_foto_grupo || '/logo.png';
 ---
 <Layout titulo="Sobre" descricao="Conheça a história e o time por trás do Climbeiros.">
