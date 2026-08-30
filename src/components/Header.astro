@@ -16,12 +16,9 @@ const path = Astro.url.pathname;
     <a href="/" class="header__marca">
       <img src="/logo.png" alt="Climbeiros" class="header__logo" />
     </a>
+
     <nav class="header__nav" aria-label="Navegação principal">
-      <button class="header__menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu-lista">
-        <span class="visually-hidden">Abrir menu</span>
-        ☰
-      </button>
-      <ul class="header__lista" id="menu-lista">
+      <ul class="header__lista header__lista--desktop">
         {links.map((link) => (
           <li>
             <a
@@ -34,7 +31,25 @@ const path = Astro.url.pathname;
         ))}
       </ul>
     </nav>
+
+    <button class="header__menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu-lista-mobile">
+      <span class="visually-hidden">Abrir menu</span>
+      ☰
+    </button>
   </div>
+
+  <ul class="header__lista header__lista--mobile" id="menu-lista-mobile">
+    {links.map((link) => (
+      <li>
+        <a
+          href={link.href}
+          class:list={['header__link', { 'header__link--ativo': path === link.href }]}
+        >
+          {link.label}
+        </a>
+      </li>
+    ))}
+  </ul>
 </header>
 
 <style>
@@ -48,14 +63,18 @@ const path = Astro.url.pathname;
   .header__linha {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 24px;
     padding-top: 4px;
     padding-bottom: 4px;
   }
+  .header__marca { flex-shrink: 0; }
   .header__logo {
     height: 60px;
     width: auto;
+    display: block;
   }
+  .header__nav { flex: 1; min-width: 0; }
   .header__menu-btn {
     display: none;
     background: none;
@@ -66,11 +85,12 @@ const path = Astro.url.pathname;
   }
   .header__lista {
     display: flex;
-    gap: 24px;
+    gap: 22px;
     list-style: none;
     margin: 0;
     padding: 0;
     align-items: center;
+    flex-wrap: wrap;
   }
   .header__lista li {
     display: flex;
@@ -79,6 +99,7 @@ const path = Astro.url.pathname;
     text-align: center;
     min-height: 60px;
   }
+  .header__lista--mobile { display: none; }
   .header__link {
     font-family: var(--fonte-display);
     text-transform: uppercase;
@@ -86,15 +107,17 @@ const path = Astro.url.pathname;
     font-size: 0.85rem;
     color: var(--creme-claro);
     line-height: 1.25;
+    white-space: nowrap;
   }
   .header__link:hover { color: var(--amarelo); text-decoration: none; }
   .header__link--ativo { color: var(--amarelo); }
 
-  @media (max-width: 760px) {
+  @media (max-width: 900px) {
+    .header__nav { display: none; }
     .header__menu-btn { display: block; }
+    .header__linha { justify-content: space-between; }
     .header__logo { height: 56px; }
-    .header__lista {
-      display: none;
+    .header__lista--mobile {
       position: absolute;
       top: 100%;
       left: 0;
@@ -104,14 +127,15 @@ const path = Astro.url.pathname;
       gap: 0;
       padding: 8px 24px 20px;
     }
-    .header__lista--aberta { display: flex; }
-    .header__link { display: block; padding: 10px 0; }
+    .header__lista--mobile.header__lista--aberta { display: flex; }
+    .header__lista--mobile .header__link { display: block; padding: 10px 0; white-space: normal; }
+    .header__lista--mobile li { min-height: auto; justify-content: flex-start; text-align: left; }
   }
 </style>
 
 <script>
   const btn = document.getElementById('menu-btn');
-  const lista = document.getElementById('menu-lista');
+  const lista = document.getElementById('menu-lista-mobile');
   btn?.addEventListener('click', () => {
     const aberto = lista?.classList.toggle('header__lista--aberta');
     btn.setAttribute('aria-expanded', aberto ? 'true' : 'false');
