@@ -7,7 +7,7 @@ export async function getStaticPaths() {
   const { data: artigos } = await supabase
     .from('artigos')
     .select('slug')
-    .neq('categoria', 'escalada101') as { data: { slug: string }[] | null };
+    .eq('categoria', 'crux') as { data: { slug: string }[] | null };
   return (artigos ?? []).map((a) => ({ params: { slug: a.slug } }));
 }
 
@@ -16,7 +16,7 @@ const { data: artigo } = await supabase
   .from('artigos')
   .select('*')
   .eq('slug', slug)
-  .neq('categoria', 'escalada101')
+  .eq('categoria', 'crux')
   .single() as { data: Artigo | null };
 ---
 <Layout titulo={artigo?.titulo || 'Artigo'} descricao={artigo?.resumo || undefined}>

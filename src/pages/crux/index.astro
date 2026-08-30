@@ -6,14 +6,8 @@ import type { Artigo } from '../../lib/supabase';
 const { data: artigos } = await supabase
   .from('artigos')
   .select('*')
-  .neq('categoria', 'escalada101')
+  .eq('categoria', 'crux')
   .order('publicado_em', { ascending: false }) as { data: Artigo[] | null };
-
-const rotuloCategoria: Record<string, string> = {
-  guia: 'Guia',
-  dica: 'Dica',
-  noticia: 'Notícia',
-};
 ---
 <Layout titulo="Crux" descricao="Conteúdo pra quem já escala e quer ir além do básico — guias, dicas e novidades da comunidade Climbeiros.">
   <section class="secao">
@@ -30,7 +24,6 @@ const rotuloCategoria: Record<string, string> = {
           <a href={`/crux/${artigo.slug}`} class="card artigo-card">
             <img class="card__imagem" src={artigo.imagem_capa_url || '/logo.png'} alt={artigo.titulo} />
             <div class="card__corpo">
-              {artigo.categoria && <span class="etiqueta">{rotuloCategoria[artigo.categoria] || artigo.categoria}</span>}
               <h3>{artigo.titulo}</h3>
               {artigo.resumo && <p>{artigo.resumo}</p>}
               {artigo.autor && <p class="artigo-card__autor">Por {artigo.autor}</p>}
