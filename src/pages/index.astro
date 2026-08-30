@@ -8,11 +8,10 @@ const headline = config.home_headline || 'Amigos que escalam juntos';
 const fotoCapa = config.home_foto_capa || '/hero-capa.jpg';
 
 const destaques = [
-  { titulo: 'Sobre', texto: 'Quem são os Climbeiros.', href: '/sobre', cor: 'var(--verde)' },
-  { titulo: 'Escalada 101', texto: 'O básico pra quem tá começando.', href: '/escalada101', cor: 'var(--laranja)' },
+  { titulo: 'Sobre', texto: 'Quem é o Climbeiros.', href: '/sobre', cor: 'var(--verde)' },
+  { titulo: 'Beta', texto: 'Do 101 pra quem começa até o Crux pra quem já escala.', href: '/beta', cor: 'var(--laranja)' },
   { titulo: 'Academias & Cursos', texto: 'Onde treinar e onde aprender.', href: '/academias', cor: 'var(--amarelo)' },
   { titulo: 'Rotas & Setores', texto: 'Encontre vias e croquis pelo Brasil.', href: '/rotas', cor: 'var(--verde)' },
-  { titulo: 'Guias & Dicas', texto: 'Aprenda com quem já pegou a via.', href: '/guias', cor: 'var(--laranja)' },
   { titulo: 'Cupons & Parcerias', texto: 'Descontos com marcas parceiras.', href: '/parceiros', cor: 'var(--verde-escuro)' },
   { titulo: 'Contato', texto: 'Fale com a gente.', href: '/contato', cor: 'var(--verde-escuro)' },
 ];
@@ -28,7 +27,7 @@ const destaques = [
       <h1 class="hero__titulo">{headline}</h1>
       <div class="hero__acoes">
         <a href="/rotas" class="botao">Ver rotas & setores</a>
-        <a href="/guias" class="botao botao--secundario" style="border-color: var(--creme-claro); color: var(--creme-claro);">Ler os guias</a>
+        <a href="/beta" class="botao botao--secundario" style="border-color: var(--creme-claro); color: var(--creme-claro);">Ver o Beta</a>
       </div>
     </div>
   </section>

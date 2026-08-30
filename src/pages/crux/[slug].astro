@@ -4,7 +4,10 @@ import { supabase } from '../../lib/supabase';
 import type { Artigo } from '../../lib/supabase';
 
 export async function getStaticPaths() {
-  const { data: artigos } = await supabase.from('artigos').select('slug') as { data: { slug: string }[] | null };
+  const { data: artigos } = await supabase
+    .from('artigos')
+    .select('slug')
+    .neq('categoria', 'escalada101') as { data: { slug: string }[] | null };
   return (artigos ?? []).map((a) => ({ params: { slug: a.slug } }));
 }
 
@@ -13,13 +16,14 @@ const { data: artigo } = await supabase
   .from('artigos')
   .select('*')
   .eq('slug', slug)
+  .neq('categoria', 'escalada101')
   .single() as { data: Artigo | null };
 ---
 <Layout titulo={artigo?.titulo || 'Artigo'} descricao={artigo?.resumo || undefined}>
   {artigo ? (
     <article class="secao">
       <div class="container artigo">
-        <a href="/guias" class="voltar">← Guias & Dicas</a>
+        <a href="/crux" class="voltar">← Crux</a>
         <h1>{artigo.titulo}</h1>
         {artigo.autor && <p class="artigo__meta">Por {artigo.autor}</p>}
         {artigo.imagem_capa_url && <img src={artigo.imagem_capa_url} alt={artigo.titulo} class="artigo__capa" />}
@@ -29,7 +33,7 @@ const { data: artigo } = await supabase
   ) : (
     <div class="container secao">
       <h1>Artigo não encontrado</h1>
-      <a href="/guias">Voltar para Guias & Dicas</a>
+      <a href="/crux">Voltar para Crux</a>
     </div>
   )}
 </Layout>

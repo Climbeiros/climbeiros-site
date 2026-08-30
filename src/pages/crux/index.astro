@@ -6,6 +6,7 @@ import type { Artigo } from '../../lib/supabase';
 const { data: artigos } = await supabase
   .from('artigos')
   .select('*')
+  .neq('categoria', 'escalada101')
   .order('publicado_em', { ascending: false }) as { data: Artigo[] | null };
 
 const rotuloCategoria: Record<string, string> = {
@@ -14,11 +15,11 @@ const rotuloCategoria: Record<string, string> = {
   noticia: 'Notícia',
 };
 ---
-<Layout titulo="Guias & Dicas" descricao="Guias práticos e dicas de escalada escritos pela comunidade Climbeiros.">
+<Layout titulo="Crux" descricao="Conteúdo pra quem já escala e quer ir além do básico — guias, dicas e novidades da comunidade Climbeiros.">
   <section class="secao">
     <div class="container">
-      <p class="eyebrow">Aprenda com quem já pegou a via</p>
-      <h1>Guias & Dicas</h1>
+      <p class="eyebrow">Pra quem já pega a parte difícil da via</p>
+      <h1>Crux</h1>
 
       {(!artigos || artigos.length === 0) && (
         <p>Ainda estamos escrevendo os primeiros artigos. Volte em breve!</p>
@@ -26,7 +27,7 @@ const rotuloCategoria: Record<string, string> = {
 
       <div class="grade grade--3">
         {artigos?.map((artigo) => (
-          <a href={`/guias/${artigo.slug}`} class="card artigo-card">
+          <a href={`/crux/${artigo.slug}`} class="card artigo-card">
             <img class="card__imagem" src={artigo.imagem_capa_url || '/logo.png'} alt={artigo.titulo} />
             <div class="card__corpo">
               {artigo.categoria && <span class="etiqueta">{rotuloCategoria[artigo.categoria] || artigo.categoria}</span>}

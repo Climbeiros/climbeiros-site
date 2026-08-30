@@ -1,0 +1,60 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+<Layout titulo="Beta" descricao="Conteúdo pra todo nível: dos fundamentos da escalada (Escalada 101) até dicas mais avançadas pra quem já pega a parte difícil da via (Crux).">
+  <section class="pagina-hero">
+    <div class="pagina-hero__contorno" aria-hidden="true"></div>
+    <div class="container pagina-hero__conteudo">
+      <span class="eyebrow">Conteúdo Climbeiros</span>
+      <h1>Beta</h1>
+      <p class="lead">Na escalada, dar um "beta" é passar a dica de como fazer uma via. É exatamente isso que essa seção faz — só que pro esporte inteiro. Escolha por onde começar:</p>
+    </div>
+  </section>
+
+  <section class="secao">
+    <div class="container">
+      <div class="grade grade--2 beta-grade">
+        <a href="/escalada101" class="beta-card">
+          <span class="eyebrow">Pra quem tá começando</span>
+          <h2>Escalada 101</h2>
+          <p>O básico que todo escalador precisa saber, sem enrolação: tipos de escalada, graduação de vias e equipamentos.</p>
+          <span class="beta-card__seta">Começar por aqui →</span>
+        </a>
+
+        <a href="/crux" class="beta-card beta-card--crux">
+          <span class="eyebrow">Pra quem já escala</span>
+          <h2>Crux</h2>
+          <p>Conteúdo pra ir além do básico — dicas mais avançadas, guias práticos e novidades da comunidade.</p>
+          <span class="beta-card__seta">Ver os artigos →</span>
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .beta-grade { max-width: 980px; margin: 0 auto; }
+  .beta-card {
+    display: block;
+    background: var(--branco);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    border: 1px solid rgba(42,31,22,0.08);
+    padding: 32px;
+    color: var(--marrom);
+    border-top: 4px solid var(--laranja);
+    transition: transform 0.15s ease;
+  }
+  .beta-card--crux { border-top-color: var(--verde-escuro); }
+  .beta-card:hover { transform: translateY(-4px); text-decoration: none; }
+  .beta-card h2 { margin: 4px 0 12px; }
+  .beta-card p { opacity: 0.85; margin-bottom: 20px; }
+  .beta-card__seta {
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    color: var(--laranja);
+  }
+  .beta-card--crux .beta-card__seta { color: var(--verde-escuro); }
+</style>
