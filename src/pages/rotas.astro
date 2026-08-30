@@ -1,23 +1,45 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
-import type { Setor, Rota } from '../lib/supabase';
+import type { Setor } from '../lib/supabase';
 
-const { data: setores } = await supabase.from('setores').select('*').order('nome') as { data: Setor[] | null };
-const { data: rotas } = await supabase.from('rotas').select('*').order('nome') as { data: Rota[] | null };
+const { data: setores } = await supabase
+  .from('setores')
+  .select('*')
+  .order('estado')
+  .order('cidade')
+  .order('nome') as { data: Setor[] | null };
 
 const setoresComCoordenadas = (setores ?? []).filter((s) => s.latitude && s.longitude);
 
-function rotasDoSetor(setorId: string) {
-  return (rotas ?? []).filter((r) => r.setor_id === setorId);
-}
+const rotuloCroqui: Record<string, string> = {
+  link: 'Ver croqui (site)',
+  pdf: 'Abrir croqui (PDF)',
+  foto: 'Ver croqui (foto)',
+};
 ---
 <Layout titulo="Rotas & Setores" descricao="Setores e vias de escalada catalogados pela comunidade Climbeiros.">
   <section class="secao">
     <div class="container">
       <p class="eyebrow">Onde escalar</p>
       <h1>Rotas & Setores</h1>
-      <p>Explore os setores catalogados pela comunidade — cada ficha traz grau, tipo de via e croqui, quando disponível.</p>
+      <p>Explore os locais de escalada catalogados pela comunidade, com a orientação de croqui de cada um. Clique num pin do mapa ou busque por cidade/CEP pra filtrar.</p>
+
+      {setores && setores.length > 0 && (
+        <>
+          <div class="busca-local">
+            <input
+              type="text"
+              id="busca-cidade"
+              placeholder="Buscar por cidade ou CEP..."
+              aria-label="Buscar setores por cidade ou CEP"
+            />
+            <button type="button" id="busca-botao" class="botao">Buscar</button>
+            <button type="button" id="busca-limpar" class="botao botao--secundario" hidden>Limpar</button>
+          </div>
+          <p id="busca-status" class="busca-status" role="status"></p>
+        </>
+      )}
     </div>
 
     {setoresComCoordenadas.length > 0 && (
@@ -31,39 +53,24 @@ function rotasDoSetor(setorId: string) {
         <p>Ainda estamos catalogando os primeiros setores. Volte em breve!</p>
       )}
 
-      <div class="lista-setores">
+      <div class="lista-setores" id="lista-setores">
         {setores?.map((setor) => (
-          <article class="setor-card" id={`setor-${setor.id}`}>
+          <article class="setor-card" id={`setor-${setor.id}`} data-cidade={(setor.cidade || '').toLowerCase()}>
             <div class="setor-card__cabecalho">
               <div>
                 <h2>{setor.nome}</h2>
                 <p class="setor-card__local">{[setor.regiao, setor.cidade, setor.estado].filter(Boolean).join(' · ')}</p>
               </div>
-              <span class="etiqueta">{rotasDoSetor(setor.id).length} via(s)</span>
             </div>
             {setor.descricao && <p>{setor.descricao}</p>}
 
-            {rotasDoSetor(setor.id).length > 0 && (
-              <table class="tabela-rotas">
-                <thead>
-                  <tr>
-                    <th>Via</th>
-                    <th>Grau</th>
-                    <th>Tipo</th>
-                    <th>Enfiadas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rotasDoSetor(setor.id).map((rota) => (
-                    <tr>
-                      <td>{rota.nome}</td>
-                      <td>{rota.grau || '—'}</td>
-                      <td>{rota.tipo || '—'}</td>
-                      <td>{rota.numero_enfiadas ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {setor.croqui_tipo === 'referencia' && setor.croqui_texto && (
+              <p class="setor-card__croqui-ref">📍 Croqui: {setor.croqui_texto}</p>
+            )}
+            {setor.croqui_tipo && setor.croqui_tipo !== 'referencia' && setor.croqui_url && (
+              <a href={setor.croqui_url} target="_blank" rel="noopener" class="botao botao--secundario setor-card__croqui-link">
+                {rotuloCroqui[setor.croqui_tipo] || 'Ver croqui'}
+              </a>
             )}
           </article>
         ))}
@@ -72,10 +79,112 @@ function rotasDoSetor(setorId: string) {
   </section>
 </Layout>
 
-{setoresComCoordenadas.length > 0 && (
-  <script define:vars={{ setores: setoresComCoordenadas }}>
-    import('leaflet').then((L) => {
-      const mapa = L.map('mapa').setView([setores[0].latitude, setores[0].longitude], 6);
+<script define:vars={{ setores: setoresComCoordenadas }}>
+  let mapa;
+  let L;
+  const marcadores = {}; // setor id -> Leaflet marker
+
+  function normalizar(texto) {
+    return texto
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
+
+  async function buscarCidadePorCep(cep) {
+    const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const dados = await resposta.json();
+    if (dados.erro) return null;
+    return dados.localidade;
+  }
+
+  function filtrar(cidade) {
+    const termo = normalizar(cidade);
+    let visiveis = 0;
+    const idsVisiveis = new Set();
+
+    document.querySelectorAll('#lista-setores .setor-card').forEach((card) => {
+      const cidadeCard = normalizar(card.dataset.cidade || '');
+      const bate = !termo || cidadeCard.includes(termo);
+      card.hidden = !bate;
+      if (bate) {
+        visiveis++;
+        idsVisiveis.add(card.id.replace('setor-', ''));
+      }
+    });
+
+    // Atualiza os pins do mapa junto com os cards
+    if (mapa) {
+      const bounds = [];
+      Object.entries(marcadores).forEach(([id, marker]) => {
+        if (idsVisiveis.has(id)) {
+          if (!mapa.hasLayer(marker)) marker.addTo(mapa);
+          bounds.push(marker.getLatLng());
+        } else {
+          mapa.removeLayer(marker);
+        }
+      });
+      if (bounds.length === 1) {
+        mapa.setView(bounds[0], 11);
+      } else if (bounds.length > 1) {
+        mapa.fitBounds(bounds, { padding: [30, 30] });
+      }
+    }
+
+    return visiveis;
+  }
+
+  const input = document.getElementById('busca-cidade');
+  const botaoBuscar = document.getElementById('busca-botao');
+  const botaoLimpar = document.getElementById('busca-limpar');
+  const status = document.getElementById('busca-status');
+
+  async function executarBusca() {
+    if (!input || !status) return;
+    const valor = input.value.trim();
+    if (!valor) {
+      filtrar('');
+      status.textContent = '';
+      botaoLimpar?.setAttribute('hidden', '');
+      return;
+    }
+
+    const somenteNumeros = valor.replace(/\D/g, '');
+    let cidadeParaFiltrar = valor;
+
+    if (somenteNumeros.length === 8) {
+      status.textContent = 'Buscando cidade pelo CEP...';
+      const cidade = await buscarCidadePorCep(somenteNumeros);
+      if (!cidade) {
+        status.textContent = 'CEP não encontrado. Tente digitar o nome da cidade.';
+        return;
+      }
+      cidadeParaFiltrar = cidade;
+    }
+
+    const encontrados = filtrar(cidadeParaFiltrar);
+    status.textContent = encontrados > 0
+      ? `${encontrados} setor(es) encontrado(s) em ${cidadeParaFiltrar}.`
+      : `Nenhum setor encontrado em ${cidadeParaFiltrar} ainda.`;
+    botaoLimpar?.removeAttribute('hidden');
+  }
+
+  botaoBuscar?.addEventListener('click', executarBusca);
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') executarBusca();
+  });
+  botaoLimpar?.addEventListener('click', () => {
+    if (input) input.value = '';
+    filtrar('');
+    if (status) status.textContent = '';
+    botaoLimpar?.setAttribute('hidden', '');
+  });
+
+  if (setores.length > 0) {
+    import('leaflet').then((mod) => {
+      L = mod;
+      mapa = L.map('mapa').setView([setores[0].latitude, setores[0].longitude], 6);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
       }).addTo(mapa);
@@ -83,23 +192,46 @@ function rotasDoSetor(setorId: string) {
       const bounds = [];
       setores.forEach((s) => {
         const marker = L.marker([s.latitude, s.longitude]).addTo(mapa);
-        marker.bindPopup(`<strong>${s.nome}</strong><br/><a href="#setor-${s.id}">Ver vias</a>`);
+        marker.bindPopup(`<strong>${s.nome}</strong><br/><a href="#setor-${s.id}">Ver detalhes</a>`);
+        marcadores[s.id] = marker;
         bounds.push([s.latitude, s.longitude]);
       });
       if (bounds.length > 1) mapa.fitBounds(bounds, { padding: [30, 30] });
     });
-  </script>
-)}
+  }
+</script>
 
 <style is:global>
   @import 'leaflet/dist/leaflet.css';
 </style>
 
 <style>
+  .busca-local {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 20px 0 8px;
+  }
+  .busca-local input {
+    flex: 1;
+    min-width: 220px;
+    font-family: var(--fonte-corpo);
+    font-size: 1rem;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(42,31,22,0.25);
+    color: var(--marrom);
+  }
+  .busca-status {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 8px;
+    min-height: 1.2em;
+  }
   .mapa {
     height: 380px;
     border-radius: var(--raio);
-    margin: 28px 0 40px;
+    margin: 12px 0 40px;
     box-shadow: var(--sombra);
   }
   .lista-setores {
@@ -121,24 +253,6 @@ function rotasDoSetor(setorId: string) {
     gap: 12px;
   }
   .setor-card__local { opacity: 0.7; font-size: 0.9rem; margin-top: -8px; }
-  .tabela-rotas {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 16px;
-    font-size: 0.9rem;
-  }
-  .tabela-rotas th {
-    text-align: left;
-    font-family: var(--fonte-display);
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
-    color: var(--verde-escuro);
-    border-bottom: 2px solid var(--creme);
-    padding: 6px 8px;
-  }
-  .tabela-rotas td {
-    padding: 8px;
-    border-bottom: 1px solid rgba(42,31,22,0.08);
-  }
+  .setor-card__croqui-ref { font-size: 0.9rem; opacity: 0.8; font-style: italic; }
+  .setor-card__croqui-link { margin-top: 4px; }
 </style>
