@@ -43,6 +43,17 @@ export type Setor = {
   latitude: number | null;
   longitude: number | null;
   descricao: string | null;
+  croqui_tipo: 'link' | 'pdf' | 'foto' | 'referencia' | null;
+  croqui_url: string | null;
+  croqui_texto: string | null;
+};
+
+export type Croqui = {
+  id: string;
+  setor_id: string;
+  tipo: 'link' | 'pdf' | 'foto' | 'referencia';
+  url: string | null;
+  texto: string | null;
 };
 
 export type Rota = {

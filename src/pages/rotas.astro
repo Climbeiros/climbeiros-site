@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
-import type { Setor } from '../lib/supabase';
+import type { Setor, Croqui } from '../lib/supabase';
 
 const { data: setores } = await supabase
   .from('setores')
@@ -10,7 +10,13 @@ const { data: setores } = await supabase
   .order('cidade')
   .order('nome') as { data: Setor[] | null };
 
+const { data: croquis } = await supabase.from('croquis').select('*') as { data: Croqui[] | null };
+
 const setoresComCoordenadas = (setores ?? []).filter((s) => s.latitude && s.longitude);
+
+function croquisDoSetor(setorId: string) {
+  return (croquis ?? []).filter((c) => c.setor_id === setorId);
+}
 
 const rotuloCroqui: Record<string, string> = {
   link: 'Ver croqui (site)',
@@ -64,13 +70,18 @@ const rotuloCroqui: Record<string, string> = {
             </div>
             {setor.descricao && <p>{setor.descricao}</p>}
 
-            {setor.croqui_tipo === 'referencia' && setor.croqui_texto && (
-              <p class="setor-card__croqui-ref">📍 Croqui: {setor.croqui_texto}</p>
-            )}
-            {setor.croqui_tipo && setor.croqui_tipo !== 'referencia' && setor.croqui_url && (
-              <a href={setor.croqui_url} target="_blank" rel="noopener" class="botao botao--secundario setor-card__croqui-link">
-                {rotuloCroqui[setor.croqui_tipo] || 'Ver croqui'}
-              </a>
+            {croquisDoSetor(setor.id).length > 0 && (
+              <div class="setor-card__croquis">
+                {croquisDoSetor(setor.id).map((c) => (
+                  c.tipo === 'referencia' ? (
+                    <p class="setor-card__croqui-ref">📍 Croqui: {c.texto}</p>
+                  ) : (
+                    <a href={c.url ?? '#'} target="_blank" rel="noopener" class="botao botao--secundario setor-card__croqui-link">
+                      {rotuloCroqui[c.tipo] || 'Ver croqui'}
+                    </a>
+                  )
+                ))}
+              </div>
             )}
           </article>
         ))}
@@ -79,7 +90,10 @@ const rotuloCroqui: Record<string, string> = {
   </section>
 </Layout>
 
-<script define:vars={{ setores: setoresComCoordenadas }}>
+<script type="application/json" id="dados-setores" set:html={JSON.stringify(setoresComCoordenadas)}></script>
+
+<script>
+  const setores = JSON.parse(document.getElementById('dados-setores')?.textContent || '[]');
   let mapa;
   let L;
   const marcadores = {}; // setor id -> Leaflet marker
@@ -254,5 +268,6 @@ const rotuloCroqui: Record<string, string> = {
   }
   .setor-card__local { opacity: 0.7; font-size: 0.9rem; margin-top: -8px; }
   .setor-card__croqui-ref { font-size: 0.9rem; opacity: 0.8; font-style: italic; }
-  .setor-card__croqui-link { margin-top: 4px; }
+  .setor-card__croquis { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .setor-card__croqui-link { margin-top: 0; }
 </style>
