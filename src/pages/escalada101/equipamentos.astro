@@ -1,0 +1,409 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+<Layout titulo="Equipamentos para Cada Modalidade" descricao="O que é essencial, o que dá pra alugar e o que só faz sentido comprar depois — boulder, esportiva, trad e mais.">
+  <section class="pagina-hero">
+    <div class="pagina-hero__contorno" aria-hidden="true"></div>
+    <div class="container pagina-hero__conteudo">
+      <a href="/escalada101" class="eyebrow">Escalada 101</a>
+      <h1>Equipamentos para Cada Modalidade</h1>
+      <p class="lead">Cada tipo de escalada pede uma mochila diferente. Escolha a modalidade abaixo e clique nas peças no boneco pra descobrir o que é cada uma.</p>
+    </div>
+  </section>
+
+<section class="secao">
+  <div class="container">
+
+    <div class="modalidade-tabs" id="tabs" role="tablist" aria-label="Escolher modalidade"></div>
+    <p class="modalidade-blurb" id="blurb"></p>
+
+    <div class="equip-layout">
+      <div class="boneco-wrap">
+        <svg class="boneco-svg" id="boneco" viewBox="0 0 300 540" role="img" aria-label="Boneco de escalador com equipamento clicável">
+          <defs>
+            <linearGradient id="gradPele" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" style="stop-color:var(--creme-claro)"/>
+              <stop offset="1" style="stop-color:var(--creme)"/>
+            </linearGradient>
+            <linearGradient id="gradCamisa" x1="0" y1="0" x2=".3" y2="1">
+              <stop offset="0" style="stop-color:#7c9a78"/>
+              <stop offset="1" style="stop-color:var(--verde)"/>
+            </linearGradient>
+            <linearGradient id="gradCalca" x1="0" y1="0" x2=".3" y2="1">
+              <stop offset="0" style="stop-color:#4c6947"/>
+              <stop offset="1" style="stop-color:var(--verde-escuro)"/>
+            </linearGradient>
+            <linearGradient id="gradSapato" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" style="stop-color:#4a382a"/>
+              <stop offset="1" style="stop-color:var(--marrom)"/>
+            </linearGradient>
+            <linearGradient id="gradCabelo" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" style="stop-color:#3d2e22"/>
+              <stop offset="1" style="stop-color:var(--marrom)"/>
+            </linearGradient>
+            <filter id="sombraPersonagem" x="-30%" y="-10%" width="160%" height="130%">
+              <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="var(--marrom)" flood-opacity=".22"/>
+            </filter>
+          </defs>
+
+          <!-- sombra no chão -->
+          <ellipse class="boneco-sombra" cx="150" cy="503" rx="88" ry="11"/>
+
+          <g filter="url(#sombraPersonagem)">
+
+          <!-- pernas (contorno + cor, traço grosso arredondado) -->
+          <path class="boneco-calca-out" d="M130,228 Q121,342 116,466"/>
+          <path class="boneco-calca-out" d="M170,228 Q179,342 184,466"/>
+          <path class="boneco-calca" d="M130,228 Q121,342 116,466"/>
+          <path class="boneco-calca" d="M170,228 Q179,342 184,466"/>
+          <path class="boneco-calca-sombra" d="M126,232 Q118,342 113,464"/>
+          <path class="boneco-calca-sombra" d="M174,232 Q182,342 187,464"/>
+
+          <!-- pés / tênis -->
+          <path class="boneco-sapato" d="M98,466 Q92,485 111,491 L132,491 Q137,479 130,468 Z"/>
+          <path class="boneco-sapato" d="M202,466 Q208,485 189,491 L168,491 Q163,479 170,468 Z"/>
+          <rect class="boneco-sapato-sola" x="97" y="485" width="36" height="6" rx="3"/>
+          <rect class="boneco-sapato-sola" x="167" y="485" width="36" height="6" rx="3"/>
+          <path class="boneco-sapato-cadarco" d="M104,474 L125,478 M107,481 L128,485"/>
+          <path class="boneco-sapato-cadarco" d="M196,474 L175,478 M193,481 L172,485"/>
+
+          <!-- braços (contorno + pele, traço grosso arredondado) -->
+          <path class="boneco-braco-out" d="M113,122 Q84,150 76,194 Q71,213 74,222"/>
+          <path class="boneco-braco-out" d="M187,122 Q216,150 224,194 Q229,213 226,222"/>
+          <path class="boneco-braco" d="M113,122 Q84,150 76,194 Q71,213 74,222"/>
+          <path class="boneco-braco" d="M187,122 Q216,150 224,194 Q229,213 226,222"/>
+          <circle class="boneco-pele" cx="74" cy="224" r="14"/>
+          <circle class="boneco-pele" cx="226" cy="224" r="14"/>
+          <path class="boneco-mao-linha" d="M69,227 Q74,232 79,227"/>
+          <path class="boneco-mao-linha" d="M221,227 Q226,232 231,227"/>
+
+          <!-- tronco / camiseta -->
+          <g id="camisa-grupo" aria-label="Roupa leve e confortável">
+            <circle class="gear-pulso" id="camisa-pulso" cx="150" cy="172" r="34" style="display:none"/>
+            <path class="boneco-camisa" d="M112,104 Q150,90 188,104 L181,232 Q150,246 119,232 Z"/>
+            <ellipse class="boneco-camisa" cx="113" cy="118" rx="17" ry="13" transform="rotate(-18 113 118)"/>
+            <ellipse class="boneco-camisa" cx="187" cy="118" rx="17" ry="13" transform="rotate(18 187 118)"/>
+            <path class="boneco-camisa-sombra" d="M181,110 Q186,168 176,228 Q166,234 158,238 Q172,178 168,106 Z"/>
+            <path class="boneco-colarinho" d="M136,100 L150,117 L164,100"/>
+          </g>
+
+          <!-- cabeça -->
+          <ellipse class="boneco-pele" cx="121" cy="64" rx="7" ry="9"/>
+          <ellipse class="boneco-pele" cx="179" cy="64" rx="7" ry="9"/>
+          <circle class="boneco-pele" cx="150" cy="60" r="30"/>
+          <path class="boneco-cabelo" d="M119,56 Q114,20 150,18 Q186,20 181,56 Q181,42 150,38 Q119,42 119,56 Z"/>
+          <circle class="boneco-bochecha" cx="133" cy="70" r="6"/>
+          <circle class="boneco-bochecha" cx="167" cy="70" r="6"/>
+          <path class="boneco-sobrancelha" d="M133,50 Q140,46 147,49"/>
+          <path class="boneco-sobrancelha" d="M153,49 Q160,46 167,50"/>
+          <circle class="boneco-olho" cx="140" cy="61" r="3.2"/>
+          <circle class="boneco-olho" cx="160" cy="61" r="3.2"/>
+          <circle class="boneco-olho-brilho" cx="141.3" cy="59.6" r="1"/>
+          <circle class="boneco-olho-brilho" cx="161.3" cy="59.6" r="1"/>
+          <path class="boneco-boca" d="M138,71 Q150,79 162,71"/>
+
+          <g id="gear-layer"></g>
+          </g>
+        </svg>
+        <p class="boneco-hint">Toque ou clique nos itens em laranja</p>
+      </div>
+
+      <div class="info-painel" id="info-painel">
+        <p class="info-painel__prompt">Clique em qualquer item do equipamento pra saber o que é.</p>
+      </div>
+    </div>
+
+    <div class="checklist-wrap">
+      <h3>Lista completa</h3>
+      <ul class="checklist" id="checklist"></ul>
+    </div>
+
+  </div>
+</section>
+
+<section class="secao secao--verde cta-final">
+  <div class="container">
+    <span class="eyebrow">Continue aprendendo</span>
+    <h2>Equipamento na mão, e agora?</h2>
+    <p class="lead" style="margin:0 auto">Volte pro Escalada 101 pra revisar os outros fundamentos, ou já vá procurar onde alugar ou comprar o que falta.</p>
+    <div class="botoes">
+      <a href="/escalada101" class="botao">Voltar pra Escalada 101</a>
+      <a href="/academias" class="botao botao--secundario">Ver academias &amp; cursos</a>
+    </div>
+  </div>
+</section>
+</Layout>
+
+<style is:global>
+/* ---- pagina hero ---- */
+.pagina-hero{background:linear-gradient(160deg,var(--verde-escuro) 0%,#2e4029 100%);position:relative;overflow:hidden;padding:72px 0 56px}
+.pagina-hero__contorno{position:absolute;inset:0;opacity:.16;background-image:
+  repeating-radial-gradient(circle at 15% 30%, transparent 0, transparent 26px, var(--creme) 27px, transparent 28px),
+  repeating-radial-gradient(circle at 85% 75%, transparent 0, transparent 34px, var(--creme) 35px, transparent 36px);
+}
+.pagina-hero__conteudo{position:relative;max-width:760px}
+.pagina-hero h1{color:var(--branco)}
+.pagina-hero p.lead{font-size:1.15rem;color:var(--creme-claro);opacity:.92;max-width:640px}
+
+/* ---- seletor de modalidade ---- */
+.modalidade-tabs{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 32px}
+.modalidade-tab{font-family:var(--fonte-display);text-transform:uppercase;letter-spacing:.03em;font-size:.85rem;background:var(--branco);border:2px solid var(--creme);color:var(--verde-escuro);padding:10px 20px;border-radius:999px;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.modalidade-tab:hover{border-color:var(--laranja)}
+.modalidade-tab.ativa{background:var(--laranja);border-color:var(--laranja);color:var(--branco)}
+.modalidade-blurb{max-width:700px;margin:0 0 32px;opacity:.9}
+
+/* ---- boneco interativo ---- */
+.equip-layout{display:grid;grid-template-columns:340px 1fr;gap:36px;align-items:start}
+@media (max-width:820px){.equip-layout{grid-template-columns:1fr}}
+
+.boneco-wrap{background:var(--creme-claro);border-radius:var(--raio);box-shadow:var(--sombra);padding:16px;position:relative}
+.boneco-svg{width:100%;height:auto;display:block}
+.boneco-sombra{fill:var(--marrom);opacity:.13}
+.boneco-pele{fill:url(#gradPele);stroke:var(--marrom);stroke-width:4;stroke-linejoin:round;stroke-linecap:round}
+.boneco-cabelo{fill:url(#gradCabelo);stroke:var(--marrom);stroke-width:2;stroke-linejoin:round}
+.boneco-olho{fill:var(--marrom)}
+.boneco-olho-brilho{fill:var(--branco)}
+.boneco-sobrancelha{fill:none;stroke:var(--marrom);stroke-width:3;stroke-linecap:round}
+.boneco-bochecha{fill:var(--laranja);opacity:.25}
+.boneco-boca{fill:none;stroke:var(--marrom);stroke-width:3;stroke-linecap:round}
+.boneco-camisa{fill:url(#gradCamisa);stroke:var(--marrom);stroke-width:4.5;stroke-linejoin:round;stroke-linecap:round}
+.boneco-camisa-sombra{fill:var(--marrom);opacity:.13;pointer-events:none}
+.boneco-colarinho{fill:none;stroke:var(--verde-escuro);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.boneco-braco-out{fill:none;stroke:var(--marrom);stroke-width:29;stroke-linecap:round}
+.boneco-braco{fill:none;stroke:url(#gradPele);stroke-width:22;stroke-linecap:round}
+.boneco-mao-linha{fill:none;stroke:var(--marrom);stroke-width:2;stroke-linecap:round;opacity:.4}
+.boneco-calca-out{fill:none;stroke:var(--marrom);stroke-width:33;stroke-linecap:round}
+.boneco-calca{fill:none;stroke:url(#gradCalca);stroke-width:26;stroke-linecap:round}
+.boneco-calca-sombra{fill:none;stroke:var(--marrom);stroke-width:5;stroke-linecap:round;opacity:.15}
+.boneco-sapato{fill:url(#gradSapato);stroke:var(--marrom);stroke-width:2;stroke-linejoin:round}
+.boneco-sapato-sola{fill:var(--creme-claro)}
+.boneco-sapato-cadarco{fill:none;stroke:var(--creme-claro);stroke-width:2;stroke-linecap:round;opacity:.9}
+.boneco-hint{text-align:center;font-size:.8rem;opacity:.65;margin-top:10px}
+
+#camisa-grupo.gear-item{cursor:pointer}
+#camisa-grupo.gear-item .boneco-camisa{fill:var(--laranja);transition:fill .15s ease}
+#camisa-grupo.gear-item:hover .boneco-camisa,#camisa-grupo.gear-item.ativo .boneco-camisa{fill:var(--amarelo)}
+#camisa-grupo.gear-item.ativo .boneco-camisa{stroke:var(--verde-escuro);stroke-width:5.5}
+#camisa-grupo.gear-item:focus{outline:none}
+#camisa-grupo.gear-item:focus-visible .boneco-camisa{stroke:var(--verde-escuro);stroke-width:5.5;fill:var(--amarelo)}
+
+.gear-item{cursor:pointer}
+.gear-item .gear-alvo{fill:transparent}
+.gear-item .gear-forma{fill:var(--laranja);stroke:var(--marrom);stroke-width:3;stroke-linejoin:round;stroke-linecap:round;transition:transform .15s ease,fill .15s ease}
+.gear-item .gear-forma-linha{fill:none;stroke:var(--marrom);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.gear-item:hover .gear-forma,.gear-item.ativo .gear-forma{fill:var(--amarelo)}
+.gear-item:hover .gear-grupo,.gear-item.ativo .gear-grupo{transform:scale(1.12)}
+.gear-grupo{transform-box:fill-box;transform-origin:center;transition:transform .15s ease}
+.gear-item.ativo .gear-forma{stroke:var(--verde-escuro);stroke-width:3.5}
+.gear-item:focus{outline:none}
+.gear-item:focus-visible .gear-alvo{outline:none}
+.gear-item:focus-visible .gear-forma{stroke:var(--verde-escuro);stroke-width:3.5;fill:var(--amarelo)}
+.gear-pulso{fill:none;stroke:var(--laranja);stroke-width:2;opacity:.55;animation:pulso 2.2s ease-out infinite}
+@keyframes pulso{0%{r:16;opacity:.55}100%{r:30;opacity:0}}
+
+.info-painel{background:var(--branco);border:2px solid var(--creme);border-radius:var(--raio);box-shadow:var(--sombra);padding:28px 30px;min-height:220px;display:flex;flex-direction:column;justify-content:center}
+.info-painel__prompt{opacity:.65;font-style:italic;margin:0}
+.info-painel__nome{color:var(--laranja);margin:0 0 10px}
+.info-painel__desc{margin:0;font-size:1rem}
+
+.checklist-wrap{margin-top:36px;max-width:820px}
+.checklist{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.checklist li{background:var(--branco);border:1px solid rgba(42,31,22,.1);border-radius:var(--raio);padding:14px 16px;font-size:.9rem}
+.checklist li strong{display:block;font-family:var(--fonte-display);color:var(--verde-escuro);text-transform:uppercase;font-size:.8rem;letter-spacing:.03em;margin-bottom:3px}
+
+.cta-final{text-align:center}
+.cta-final .botoes{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:28px}
+
+</style>
+
+<script>
+
+// ---------------------------------------------------------------
+// Formas de cada peça de equipamento, desenhadas em coordenadas
+// locais (centro em 0,0) — depois posicionadas com translate().
+// ---------------------------------------------------------------
+const FORMAS = {
+  sapatilha: `<path class="gear-forma" d="M-17,-7 Q-20,3 -11,9 L16,9 Q21,4 16,-6 Q9,-11 -3,-11 Q-11,-11 -17,-7 Z"/><path class="gear-forma-linha" d="M-11,-7 Q-3,-2 8,-4"/>`,
+  magnesio: `<path class="gear-forma" d="M-11,-13 Q-16,-2 -13,11 Q0,17 13,11 Q16,-2 11,-13 Q0,-18 -11,-13 Z"/><path class="gear-forma-linha" d="M-8,-13 Q0,-20 8,-13"/>`,
+  cadeirinha: `<path class="gear-forma" d="M-32,-6 Q0,10 32,-6 L32,-13 Q0,2 -32,-13 Z"/><rect class="gear-forma" x="-6" y="-11" width="12" height="10" rx="2"/>`,
+  capacete: `<path class="gear-forma" d="M-32,9 Q0,19 32,9 Q0,2 -32,9 Z"/><path class="gear-forma" d="M-28,11 Q-30,-19 0,-19 Q30,-19 28,11 Q0,18 -28,11 Z"/><path class="gear-forma-linha" d="M0,-17 Q-2,-3 0,13" opacity=".45"/><path class="gear-forma-linha" d="M-13,-14 Q-14,-1 -12,12" opacity=".4"/><path class="gear-forma-linha" d="M13,-14 Q14,-1 12,12" opacity=".4"/>`,
+  corda: `<clipPath id="clipCordaChao"><ellipse cx="0" cy="0" rx="42" ry="24"/><circle cx="-40" cy="-4" r="11"/><circle cx="-37" cy="12" r="9"/><circle cx="40" cy="6" r="10"/><circle cx="8" cy="-22" r="9"/></clipPath><ellipse class="gear-forma" cx="0" cy="0" rx="42" ry="24"/><circle class="gear-forma" cx="-40" cy="-4" r="11"/><circle class="gear-forma" cx="-37" cy="12" r="9"/><circle class="gear-forma" cx="40" cy="6" r="10"/><circle class="gear-forma" cx="8" cy="-22" r="9"/><g clip-path="url(#clipCordaChao)"><path class="gear-forma-linha" d="M-70,-45 L-30,50" opacity=".35"/><path class="gear-forma-linha" d="M-55,-45 L-15,50" opacity=".35"/><path class="gear-forma-linha" d="M-40,-45 L0,50" opacity=".35"/><path class="gear-forma-linha" d="M-25,-45 L15,50" opacity=".35"/><path class="gear-forma-linha" d="M-10,-45 L30,50" opacity=".35"/><path class="gear-forma-linha" d="M5,-45 L45,50" opacity=".35"/><path class="gear-forma-linha" d="M20,-45 L60,50" opacity=".35"/><path class="gear-forma-linha" d="M35,-45 L75,50" opacity=".35"/><path class="gear-forma-linha" d="M50,-45 L90,50" opacity=".35"/><path d="M-6,-26 Q6,-8 -4,8 Q-10,20 4,30" fill="none" stroke="var(--marrom)" stroke-width="8" stroke-linecap="round" opacity=".4"/></g><rect x="30" y="-19" width="8" height="10" rx="2" fill="var(--creme-claro)" stroke="var(--marrom)" stroke-width="1.5" transform="rotate(20 34 -14)"/><ellipse cx="-24" cy="-11" rx="9" ry="4.5" fill="var(--creme-claro)" opacity=".4"/>`,
+  freio: `<rect class="gear-forma" x="-9" y="-12" width="18" height="24" rx="5"/><circle class="gear-forma-linha" cx="0" cy="-3" r="3.5"/>`,
+  costuras: `<ellipse class="gear-forma" cx="-11" cy="-2" rx="6" ry="9" transform="rotate(-15 -11 -2)"/><line class="gear-forma-linha" x1="-9" y1="6" x2="9" y2="-10"/><ellipse class="gear-forma" cx="11" cy="2" rx="6" ry="9" transform="rotate(-15 11 2)"/>`,
+  fitaSolteira: `<circle class="gear-forma" cx="0" cy="0" r="15" fill-opacity=".001"/><circle class="gear-forma-linha" cx="0" cy="0" r="15"/><circle class="gear-forma-linha" cx="0" cy="0" r="9"/>`,
+  nuts: `<path class="gear-forma" d="M-9,-11 L9,-11 L6,11 L-6,11 Z"/><line class="gear-forma-linha" x1="0" y1="-11" x2="0" y2="-20"/>`,
+  fitaDupla: `<ellipse class="gear-forma-linha" cx="0" cy="-4" rx="17" ry="10"/><ellipse class="gear-forma-linha" cx="0" cy="4" rx="17" ry="10"/>`,
+  mochila: `<path class="gear-forma" d="M-24,-18 Q-30,-18 -30,-6 L-30,20 Q-30,30 -20,30 L20,30 Q30,30 30,20 L30,-6 Q30,-18 24,-18 Z"/><line class="gear-forma-linha" x1="-14" y1="-18" x2="-14" y2="10"/><line class="gear-forma-linha" x1="14" y1="-18" x2="14" y2="10"/>`,
+  piolet: `<line class="gear-forma-linha" x1="0" y1="-24" x2="0" y2="14"/><path class="gear-forma" d="M-14,-24 Q0,-32 14,-24 L14,-18 Q0,-24 -14,-18 Z"/>`,
+  longe: `<path class="gear-forma-linha" d="M0,16 L-16,-14 M0,16 L16,-14"/><circle class="gear-forma" cx="-16" cy="-16" r="6"/><circle class="gear-forma" cx="16" cy="-16" r="6"/>`,
+  luvas: `<path class="gear-forma" d="M-10,10 L-10,-8 Q-10,-16 -2,-16 Q8,-16 8,-8 L8,10 Q8,16 -1,16 Q-10,16 -10,10 Z"/>`,
+  walkie: `<line x1="7" y1="-15" x2="10" y2="-30" stroke="var(--marrom)" stroke-width="3" stroke-linecap="round"/><circle cx="10" cy="-30" r="2.3" fill="var(--marrom)"/><rect class="gear-forma" x="-9" y="-15" width="18" height="30" rx="4"/><rect x="-5.5" y="-11" width="11" height="7" rx="1.5" fill="var(--marrom)" opacity=".4"/><line x1="-5" y1="1" x2="5" y2="1" stroke="var(--marrom)" stroke-width="1.6" opacity=".5"/><line x1="-5" y1="5" x2="5" y2="5" stroke="var(--marrom)" stroke-width="1.6" opacity=".5"/><line x1="-5" y1="9" x2="5" y2="9" stroke="var(--marrom)" stroke-width="1.6" opacity=".5"/><rect x="-12.5" y="-6" width="4" height="7" rx="1.3" fill="var(--marrom)" opacity=".6"/>`,
+};
+
+// ---------------------------------------------------------------
+// Dados de cada peça: nome, descrição e posição no boneco (x,y)
+// ---------------------------------------------------------------
+const GEAR = {
+  roupa:        { nome: "Roupa leve e confortável", desc: "Camiseta e calça ou legging com liberdade de movimento. Sem fivelas, zíperes ou bolsos que atrapalhem — ou machuquem — numa queda.", x: 150, y: 168 },
+  sapatilha:    { nome: "Sapatilha", desc: "Calçado justo com sola de borracha de alta aderência. Modelos mais planos pra quem tá começando; mais curvados (agressivos) pra quem já escala grau avançado.", pos: [{x:117,y:479},{x:183,y:479}] },
+  magnesio:     { nome: "Saco de magnésio (giz)", desc: "Seca o suor das mãos pra melhorar a aderência. No boulder costuma ser um saco grande, aberto no chão perto do crash pad; nas outras modalidades, uma bolsinha presa na cintura.", x: 207, y: 253 },
+  cadeirinha:   { nome: "Cadeirinha (harness)", desc: "O ponto de conexão entre você e a corda. Ajusta na cintura e nas pernas, com argolas de material (gear loops) pra pendurar equipamento.", x: 150, y: 243 },
+  capacete:     { nome: "Capacete", desc: "Protege contra pedras soltas ou uma queda de cabeça. Obrigatório na tradicional, via ferrata e montanha; recomendado também na esportiva ao ar livre.", x: 150, y: 30 },
+  corda:        { nome: "Corda dinâmica", desc: "Estica um pouco no impacto de uma queda, absorvendo parte da força. Vem em rolos de 60 a 80 m, geralmente compartilhada entre a dupla.", x: 246, y: 502 },
+  freio:        { nome: "Freio (dispositivo de segurança)", desc: "Cria atrito na corda pra segurar uma queda com pouco esforço. Pode ser manual (tipo tubular) ou assistido, como o Grigri, que trava sozinho.", x: 89, y: 250 },
+  costuras:     { nome: "Costuras (quickdraws)", desc: "Dois mosquetões unidos por uma fita curta. Conectam a corda às proteções fixas da via conforme você sobe.", x: 124, y: 260 },
+  fitaSolteira: { nome: "Fita solteira", desc: "Um anel de fita de 60 cm com dois mosquetões. Serve pra estender proteções, montar ancoragens ou improvisar no meio da escalada.", x: 176, y: 260 },
+  nuts:         { nome: "Nuts e camalots", desc: "Peças de metal que se encaixam ou se ajustam (com uma mola) em fendas da rocha, servindo de proteção removível — sem precisar de furos fixos na via.", x: 124, y: 260 },
+  fitaDupla:    { nome: "Fita dupla (sling)", desc: "Anel de fita de 120 cm, mais longo que a solteira. Usada em ancoragens e pra reduzir o arrasto da corda em vias com muitas curvas.", x: 176, y: 260 },
+  mochila:      { nome: "Mochila de expedição", desc: "Carrega comida, água, roupa extra e equipamento de segurança pra ascensões de um dia inteiro ou mais.", x: 150, y: 168 },
+  piolet:       { nome: "Piolet", desc: "Machadinha de gelo usada como apoio extra e, em terreno de neve ou gelo, pra progressão e autodetenção numa escorregada.", x: 228, y: 205 },
+  longe:        { nome: "Kit de longe (via ferrata set)", desc: "Duas fitas com absorvedor de impacto, presas à cadeirinha e a dois mosquetões, que ficam sempre conectados ao cabo de aço fixo.", x: 150, y: 235 },
+  luvas:        { nome: "Luvas", desc: "Protegem as mãos do atrito com o cabo de aço (via ferrata) ou do frio e do gelo (montanha).", x: 74, y: 224 },
+  walkie:       { nome: "Rádio comunicador (walkie-talkie)", desc: "Ajuda a dupla a se ouvir quando o vento ou a distância atrapalham os comandos de segurança — útil em vias tradicionais longas, onde o parceiro pode ficar fora de vista.", x: 122, y: 152 },
+};
+
+// ---------------------------------------------------------------
+// Modalidades: quais peças aparecem em cada uma
+// ---------------------------------------------------------------
+const MODALIDADES = {
+  boulder: {
+    label: "Boulder",
+    blurb: "Sem corda, sem cadeirinha. O kit mais simples de todos — quase dá pra escalar só de sapatilha.",
+    itens: ["roupa", "sapatilha", "magnesio"],
+  },
+  academia: {
+    label: "Academia (top rope)",
+    blurb: "O primeiro contato com a corda, num ambiente controlado. Ideal pra aprender o sistema de segurança.",
+    itens: ["sapatilha", "cadeirinha", "corda", "freio", "magnesio"],
+  },
+  esportiva: {
+    label: "Esportiva",
+    blurb: "O kit completo da escalada guiada ao ar livre — as proteções já estão fixadas na rocha, você só clipa a corda.",
+    itens: ["capacete", "cadeirinha", "corda", "freio", "costuras", "fitaSolteira", "sapatilha", "magnesio"],
+  },
+  trad: {
+    label: "Tradicional",
+    blurb: "Tudo da esportiva, mais o material que você mesmo posiciona (e depois retira) da rocha.",
+    itens: ["capacete", "cadeirinha", "corda", "freio", "nuts", "fitaDupla", "sapatilha", "magnesio", "walkie"],
+  },
+  viaferrata: {
+    label: "Via Ferrata",
+    blurb: "Kit enxuto: você já anda praticamente seguro pelo cabo de aço o tempo todo.",
+    itens: ["capacete", "cadeirinha", "longe", "luvas"],
+  },
+  alpinismo: {
+    label: "Alpinismo",
+    blurb: "Mais logística e autonomia. O equipamento de segurança soma-se ao de sobrevivência na montanha.",
+    itens: ["capacete", "cadeirinha", "corda", "mochila", "piolet", "luvas"],
+  },
+};
+
+const svgNS = "http://www.w3.org/2000/svg";
+const gearLayer = document.getElementById("gear-layer");
+const infoPainel = document.getElementById("info-painel");
+const tabsEl = document.getElementById("tabs");
+const blurbEl = document.getElementById("blurb");
+const checklistEl = document.getElementById("checklist");
+const camisaGrupo = document.getElementById("camisa-grupo");
+const camisaPulso = document.getElementById("camisa-pulso");
+camisaGrupo.dataset.gear = "roupa";
+
+function mostrarInfo(gearId){
+  const g = GEAR[gearId];
+  infoPainel.innerHTML = `<h3 class="info-painel__nome">${g.nome}</h3><p class="info-painel__desc">${g.desc}</p>`;
+  document.querySelectorAll(".gear-item").forEach(el => el.classList.toggle("ativo", el.dataset.gear === gearId));
+}
+
+camisaGrupo.addEventListener("click", () => { if (camisaGrupo.classList.contains("gear-item")) mostrarInfo("roupa"); });
+camisaGrupo.addEventListener("keydown", (e) => {
+  if ((e.key === "Enter" || e.key === " ") && camisaGrupo.classList.contains("gear-item")) { e.preventDefault(); mostrarInfo("roupa"); }
+});
+
+function renderModalidade(key){
+  const mod = MODALIDADES[key];
+
+  // tabs
+  tabsEl.querySelectorAll(".modalidade-tab").forEach(btn => {
+    btn.classList.toggle("ativa", btn.dataset.mod === key);
+    btn.setAttribute("aria-selected", btn.dataset.mod === key ? "true" : "false");
+  });
+
+  blurbEl.textContent = mod.blurb;
+
+  // reset painel
+  infoPainel.innerHTML = `<p class="info-painel__prompt">Clique em qualquer item do equipamento pra saber o que é.</p>`;
+
+  // camiseta clicável (só quando "roupa" faz parte do kit da modalidade)
+  const roupaAtiva = mod.itens.includes("roupa");
+  camisaGrupo.classList.toggle("gear-item", roupaAtiva);
+  camisaGrupo.classList.remove("ativo");
+  camisaGrupo.setAttribute("tabindex", roupaAtiva ? "0" : "-1");
+  camisaGrupo.setAttribute("role", roupaAtiva ? "button" : "presentation");
+  camisaPulso.style.display = roupaAtiva ? "" : "none";
+
+  // gear no boneco
+  gearLayer.innerHTML = "";
+  mod.itens.forEach(id => {
+    if (id === "roupa") return;
+    const item = GEAR[id];
+    const posicoes = item.pos || [{x: item.x, y: item.y}];
+
+    posicoes.forEach(p => {
+      const g = document.createElementNS(svgNS, "g");
+      g.setAttribute("class", "gear-item");
+      g.setAttribute("tabindex", "0");
+      g.setAttribute("role", "button");
+      g.setAttribute("aria-label", item.nome);
+      g.dataset.gear = id;
+
+      const pulso = document.createElementNS(svgNS, "circle");
+      pulso.setAttribute("class", "gear-pulso");
+      pulso.setAttribute("cx", p.x);
+      pulso.setAttribute("cy", p.y);
+      pulso.setAttribute("r", "16");
+      g.appendChild(pulso);
+
+      const posWrap = document.createElementNS(svgNS, "g");
+      posWrap.setAttribute("transform", `translate(${p.x},${p.y})`);
+      const grupo = document.createElementNS(svgNS, "g");
+      grupo.setAttribute("class", "gear-grupo");
+      grupo.innerHTML = FORMAS[id];
+      posWrap.appendChild(grupo);
+      g.appendChild(posWrap);
+
+      const alvo = document.createElementNS(svgNS, "circle");
+      alvo.setAttribute("class", "gear-alvo");
+      alvo.setAttribute("cx", p.x);
+      alvo.setAttribute("cy", p.y);
+      alvo.setAttribute("r", "26");
+      g.appendChild(alvo);
+
+      g.addEventListener("click", () => mostrarInfo(id));
+      g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); mostrarInfo(id); } });
+
+      gearLayer.appendChild(g);
+    });
+  });
+
+  // checklist
+  checklistEl.innerHTML = mod.itens.map(id => {
+    const item = GEAR[id];
+    return `<li><strong>${item.nome}</strong>${item.desc}</li>`;
+  }).join("");
+}
+
+// monta as abas
+Object.keys(MODALIDADES).forEach((key, i) => {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "modalidade-tab";
+  btn.textContent = MODALIDADES[key].label;
+  btn.dataset.mod = key;
+  btn.setAttribute("role", "tab");
+  btn.addEventListener("click", () => renderModalidade(key));
+  tabsEl.appendChild(btn);
+});
+
+renderModalidade("boulder");
+
+</script>

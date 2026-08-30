@@ -1,0 +1,57 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+import type { Artigo } from '../../lib/supabase';
+
+const { data: artigos } = await supabase
+  .from('artigos')
+  .select('*')
+  .eq('categoria', 'escalada101')
+  .order('publicado_em', { ascending: true }) as { data: Artigo[] | null };
+
+// A página de equipamentos é interativa (código próprio), então não vem do banco —
+// é sempre incluída manualmente como o último item da lista.
+const itemEquipamentos = {
+  titulo: 'Equipamentos para Cada Modalidade',
+  resumo: 'O que é essencial, o que dá pra alugar e o que só faz sentido comprar depois — boulder, esportiva, trad e mais.',
+  href: '/escalada101/equipamentos',
+};
+---
+<Layout titulo="Escalada 101" descricao="O básico que todo escalador precisa saber: tipos de escalada, graduação de vias e equipamentos, num só lugar.">
+  <section class="pagina-hero">
+    <div class="pagina-hero__contorno" aria-hidden="true"></div>
+    <div class="container pagina-hero__conteudo">
+      <span class="eyebrow">Comece por aqui</span>
+      <h1>Escalada 101</h1>
+      <p class="lead">O básico que todo escalador precisa saber, sem enrolação. Reunimos aqui os fundamentos — de modalidades a equipamento — pra quem tá chegando agora.</p>
+    </div>
+  </section>
+
+  <section class="secao">
+    <div class="container">
+      <div class="lista-artigos">
+        {artigos?.map((artigo, i) => (
+          <a class="artigo-item" href={`/escalada101/${artigo.slug}`}>
+            <span class="artigo-item__numero">{String(i + 1).padStart(2, '0')}</span>
+            <span class="artigo-item__corpo">
+              <h3>{artigo.titulo}</h3>
+              <p>{artigo.resumo}</p>
+            </span>
+            <span class="etiqueta">Disponível</span>
+            <span class="artigo-item__seta">→</span>
+          </a>
+        ))}
+
+        <a class="artigo-item" href={itemEquipamentos.href}>
+          <span class="artigo-item__numero">{String((artigos?.length ?? 0) + 1).padStart(2, '0')}</span>
+          <span class="artigo-item__corpo">
+            <h3>{itemEquipamentos.titulo}</h3>
+            <p>{itemEquipamentos.resumo}</p>
+          </span>
+          <span class="etiqueta">Disponível</span>
+          <span class="artigo-item__seta">→</span>
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

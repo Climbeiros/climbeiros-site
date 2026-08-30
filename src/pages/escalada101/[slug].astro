@@ -1,0 +1,47 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+import type { Artigo } from '../../lib/supabase';
+
+export async function getStaticPaths() {
+  const { data: artigos } = await supabase
+    .from('artigos')
+    .select('slug')
+    .eq('categoria', 'escalada101') as { data: { slug: string }[] | null };
+  return (artigos ?? []).map((a) => ({ params: { slug: a.slug } }));
+}
+
+const { slug } = Astro.params;
+const { data: artigo } = await supabase
+  .from('artigos')
+  .select('*')
+  .eq('slug', slug)
+  .eq('categoria', 'escalada101')
+  .single() as { data: Artigo | null };
+---
+<Layout titulo={artigo?.titulo || 'Escalada 101'} descricao={artigo?.resumo || undefined}>
+  {artigo ? (
+    <>
+      <section class="pagina-hero">
+        <div class="pagina-hero__contorno" aria-hidden="true"></div>
+        <div class="container pagina-hero__conteudo">
+          <a href="/escalada101" class="eyebrow">Escalada 101</a>
+          <h1>{artigo.titulo}</h1>
+          {artigo.resumo && <p class="lead">{artigo.resumo}</p>}
+        </div>
+      </section>
+
+      <div class="artigo-largo" set:html={artigo.conteudo} />
+    </>
+  ) : (
+    <div class="container secao">
+      <h1>Conteúdo não encontrado</h1>
+      <a href="/escalada101">Voltar para Escalada 101</a>
+    </div>
+  )}
+</Layout>
+
+<style>
+  .artigo-largo :global(section.secao) { padding: 56px 0; }
+  .artigo-largo :global(section.secao:first-child) { padding-top: 48px; }
+</style>
