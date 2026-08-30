@@ -53,7 +53,7 @@ const path = Astro.url.pathname;
     padding-bottom: 4px;
   }
   .header__logo {
-    height: 72px;
+    height: 60px;
     width: auto;
   }
   .header__menu-btn {
@@ -66,17 +66,26 @@ const path = Astro.url.pathname;
   }
   .header__lista {
     display: flex;
-    gap: 28px;
+    gap: 24px;
     list-style: none;
     margin: 0;
     padding: 0;
+    align-items: center;
+  }
+  .header__lista li {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 60px;
   }
   .header__link {
     font-family: var(--fonte-display);
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    font-size: 1.05rem;
+    font-size: 0.85rem;
     color: var(--creme-claro);
+    line-height: 1.25;
   }
   .header__link:hover { color: var(--amarelo); text-decoration: none; }
   .header__link--ativo { color: var(--amarelo); }

@@ -12,6 +12,9 @@ const destaques = [
   { titulo: 'Guias & Dicas', texto: 'Aprenda com quem já pegou a via.', href: '/guias', cor: 'var(--laranja)' },
   { titulo: 'Academias & Cursos', texto: 'Onde treinar e onde aprender.', href: '/academias', cor: 'var(--amarelo)' },
   { titulo: 'Cupons & Parcerias', texto: 'Descontos com marcas parceiras.', href: '/parceiros', cor: 'var(--verde-escuro)' },
+  { titulo: 'Escalada 101', texto: 'O básico pra quem tá começando.', href: '/escalada101', cor: 'var(--laranja)' },
+  { titulo: 'Sobre', texto: 'Quem é o Climbeiros.', href: '/sobre', cor: 'var(--verde)' },
+  { titulo: 'Contato', texto: 'Fale com a gente.', href: '/contato', cor: 'var(--verde-escuro)' },
 ];
 ---
 <Layout titulo="Início">
@@ -21,7 +24,7 @@ const destaques = [
       <div class="hero__sombra"></div>
     </div>
     <div class="container hero__conteudo">
-      <p class="eyebrow">Comunidade de escalada no Brasil</p>
+      <p class="eyebrow hero__eyebrow">Comunidade de escalada no Brasil</p>
       <h1 class="hero__titulo">{headline}</h1>
       <div class="hero__acoes">
         <a href="/rotas" class="botao">Ver rotas & setores</a>
@@ -83,6 +86,9 @@ const destaques = [
     padding-bottom: 56px;
     padding-top: 200px;
   }
+  .hero__eyebrow { color: var(--amarelo); }
+  .hero__eyebrow::before { background: var(--amarelo); }
+
   .hero__titulo {
     color: var(--branco);
     max-width: 680px;
