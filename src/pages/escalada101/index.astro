@@ -2,20 +2,24 @@
 import Layout from '../../layouts/Layout.astro';
 import { supabase } from '../../lib/supabase';
 import type { Artigo } from '../../lib/supabase';
-
 const { data: artigos } = await supabase
   .from('artigos')
   .select('*')
   .eq('categoria', 'escalada101')
   .order('publicado_em', { ascending: true }) as { data: Artigo[] | null };
-
-// A página de equipamentos é interativa (código próprio), então não vem do banco —
-// é sempre incluída manualmente como o último item da lista.
+// A página de equipamentos e a de vocabulário são interativas (código próprio),
+// então não vêm do banco — são sempre incluídas manualmente no fim da lista.
+const itemVocabulario = {
+  titulo: 'Vocabulário de Escalada',
+  resumo: 'Gírias, termos e expressões que todo escalador ouve na parede — do "flash" ao "vacou".',
+  href: '/escalada101/vocabulario',
+};
 const itemEquipamentos = {
   titulo: 'Equipamentos para Cada Modalidade',
   resumo: 'O que é essencial, o que dá pra alugar e o que só faz sentido comprar depois — boulder, esportiva, trad e mais.',
   href: '/escalada101/equipamentos',
 };
+const itensExtras = [itemVocabulario, itemEquipamentos];
 ---
 <Layout titulo="Escalada 101" descricao="O básico que todo escalador precisa saber: tipos de escalada, graduação de vias e equipamentos, num só lugar.">
   <section class="pagina-hero">
@@ -26,7 +30,6 @@ const itemEquipamentos = {
       <p class="lead">O básico que todo escalador precisa saber, sem enrolação. Reunimos aqui os fundamentos — de modalidades a equipamento — pra quem tá chegando agora.</p>
     </div>
   </section>
-
   <section class="secao">
     <div class="container">
       <div class="lista-artigos">
@@ -41,16 +44,17 @@ const itemEquipamentos = {
             <span class="artigo-item__seta">→</span>
           </a>
         ))}
-
-        <a class="artigo-item" href={itemEquipamentos.href}>
-          <span class="artigo-item__numero">{String((artigos?.length ?? 0) + 1).padStart(2, '0')}</span>
-          <span class="artigo-item__corpo">
-            <h3>{itemEquipamentos.titulo}</h3>
-            <p>{itemEquipamentos.resumo}</p>
-          </span>
-          <span class="etiqueta">Disponível</span>
-          <span class="artigo-item__seta">→</span>
-        </a>
+        {itensExtras.map((item, i) => (
+          <a class="artigo-item" href={item.href}>
+            <span class="artigo-item__numero">{String((artigos?.length ?? 0) + i + 1).padStart(2, '0')}</span>
+            <span class="artigo-item__corpo">
+              <h3>{item.titulo}</h3>
+              <p>{item.resumo}</p>
+            </span>
+            <span class="etiqueta">Disponível</span>
+            <span class="artigo-item__seta">→</span>
+          </a>
+        ))}
       </div>
     </div>
   </section>
