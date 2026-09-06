@@ -369,10 +369,15 @@ const nomeCategoria = {
     font-size: 0.95rem;
     color: var(--marrom);
     line-height: 1.4;
+    transition: background 0.15s ease, border-color 0.15s ease,
+      transform 0.15s ease, box-shadow 0.15s ease;
   }
 
   .quiz-opcao:hover:not(:disabled) {
-    border-color: var(--creme);
+    background: var(--creme);
+    border-color: var(--laranja);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(42, 31, 22, 0.18);
   }
 
   .quiz-opcao:disabled {
@@ -387,6 +392,12 @@ const nomeCategoria = {
   .quiz-opcao--errada {
     background: #b5476b;
     color: white;
+  }
+
+  .quiz-opcao--selecionada {
+    border-color: var(--marrom);
+    box-shadow: 0 0 0 3px rgba(42, 31, 22, 0.2);
+    transform: translateY(-2px);
   }
 
   .quiz-resultado-numero {
@@ -482,6 +493,7 @@ const nomeCategoria = {
       btn.addEventListener('click', () => {
         const acertou = opcao.termo === perguntaAtual.termo;
         if (acertou) quizAcertos++;
+        btn.classList.add('quiz-opcao--selecionada');
         Array.from(quizOpcoesEl.children).forEach((el) => {
           el.disabled = true;
           if (el.dataset.termo === perguntaAtual.termo) {
