@@ -17,13 +17,16 @@ import Layout from '../../layouts/Layout.astro';
 
 <Layout title="Tipos de Agarras | Climbeiros">
 <section class="pagina-hero">
-  <p class="eyebrow">Escalada 101</p>
-  <h1>Tipos de Agarras</h1>
-  <p>
-    Uma parede de escalada tem vários formatos de agarra diferentes, e cada
-    um se usa de um jeito. Clique em qualquer agarra da parede (ou na lista
-    ao lado) pra ver o nome e a dica de como usar aquele tipo.
-  </p>
+  <div class="pagina-hero__contorno" aria-hidden="true"></div>
+  <div class="container pagina-hero__conteudo">
+    <span class="eyebrow">Escalada 101</span>
+    <h1>Tipos de Agarras</h1>
+    <p class="lead">
+      Uma parede de escalada tem vários formatos de agarra diferentes, e cada
+      um se usa de um jeito. Clique em qualquer agarra da parede (ou na lista
+      ao lado) pra ver o nome e a dica de como usar aquele tipo.
+    </p>
+  </div>
 </section>
 
 <div class="container">
@@ -112,7 +115,7 @@ import Layout from '../../layouts/Layout.astro';
   </defs>
 </svg>
 
-<style>
+<style is:global>
   h2.titulo-secao {
     font-family: 'Oswald', sans-serif;
     text-transform: uppercase;
