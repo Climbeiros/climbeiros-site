@@ -13,7 +13,12 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
         <p>Manda uma mensagem que a gente cadastra. Também recebemos sugestões de parceria e correções.</p>
       </div>
 
-      <form id="form-contato" class="form-contato">
+      <form
+        id="form-contato"
+        class="form-contato"
+        data-supabase-url={supabaseUrl}
+        data-supabase-key={supabaseKey}
+      >
         <label>
           Nome
           <input type="text" name="nome" required />
@@ -33,15 +38,15 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
   </section>
 </Layout>
 
-<script define:vars={{ supabaseUrl, supabaseKey }}>
+<script>
+  // Import "normal" no topo do arquivo (em vez de import() dinâmico dentro
+  // de define:vars) — assim o Astro consegue processar e empacotar o
+  // pacote do Supabase corretamente pro navegador entender.
+  import { createClient } from '@supabase/supabase-js';
+
   const form = document.getElementById('form-contato');
   const status = document.getElementById('form-status');
 
-  // Importante: o addEventListener fica FORA do import do Supabase.
-  // Assim, mesmo que a conexão com o Supabase falhe por algum motivo,
-  // o navegador nunca faz o envio padrão do formulário (que recarregava
-  // a página e limpava tudo sem avisar nada) — a gente sempre mostra
-  // uma mensagem de sucesso ou de erro na tela.
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const dados = new FormData(form);
@@ -50,8 +55,7 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
     status.textContent = 'Enviando...';
 
     try {
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = createClient(form.dataset.supabaseUrl, form.dataset.supabaseKey);
 
       const { error } = await supabase.from('mensagens_contato').insert({
         nome: dados.get('nome'),
