@@ -178,6 +178,33 @@ const nomeCategoria = {
       <a href="/escalada101" class="botao">Voltar pra Escalada 101</a>
     </div>
   </section>
+
+  <section class="secao secao--creme">
+    <div class="container">
+      <h2 class="titulo-secao">Teste seu conhecimento</h2>
+
+      <div id="quiz-inicio" class="quiz-inicio">
+        <p>
+          Quer ver se você manda no vocabulário de escalada? Responda um quiz
+          rápido de múltipla escolha pra descobrir.
+        </p>
+        <button type="button" id="btn-iniciar-quiz" class="botao">Começar quiz</button>
+      </div>
+
+      <div id="quiz-jogo" class="quiz-caixa" hidden>
+        <p class="quiz-progresso" id="quiz-progresso"></p>
+        <p class="quiz-pergunta" id="quiz-pergunta"></p>
+        <div class="quiz-opcoes" id="quiz-opcoes"></div>
+        <button type="button" id="btn-proxima" class="botao botao--secundario" hidden>Próxima</button>
+      </div>
+
+      <div id="quiz-resultado" class="quiz-resultado" hidden>
+        <p class="quiz-resultado-numero" id="quiz-resultado-numero"></p>
+        <p id="quiz-resultado-texto"></p>
+        <button type="button" id="btn-jogar-de-novo" class="botao">Jogar de novo</button>
+      </div>
+    </div>
+  </section>
 </Layout>
 
 <style>
@@ -273,6 +300,101 @@ const nomeCategoria = {
     margin-bottom: 1.5rem;
     opacity: 0.8;
   }
+
+  /* ---------- Quiz ---------- */
+
+  .titulo-secao {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    color: var(--verde-escuro);
+    font-size: 1.4rem;
+    margin: 0 0 1.25rem;
+    text-align: center;
+  }
+
+  .quiz-inicio,
+  .quiz-resultado {
+    max-width: 520px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .quiz-inicio p,
+  .quiz-resultado p {
+    margin: 0 0 1.25rem;
+  }
+
+  .quiz-caixa {
+    max-width: 560px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 10px rgba(42, 31, 22, 0.1);
+  }
+
+  .quiz-progresso {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    color: var(--verde-escuro);
+    opacity: 0.8;
+    margin: 0 0 0.5rem;
+  }
+
+  .quiz-pergunta {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    font-size: 1.5rem;
+    color: var(--marrom);
+    margin: 0 0 1.5rem;
+  }
+
+  .quiz-opcoes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .quiz-opcao {
+    background: var(--creme-claro);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    text-align: left;
+    cursor: pointer;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 0.95rem;
+    color: var(--marrom);
+    line-height: 1.4;
+  }
+
+  .quiz-opcao:hover:not(:disabled) {
+    border-color: var(--creme);
+  }
+
+  .quiz-opcao:disabled {
+    cursor: default;
+  }
+
+  .quiz-opcao--correta {
+    background: var(--verde);
+    color: white;
+  }
+
+  .quiz-opcao--errada {
+    background: #b5476b;
+    color: white;
+  }
+
+  .quiz-resultado-numero {
+    font-family: 'Oswald', sans-serif;
+    font-size: 2.5rem;
+    color: var(--verde-escuro);
+    margin: 0 0 0.5rem;
+  }
 </style>
 
 <script>
@@ -306,4 +428,116 @@ const nomeCategoria = {
   });
 
   atualizarContador();
+
+  // ---------- Quiz ----------
+  const TERMOS_QUIZ = cards.map((card) => ({
+    termo: card.querySelector('.flashcard-termo')?.textContent.trim() ?? '',
+    definicao: card.querySelector('.flashcard-definicao')?.textContent.trim() ?? '',
+  }));
+
+  const quizInicio = document.getElementById('quiz-inicio');
+  const quizJogo = document.getElementById('quiz-jogo');
+  const quizResultado = document.getElementById('quiz-resultado');
+  const quizProgresso = document.getElementById('quiz-progresso');
+  const quizPerguntaEl = document.getElementById('quiz-pergunta');
+  const quizOpcoesEl = document.getElementById('quiz-opcoes');
+  const btnIniciarQuiz = document.getElementById('btn-iniciar-quiz');
+  const btnProxima = document.getElementById('btn-proxima');
+  const btnJogarDeNovo = document.getElementById('btn-jogar-de-novo');
+  const quizResultadoNumero = document.getElementById('quiz-resultado-numero');
+  const quizResultadoTexto = document.getElementById('quiz-resultado-texto');
+
+  const TOTAL_PERGUNTAS_QUIZ = Math.min(10, TERMOS_QUIZ.length);
+
+  let quizPerguntas = [];
+  let quizIndiceAtual = 0;
+  let quizAcertos = 0;
+
+  function embaralharArray(lista) {
+    return [...lista].sort(() => Math.random() - 0.5);
+  }
+
+  function montarOpcoes(perguntaAtual) {
+    const distratores = embaralharArray(
+      TERMOS_QUIZ.filter((t) => t.termo !== perguntaAtual.termo)
+    ).slice(0, 3);
+    return embaralharArray([perguntaAtual, ...distratores]);
+  }
+
+  function mostrarPergunta() {
+    const perguntaAtual = quizPerguntas[quizIndiceAtual];
+    const opcoes = montarOpcoes(perguntaAtual);
+
+    quizProgresso.textContent = `Pergunta ${quizIndiceAtual + 1} de ${quizPerguntas.length}`;
+    quizPerguntaEl.textContent = `O que significa "${perguntaAtual.termo}"?`;
+    quizOpcoesEl.innerHTML = '';
+    btnProxima.hidden = true;
+
+    opcoes.forEach((opcao) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'quiz-opcao';
+      btn.textContent = opcao.definicao;
+      btn.dataset.termo = opcao.termo;
+      btn.addEventListener('click', () => {
+        const acertou = opcao.termo === perguntaAtual.termo;
+        if (acertou) quizAcertos++;
+        Array.from(quizOpcoesEl.children).forEach((el) => {
+          el.disabled = true;
+          if (el.dataset.termo === perguntaAtual.termo) {
+            el.classList.add('quiz-opcao--correta');
+          } else if (el === btn) {
+            el.classList.add('quiz-opcao--errada');
+          }
+        });
+        btnProxima.hidden = false;
+      });
+      quizOpcoesEl.appendChild(btn);
+    });
+  }
+
+  function mostrarResultado() {
+    quizJogo.hidden = true;
+    quizResultado.hidden = false;
+    quizResultadoNumero.textContent = `${quizAcertos} de ${quizPerguntas.length}`;
+    const proporcao = quizAcertos / quizPerguntas.length;
+    let mensagem;
+    if (proporcao === 1) {
+      mensagem = 'Mandou tudo de cadena! 🧗';
+    } else if (proporcao >= 0.7) {
+      mensagem = 'Você já manda bem no vocabulário!';
+    } else if (proporcao >= 0.4) {
+      mensagem = 'Bom começo — vale revisar os cards aí em cima de novo.';
+    } else {
+      mensagem = 'Bora treinar mais um pouco com os cards aí em cima!';
+    }
+    quizResultadoTexto.textContent = mensagem;
+  }
+
+  function proximaPerguntaQuiz() {
+    quizIndiceAtual++;
+    if (quizIndiceAtual < quizPerguntas.length) {
+      mostrarPergunta();
+    } else {
+      mostrarResultado();
+    }
+  }
+
+  function iniciarQuiz() {
+    quizIndiceAtual = 0;
+    quizAcertos = 0;
+    quizPerguntas = embaralharArray(TERMOS_QUIZ).slice(0, TOTAL_PERGUNTAS_QUIZ);
+    quizInicio.hidden = true;
+    quizResultado.hidden = true;
+    quizJogo.hidden = false;
+    mostrarPergunta();
+  }
+
+  if (TERMOS_QUIZ.length < 4) {
+    quizInicio.hidden = true;
+  } else {
+    btnIniciarQuiz?.addEventListener('click', iniciarQuiz);
+    btnProxima?.addEventListener('click', proximaPerguntaQuiz);
+    btnJogarDeNovo?.addEventListener('click', iniciarQuiz);
+  }
 </script>
