@@ -1,7 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 ---
-<Layout titulo="Beta" descricao="Conteúdo pra todo nível: dos fundamentos da escalada (Escalada 101) até dicas mais avançadas pra quem já pega a parte difícil da via (Crux).">
+<Layout titulo="Beta" descricao="Conteúdo pra todo nível: dos fundamentos da escalada (Escalada 101) até dicas mais avançadas pra quem já pega a parte difícil da via (Crux), passando pelas técnicas e posições em português e inglês.">
   <section class="pagina-hero">
     <div class="pagina-hero__contorno" aria-hidden="true"></div>
     <div class="container pagina-hero__conteudo">
@@ -13,12 +13,19 @@ import Layout from '../../layouts/Layout.astro';
 
   <section class="secao">
     <div class="container">
-      <div class="grade grade--2 beta-grade">
+      <div class="grade grade--3 beta-grade">
         <a href="/escalada101" class="beta-card">
           <span class="eyebrow">Pra quem tá começando</span>
           <h2>Escalada 101</h2>
           <p>O básico que todo escalador precisa saber, sem enrolação: tipos de escalada, graduação de vias e equipamentos.</p>
           <span class="beta-card__seta">Começar por aqui →</span>
+        </a>
+
+        <a href="/tecnicas" class="beta-card beta-card--tecnicas">
+          <span class="eyebrow">Pra entender o vocabulário</span>
+          <h2>Técnicas & Posições</h2>
+          <p>Bandeira, gancho de calcanhar, joelho caído e mais — os nomes das técnicas em português e inglês, com ilustração.</p>
+          <span class="beta-card__seta">Ver as técnicas →</span>
         </a>
 
         <a href="/crux" class="beta-card beta-card--crux">
@@ -33,7 +40,7 @@ import Layout from '../../layouts/Layout.astro';
 </Layout>
 
 <style>
-  .beta-grade { max-width: 980px; margin: 0 auto; }
+  .beta-grade { max-width: 1160px; margin: 0 auto; }
   .beta-card {
     display: block;
     background: var(--branco);
@@ -45,6 +52,7 @@ import Layout from '../../layouts/Layout.astro';
     border-top: 4px solid var(--laranja);
     transition: transform 0.15s ease;
   }
+  .beta-card--tecnicas { border-top-color: var(--amarelo); }
   .beta-card--crux { border-top-color: var(--verde-escuro); }
   .beta-card:hover { transform: translateY(-4px); text-decoration: none; }
   .beta-card h2 { margin: 4px 0 12px; }
@@ -56,5 +64,6 @@ import Layout from '../../layouts/Layout.astro';
     letter-spacing: 0.03em;
     color: var(--laranja);
   }
+  .beta-card--tecnicas .beta-card__seta { color: var(--amarelo); }
   .beta-card--crux .beta-card__seta { color: var(--verde-escuro); }
 </style>
