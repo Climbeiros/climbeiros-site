@@ -34,17 +34,24 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
 </Layout>
 
 <script define:vars={{ supabaseUrl, supabaseKey }}>
-  import('@supabase/supabase-js').then(({ createClient }) => {
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const form = document.getElementById('form-contato');
-    const status = document.getElementById('form-status');
+  const form = document.getElementById('form-contato');
+  const status = document.getElementById('form-status');
 
-    form?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const dados = new FormData(form);
-      const botao = form.querySelector('button');
-      botao.disabled = true;
-      status.textContent = 'Enviando...';
+  // Importante: o addEventListener fica FORA do import do Supabase.
+  // Assim, mesmo que a conexão com o Supabase falhe por algum motivo,
+  // o navegador nunca faz o envio padrão do formulário (que recarregava
+  // a página e limpava tudo sem avisar nada) — a gente sempre mostra
+  // uma mensagem de sucesso ou de erro na tela.
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const dados = new FormData(form);
+    const botao = form.querySelector('button');
+    botao.disabled = true;
+    status.textContent = 'Enviando...';
+
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseKey);
 
       const { error } = await supabase.from('mensagens_contato').insert({
         nome: dados.get('nome'),
@@ -53,13 +60,16 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
       });
 
       if (error) {
-        status.textContent = 'Não foi possível enviar agora. Tenta de novo em instantes.';
+        status.textContent = 'Erro ao enviar: ' + error.message;
       } else {
         status.textContent = 'Mensagem enviada! Vamos te responder em breve.';
         form.reset();
       }
-      botao.disabled = false;
-    });
+    } catch (err) {
+      status.textContent = 'Erro inesperado: ' + (err && err.message ? err.message : String(err));
+    }
+
+    botao.disabled = false;
   });
 </script>
 
