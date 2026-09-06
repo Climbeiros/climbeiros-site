@@ -1,0 +1,288 @@
+---
+// src/pages/escalada101/vocabulario.astro
+//
+// Página de flashcards com gírias e termos de escalada.
+// Assim como a página de equipamentos, o conteúdo aqui é fixo no código
+// (não vem do Supabase) — pra adicionar, editar ou remover uma palavra,
+// mexa na lista "termos" logo abaixo. Cada item é um objeto com:
+//   termo      -> a palavra ou expressão (frente do card)
+//   definicao  -> a explicação (verso do card)
+//   categoria  -> 'estilo' | 'seguranca' | 'giria'  (só muda a cor da etiqueta)
+//
+// Pra adicionar uma palavra nova, copie um bloco { ... } inteiro,
+// cole antes do "];" e preencha os campos. Não precisa mexer em mais nada.
+
+import Layout from '../../layouts/Layout.astro';
+
+const termos = [
+  {
+    termo: 'Flash',
+    definicao:
+      'Subir a via inteira, limpo, na primeira tentativa — mas depois de já ter recebido alguma dica (beta) sobre os movimentos antes de tentar.',
+    categoria: 'estilo',
+  },
+  {
+    termo: 'À vista',
+    definicao:
+      'Subir a via inteira, limpo, na primeira tentativa e sem nenhuma informação prévia: sem beta, sem ver ninguém escalando antes.',
+    categoria: 'estilo',
+  },
+  {
+    termo: 'Cadena',
+    definicao:
+      'Subir a via do início ao fim sem cair e sem descansar pendurado na corda — não importa se foi de primeira ou depois de várias tentativas treinando os movimentos.',
+    categoria: 'estilo',
+  },
+  {
+    termo: 'Mandar uma via',
+    definicao:
+      'Completar a via com sucesso, escalando limpo do começo ao fim. Pode ser à vista, de flash ou de cadena — mandou é mandou.',
+    categoria: 'estilo',
+  },
+  {
+    termo: 'Projeto',
+    definicao:
+      'Via que você está tentando repetidas vezes, treinando os movimentos, até finalmente conseguir mandar ela de cadena. Enquanto isso, ela é "seu projeto".',
+    categoria: 'estilo',
+  },
+  {
+    termo: 'Dar corda',
+    definicao:
+      'Soltar corda pro escalador ter folga suficiente pra se mover ou clipar o próximo grampo, sem deixar sobrar corda demais.',
+    categoria: 'seguranca',
+  },
+  {
+    termo: 'Zela',
+    definicao:
+      'Pedido pra quem está assegurando prestar atenção total, sem folgar nem por um segundo — geralmente nos trechos mais perigosos da via ("zela aqui, o próximo grampo tá longe!").',
+    categoria: 'seguranca',
+  },
+  {
+    termo: 'Vacou',
+    definicao:
+      'Caiu da via. Vem de "tomar uma vaca" — quando o escalador perde o agarrão e despenca.',
+    categoria: 'giria',
+  },
+  {
+    termo: 'Veneno',
+    definicao:
+      'Trecho ou movimento muito difícil, doloroso ou traiçoeiro da via — geralmente o que decide se você manda ou vacou.',
+    categoria: 'giria',
+  },
+  {
+    termo: 'Adrenante',
+    definicao:
+      'Aquele momento (ou via inteira) que faz o coração disparar de tão emocionante, geralmente por causa da exposição ou da dificuldade.',
+    categoria: 'giria',
+  },
+  {
+    termo: 'Beta',
+    definicao:
+      'Informação sobre como fazer os movimentos de uma via: onde estão os agarradores bons, a sequência certa, se tem algum truque. "Pedir beta" é perguntar antes de tentar; "dar beta" é ensinar pra quem vai tentar.',
+    categoria: 'giria',
+  },
+  {
+    termo: 'Kmon',
+    definicao:
+      'Gíria de incentivo (do inglês "come on") gritada pra quem está escalando, tipo "vai, você consegue!" — geralmente solta nos momentos mais difíceis da via.',
+    categoria: 'giria',
+  },
+];
+
+const corPorCategoria = {
+  estilo: 'var(--laranja)',
+  seguranca: 'var(--verde)',
+  giria: 'var(--amarelo)',
+};
+
+const nomeCategoria = {
+  estilo: 'Estilo de escalada',
+  seguranca: 'Segurança',
+  giria: 'Gíria',
+};
+---
+
+<Layout title="Vocabulário de Escalada | Climbeiros">
+  <section class="pagina-hero">
+    <p class="eyebrow">Escalada 101</p>
+    <h1>Vocabulário de Escalada</h1>
+    <p>
+      Flash, à vista, cadena, vacou... se você já ficou perdido ouvindo os
+      climbeiros mais experientes falando essas palavras, essa página é pra
+      você. Clique em cada card pra virar e ver a explicação.
+    </p>
+  </section>
+
+  <section class="secao">
+    <div class="container">
+      <div class="vocab-toolbar">
+        <button type="button" id="btn-embaralhar" class="botao botao--secundario">
+          Embaralhar
+        </button>
+        <p id="vocab-contador" class="vocab-contador"></p>
+      </div>
+
+      <div class="vocab-grade" id="vocab-grade">
+        {termos.map((item, i) => (
+          <button
+            type="button"
+            class="flashcard"
+            data-index={i}
+            aria-label={`Card: ${item.termo}. Clique para ver a definição.`}
+          >
+            <div class="flashcard-interno">
+              <div class="flashcard-frente">
+                <span
+                  class="etiqueta"
+                  style={`background:${corPorCategoria[item.categoria]}`}
+                >
+                  {nomeCategoria[item.categoria]}
+                </span>
+                <p class="flashcard-termo">{item.termo}</p>
+                <p class="flashcard-dica">clique pra virar</p>
+              </div>
+              <div class="flashcard-verso">
+                <p class="flashcard-definicao">{item.definicao}</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <p class="vocab-rodape-texto">
+        Tem uma gíria da sua academia ou do seu grupo que não tá aqui? Manda
+        pra gente que a gente adiciona.
+      </p>
+
+      <a href="/escalada101" class="botao">Voltar pra Escalada 101</a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .vocab-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .vocab-contador {
+    font-family: 'Work Sans', sans-serif;
+    color: var(--marrom);
+    opacity: 0.7;
+  }
+
+  .vocab-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .flashcard {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    perspective: 1200px;
+    height: 220px;
+    font-family: inherit;
+    text-align: left;
+  }
+
+  .flashcard-interno {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s;
+    transform-style: preserve-3d;
+  }
+
+  .flashcard.virada .flashcard-interno {
+    transform: rotateY(180deg);
+  }
+
+  .flashcard-frente,
+  .flashcard-verso {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 10px rgba(42, 31, 22, 0.15);
+  }
+
+  .flashcard-frente {
+    background: var(--creme-claro);
+    justify-content: space-between;
+  }
+
+  .flashcard-verso {
+    background: var(--verde-escuro);
+    color: white;
+    transform: rotateY(180deg);
+    justify-content: center;
+  }
+
+  .flashcard-termo {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    font-size: 1.4rem;
+    color: var(--marrom);
+    margin: 0.75rem 0 0;
+  }
+
+  .flashcard-dica {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    margin: 0;
+  }
+
+  .flashcard-definicao {
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .vocab-rodape-texto {
+    margin-bottom: 1.5rem;
+    opacity: 0.8;
+  }
+</style>
+
+<script>
+  const grade = document.getElementById('vocab-grade');
+  const cards = Array.from(document.querySelectorAll('.flashcard'));
+  const contador = document.getElementById('vocab-contador');
+  const btnEmbaralhar = document.getElementById('btn-embaralhar');
+
+  function atualizarContador() {
+    const viradas = document.querySelectorAll('.flashcard.virada').length;
+    if (contador) {
+      contador.textContent = `${viradas} de ${cards.length} vistos`;
+    }
+  }
+
+  cards.forEach((card) => {
+    card.addEventListener('click', () => {
+      card.classList.toggle('virada');
+      atualizarContador();
+    });
+  });
+
+  btnEmbaralhar?.addEventListener('click', () => {
+    if (!grade) return;
+    const embaralhados = [...cards].sort(() => Math.random() - 0.5);
+    embaralhados.forEach((card) => {
+      card.classList.remove('virada');
+      grade.appendChild(card);
+    });
+    atualizarContador();
+  });
+
+  atualizarContador();
+</script>
