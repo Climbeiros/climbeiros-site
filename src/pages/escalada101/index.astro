@@ -7,19 +7,25 @@ const { data: artigos } = await supabase
   .select('*')
   .eq('categoria', 'escalada101')
   .order('publicado_em', { ascending: true }) as { data: Artigo[] | null };
-// A página de equipamentos e a de vocabulário são interativas (código próprio),
-// então não vêm do banco — são sempre incluídas manualmente no fim da lista.
+// A página de equipamentos, a de vocabulário e a de tipos de agarras são
+// interativas (código próprio), então não vêm do banco — são sempre
+// incluídas manualmente no fim da lista.
 const itemVocabulario = {
   titulo: 'Vocabulário de Escalada',
   resumo: 'Gírias, termos e expressões que todo escalador ouve na parede — do "flash" ao "vacou".',
   href: '/escalada101/vocabulario',
+};
+const itemAgarras = {
+  titulo: 'Tipos de Agarras',
+  resumo: 'Réglete, pinça, concha, gastão e mais — descubra o formato de cada agarra e como usar cada uma.',
+  href: '/escalada101/tipos-de-agarras',
 };
 const itemEquipamentos = {
   titulo: 'Equipamentos para Cada Modalidade',
   resumo: 'O que é essencial, o que dá pra alugar e o que só faz sentido comprar depois — boulder, esportiva, trad e mais.',
   href: '/escalada101/equipamentos',
 };
-const itensExtras = [itemVocabulario, itemEquipamentos];
+const itensExtras = [itemVocabulario, itemAgarras, itemEquipamentos];
 ---
 <Layout titulo="Escalada 101" descricao="O básico que todo escalador precisa saber: tipos de escalada, graduação de vias e equipamentos, num só lugar.">
   <section class="pagina-hero">
