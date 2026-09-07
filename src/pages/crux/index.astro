@@ -13,7 +13,7 @@ const { data: artigos } = await supabase
 // vem do Supabase — é sempre incluída manualmente, no topo da lista.
 const itemTecnicas = {
   titulo: 'Técnicas & Posições',
-  resumo: 'Bandeira, gancho de calcanhar, joelho caído e mais — os nomes das técnicas em português e inglês, com ilustração.',
+  resumo: 'Bandeira, gancho de calcanhar, joelho caído e mais! Os nomes das técnicas em português e inglês, com ilustração.',
   href: '/crux/tecnicas',
   icone: 'tecnicas',
 };
@@ -29,13 +29,13 @@ const listaArtigos = (artigos ?? []).map((artigo) => ({
 
 const todosItens = [itemTecnicas, ...listaArtigos];
 ---
-<Layout titulo="Crux" descricao="Conteúdo pra quem já escala e quer ir além do básico — guias, dicas e novidades da comunidade Climbeiros.">
+<Layout titulo="Crux" descricao="Conteúdo pra quem já escala e quer ir além do básico. Guias, dicas e novidades da comunidade Climbeiros.">
   <section class="pagina-hero">
     <div class="pagina-hero__contorno" aria-hidden="true"></div>
     <div class="container pagina-hero__conteudo">
       <span class="eyebrow">Pra quem já pega a parte difícil da via</span>
       <h1>Crux</h1>
-      <p class="lead">Conteúdo pra ir além do básico — dicas mais avançadas, guias práticos e novidades da comunidade.</p>
+      <p class="lead">Conteúdo pra ir além do básico. Dicas mais avançadas, guias práticos e novidades da comunidade.</p>
     </div>
   </section>
 
