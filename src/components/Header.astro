@@ -6,6 +6,7 @@ const links = [
   { href: '/academias', label: 'Academias & Cursos' },
   { href: '/rotas', label: 'Rotas & Setores' },
   { href: '/parceiros', label: 'Parcerias & Cupons' },
+  { href: '/comunidade', label: 'Comunidade' },
   { href: '/contato', label: 'Contato' },
 ];
 const path = Astro.url.pathname;
@@ -20,7 +21,7 @@ const path = Astro.url.pathname;
       <ul class="header__lista header__lista--desktop">
         {links.map((link) => (
           <li>
-            <a
+            
               href={link.href}
               class:list={['header__link', { 'header__link--ativo': path === link.href }]}
             >
@@ -40,7 +41,7 @@ const path = Astro.url.pathname;
   <ul class="header__lista header__lista--mobile" id="menu-lista-mobile">
     {links.map((link) => (
       <li>
-        <a
+        
           href={link.href}
           class:list={['header__link', { 'header__link--ativo': path === link.href }]}
         >
