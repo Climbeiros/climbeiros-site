@@ -10,36 +10,67 @@ const { data: artigos } = await supabase
   .order('publicado_em', { ascending: false }) as { data: Artigo[] | null };
 
 // A página de Técnicas & Posições é interativa (código próprio), então não
-// vem do Supabase — é sempre incluída manualmente, aqui no topo da lista.
+// vem do Supabase — é sempre incluída manualmente, no topo da lista.
 const itemTecnicas = {
   titulo: 'Técnicas & Posições',
   resumo: 'Bandeira, gancho de calcanhar, joelho caído e mais — os nomes das técnicas em português e inglês, com ilustração.',
   href: '/crux/tecnicas',
+  icone: 'tecnicas',
 };
+
+// Artigos futuros vindos do Supabase usam o ícone padrão (bandeirinha),
+// já que o título deles não é conhecido de antemão.
+const listaArtigos = (artigos ?? []).map((artigo) => ({
+  titulo: artigo.titulo,
+  resumo: artigo.resumo,
+  href: `/crux/${artigo.slug}`,
+  icone: 'padrao',
+}));
+
+const todosItens = [itemTecnicas, ...listaArtigos];
 ---
 <Layout titulo="Crux" descricao="Conteúdo pra quem já escala e quer ir além do básico — guias, dicas e novidades da comunidade Climbeiros.">
+  <section class="pagina-hero">
+    <div class="pagina-hero__contorno" aria-hidden="true"></div>
+    <div class="container pagina-hero__conteudo">
+      <span class="eyebrow">Pra quem já pega a parte difícil da via</span>
+      <h1>Crux</h1>
+      <p class="lead">Conteúdo pra ir além do básico — dicas mais avançadas, guias práticos e novidades da comunidade.</p>
+    </div>
+  </section>
+
   <section class="secao">
     <div class="container">
-      <p class="eyebrow">Pra quem já pega a parte difícil da via</p>
-      <h1>Crux</h1>
-
-      <div class="grade grade--3">
-        <a href={itemTecnicas.href} class="card artigo-card">
-          <img class="card__imagem" src="/logo.png" alt={itemTecnicas.titulo} />
-          <div class="card__corpo">
-            <h3>{itemTecnicas.titulo}</h3>
-            <p>{itemTecnicas.resumo}</p>
-          </div>
-        </a>
-
-        {artigos?.map((artigo) => (
-          <a href={`/crux/${artigo.slug}`} class="card artigo-card">
-            <img class="card__imagem" src={artigo.imagem_capa_url || '/logo.png'} alt={artigo.titulo} />
-            <div class="card__corpo">
-              <h3>{artigo.titulo}</h3>
-              {artigo.resumo && <p>{artigo.resumo}</p>}
-              {artigo.autor && <p class="artigo-card__autor">Por {artigo.autor}</p>}
-            </div>
+      <div class="lista-artigos">
+        {todosItens.map((item, i) => (
+          <a class="artigo-item" href={item.href}>
+            <span class="artigo-item__numero">{String(i + 1).padStart(2, '0')}</span>
+            <span class="artigo-item__icone">
+              {item.icone === 'tecnicas' && (
+                <svg class="icone-tecnicas" viewBox="0 0 100 100">
+                  <circle cx="34" cy="14" r="5" fill="#da7326" />
+                  <circle cx="66" cy="14" r="5" fill="#da7326" />
+                  <circle cx="42" cy="82" r="5" fill="#da7326" />
+                  <path d="M50,40 L34,16" stroke="#3d5439" stroke-width="6" fill="none" stroke-linecap="round" />
+                  <path d="M50,40 L66,16" stroke="#3d5439" stroke-width="6" fill="none" stroke-linecap="round" />
+                  <path d="M50,40 L42,80" stroke="#3d5439" stroke-width="6" fill="none" stroke-linecap="round" />
+                  <path class="perna-bandeira" d="M50,40 L80,64" stroke="#3d5439" stroke-width="6" fill="none" stroke-linecap="round" />
+                  <circle cx="50" cy="30" r="7" fill="#3d5439" />
+                </svg>
+              )}
+              {item.icone === 'padrao' && (
+                <svg class="icone-padrao" viewBox="0 0 40 40">
+                  <line x1="14" y1="8" x2="14" y2="32" stroke="#5c4a30" stroke-width="2.5" stroke-linecap="round" />
+                  <polygon class="bandeira-padrao" points="14,9 30,14 14,19" fill="#668062" />
+                </svg>
+              )}
+            </span>
+            <span class="artigo-item__corpo">
+              <h3>{item.titulo}</h3>
+              <p>{item.resumo}</p>
+            </span>
+            <span class="etiqueta">Disponível</span>
+            <span class="artigo-item__seta">→</span>
           </a>
         ))}
       </div>
@@ -52,8 +83,49 @@ const itemTecnicas = {
 </Layout>
 
 <style>
-  .artigo-card { color: var(--marrom); }
-  .artigo-card:hover { text-decoration: none; }
-  .artigo-card__autor { font-size: 0.85rem; opacity: 0.6; margin-top: 8px; margin-bottom: 0; }
-  .crux-nota { margin-top: 24px; opacity: 0.75; }
+  .artigo-item__icone {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--creme-claro);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 1rem;
+  }
+
+  .artigo-item__icone svg {
+    width: 32px;
+    height: 32px;
+    overflow: visible;
+  }
+
+  /* ---- Técnicas & Posições: figurinha em bandeira balançando a perna ---- */
+  .icone-tecnicas .perna-bandeira {
+    transform-box: fill-box;
+    transform-origin: 0% 0%;
+    animation: bandeira-balancar 2.4s ease-in-out infinite;
+  }
+  @keyframes bandeira-balancar {
+    0%, 100% { transform: rotate(-6deg); }
+    50% { transform: rotate(6deg); }
+  }
+
+  /* ---- Ícone padrão (pra artigos futuros vindos do Supabase) ---- */
+  .icone-padrao .bandeira-padrao {
+    transform-box: fill-box;
+    transform-origin: 0px 0px;
+    animation: bandeira-padrao-ondular 2.2s ease-in-out infinite;
+  }
+  @keyframes bandeira-padrao-ondular {
+    0%, 100% { transform: skewY(0deg); }
+    50% { transform: skewY(6deg); }
+  }
+
+  .crux-nota {
+    max-width: 820px;
+    margin: 24px auto 0;
+    opacity: 0.75;
+  }
 </style>
