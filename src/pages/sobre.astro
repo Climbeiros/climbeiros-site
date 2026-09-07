@@ -1,11 +1,29 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { getSiteConfig } from '../lib/supabase';
-
 const config = await getSiteConfig();
 const texto = config.sobre_texto ||
   'Os Climbeiros nasceu da vontade de um grupo de amigos de reunir, num só lugar, tudo que a comunidade de escalada no Brasil precisa: onde treinar, onde aprender, quais vias vale a pena pegar e quem são as marcas que realmente apoiam quem escala.';
 const fotoGrupo = config.sobre_foto_grupo || '/logo.png';
+
+const valores = [
+  {
+    titulo: 'Amizade primeiro',
+    texto: 'A cordada começa na confiança entre quem sobe junto. Antes de ser conteúdo, o Climbeiros é um grupo de amigos — e é assim que a gente trata cada pessoa que chega.',
+  },
+  {
+    titulo: 'Segurança sempre',
+    texto: 'Check de equipamento e de parceiro antes de cada via. Levar a montanha a sério é o que permite se divertir nela por muitos anos.',
+  },
+  {
+    titulo: 'Leveza',
+    texto: 'Vida ativa sem cobrança — do yoga de domingo ao cume. A escalada é desafio, mas também é prazer; a gente celebra cada progresso no ritmo de cada um.',
+  },
+  {
+    titulo: 'Verdade acima de tudo',
+    texto: 'Só recomendamos o que usamos e confiamos — rotas, equipamentos e marcas. Nada de propaganda genérica: se está aqui, é porque passou pela nossa experiência real.',
+  },
+];
 ---
 <Layout titulo="Sobre" descricao="Conheça a história e o time por trás do Climbeiros.">
   <section class="secao">
@@ -21,8 +39,40 @@ const fotoGrupo = config.sobre_foto_grupo || '/logo.png';
       </div>
     </div>
   </section>
-</Layout>
 
+  <!-- MISSÃO -->
+  <section class="secao secao--verde">
+    <div class="container missao">
+      <p class="eyebrow">Nossa missão</p>
+      <h2>Ninguém precisa subir sozinho</h2>
+      <p>
+        Aproximar quem ama a vertical. Reunimos num só lugar tudo que a comunidade
+        de escalada no Brasil precisa — onde treinar, onde aprender, quais vias vale
+        a pena pegar e quais marcas realmente apoiam quem escala — para que mais
+        gente escale com segurança, informação e boa companhia.
+      </p>
+    </div>
+  </section>
+
+  <!-- VALORES -->
+  <section class="secao secao--creme">
+    <div class="container">
+      <p class="eyebrow">No que a gente acredita</p>
+      <h2>Nossos valores</h2>
+      <div class="grade grade--2 valores">
+        {valores.map((v, i) => (
+          <article class="card valor">
+            <div class="valor__numero">{String(i + 1).padStart(2, '0')}</div>
+            <div class="valor__corpo">
+              <h3>{v.titulo}</h3>
+              <p>{v.texto}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>
 <style>
   .sobre {
     display: grid;
@@ -38,4 +88,27 @@ const fotoGrupo = config.sobre_foto_grupo || '/logo.png';
     .sobre { grid-template-columns: 1fr; }
     .sobre__foto { order: -1; }
   }
+
+  /* Missão */
+  .missao { max-width: 760px; }
+  .missao h2 { color: var(--creme); margin-bottom: 16px; }
+  .missao p { font-size: 1.15rem; color: var(--creme-claro); opacity: 0.95; margin: 0; }
+
+  /* Valores */
+  .valores { margin-top: 32px; }
+  .valor {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    padding: 26px 28px;
+  }
+  .valor__numero {
+    font-family: var(--fonte-display);
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--laranja);
+    flex-shrink: 0;
+  }
+  .valor__corpo h3 { color: var(--verde-escuro); margin-bottom: 8px; }
+  .valor__corpo p { margin: 0; font-size: 0.96rem; opacity: 0.9; }
 </style>
