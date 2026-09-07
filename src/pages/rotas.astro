@@ -1,287 +1,286 @@
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap');
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+import type { Setor, Croqui } from '../lib/supabase';
 
-:root {
-  /* Paleta oficial Climbeiros */
-  --verde: #668062;
-  --verde-escuro: #3d5439;
-  --creme: #e7d18e;
-  --creme-claro: #f0e2b2;
-  --laranja: #da7326;
-  --amarelo: #e0931c;
-  --marrom: #2a1f16;
+const { data: setores } = await supabase
+  .from('setores')
+  .select('*')
+  .order('estado')
+  .order('cidade')
+  .order('nome') as { data: Setor[] | null };
 
-  --branco: #fffdf7;
+const { data: croquis } = await supabase.from('croquis').select('*') as { data: Croqui[] | null };
 
-  --fonte-display: 'Oswald', sans-serif;
-  --fonte-corpo: 'Work Sans', sans-serif;
+const setoresComCoordenadas = (setores ?? []).filter((s) => s.latitude && s.longitude);
 
-  --raio: 10px;
-  --sombra: 0 4px 16px rgba(42, 31, 22, 0.12);
-
-  --largura-max: 1160px;
+function croquisDoSetor(setorId: string) {
+  return (croquis ?? []).filter((c) => c.setor_id === setorId);
 }
 
-* {
-  box-sizing: border-box;
-}
+const rotuloCroqui: Record<string, string> = {
+  link: 'Ver croqui (site)',
+  pdf: 'Abrir croqui (PDF)',
+  foto: 'Ver croqui (foto)',
+};
+---
+<Layout titulo="Rotas & Setores" descricao="Setores e vias de escalada catalogados pela comunidade Climbeiros.">
+  <section class="secao">
+    <div class="container">
+      <p class="eyebrow">Onde escalar</p>
+      <h1>Rotas & Setores</h1>
+      <p>Explore os locais de escalada catalogados pela comunidade, com a orientação de croqui de cada um. Clique num pin do mapa ou busque por cidade/CEP pra filtrar.</p>
 
-html {
-  scroll-behavior: smooth;
-}
+      {setores && setores.length > 0 && (
+        <>
+          <div class="busca-local">
+            <input
+              type="text"
+              id="busca-cidade"
+              placeholder="Buscar por cidade ou CEP..."
+              aria-label="Buscar setores por cidade ou CEP"
+            />
+            <button type="button" id="busca-botao" class="botao">Buscar</button>
+            <button type="button" id="busca-limpar" class="botao botao--secundario" hidden>Limpar</button>
+          </div>
+          <p id="busca-status" class="busca-status" role="status"></p>
+        </>
+      )}
+    </div>
 
-body {
-  margin: 0;
-  font-family: var(--fonte-corpo);
-  color: var(--marrom);
-  background: var(--branco);
-  line-height: 1.55;
-}
+    {setoresComCoordenadas.length > 0 && (
+      <div class="container">
+        <div id="mapa" class="mapa"></div>
+      </div>
+    )}
 
-h1, h2, h3, h4 {
-  font-family: var(--fonte-display);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  line-height: 1.15;
-  color: var(--verde-escuro);
-  margin: 0 0 0.5em;
-}
+    <div class="container">
+      {(!setores || setores.length === 0) && (
+        <p>Ainda estamos catalogando os primeiros setores. Volte em breve!</p>
+      )}
 
-h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); }
-h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); }
-h3 { font-size: 1.25rem; }
+      <div class="lista-setores" id="lista-setores">
+        {setores?.map((setor) => (
+          <article class="setor-card" id={`setor-${setor.id}`} data-cidade={(setor.cidade || '').toLowerCase()}>
+            <div class="setor-card__cabecalho">
+              <div>
+                <h2>{setor.nome}</h2>
+                <p class="setor-card__local">{[setor.regiao, setor.cidade, setor.estado].filter(Boolean).join(' · ')}</p>
+              </div>
+            </div>
+            {setor.descricao && <p>{setor.descricao}</p>}
 
-p { margin: 0 0 1em; }
+            {croquisDoSetor(setor.id).length > 0 && (
+              <div class="setor-card__croquis">
+                {croquisDoSetor(setor.id).map((c) => (
+                  c.tipo === 'referencia' ? (
+                    <p class="setor-card__croqui-ref">📍 Croqui: {c.texto}</p>
+                  ) : (
+                    <a href={c.url ?? '#'} target="_blank" rel="noopener" class="botao botao--secundario setor-card__croqui-link">
+                      {rotuloCroqui[c.tipo] || 'Ver croqui'}
+                    </a>
+                  )
+                ))}
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>
 
-a {
-  color: var(--laranja);
-  text-decoration: none;
-}
-a:hover { text-decoration: underline; }
+<script type="application/json" id="dados-setores" set:html={JSON.stringify(setoresComCoordenadas)}></script>
 
-img { max-width: 100%; display: block; }
+<script>
+  const setores = JSON.parse(document.getElementById('dados-setores')?.textContent || '[]');
+  let mapa;
+  let L;
+  const marcadores = {}; // setor id -> Leaflet marker
 
-.container {
-  max-width: var(--largura-max);
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-.secao {
-  padding: 64px 0;
-}
-
-.secao--creme {
-  background: var(--creme-claro);
-}
-
-.secao--verde {
-  background: var(--verde-escuro);
-  color: var(--creme-claro);
-}
-.secao--verde h1, .secao--verde h2, .secao--verde h3 { color: var(--creme); }
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--fonte-display);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.8rem;
-  color: var(--laranja);
-  margin-bottom: 12px;
-}
-.eyebrow::before {
-  content: '';
-  width: 18px;
-  height: 2px;
-  background: var(--laranja);
-  display: inline-block;
-}
-
-.botao {
-  display: inline-block;
-  font-family: var(--fonte-display);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 0.95rem;
-  padding: 12px 28px;
-  border-radius: var(--raio);
-  background: var(--laranja);
-  color: var(--branco);
-  border: none;
-  cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-.botao:hover {
-  background: var(--amarelo);
-  text-decoration: none;
-  transform: translateY(-2px);
-}
-.botao--secundario {
-  background: transparent;
-  color: var(--verde-escuro);
-  border: 2px solid var(--verde-escuro);
-}
-.botao--secundario:hover {
-  background: var(--verde-escuro);
-  color: var(--creme-claro);
-}
-
-.grade {
-  display: grid;
-  gap: 28px;
-}
-.grade--3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.grade--2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
-
-.card {
-  background: var(--branco);
-  border-radius: var(--raio);
-  box-shadow: var(--sombra);
-  overflow: hidden;
-  border: 1px solid rgba(42, 31, 22, 0.08);
-}
-.card__corpo { padding: 20px; }
-.card__imagem {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  background: var(--creme);
-}
-
-.etiqueta {
-  display: inline-block;
-  font-family: var(--fonte-display);
-  text-transform: uppercase;
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--creme);
-  color: var(--verde-escuro);
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px; height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
-}
-
-/* ==================================================
-   Escalada 101 — estilos trazidos dos artigos da Emilie
-   ================================================== */
-.pagina-hero { background: linear-gradient(160deg, var(--verde-escuro) 0%, #2e4029 100%); position: relative; overflow: hidden; padding: 72px 0 56px; }
-.pagina-hero__contorno {
-  position: absolute; inset: 0; opacity: 0.16;
-  background-image:
-    repeating-radial-gradient(circle at 15% 30%, transparent 0, transparent 26px, var(--creme) 27px, transparent 28px),
-    repeating-radial-gradient(circle at 85% 75%, transparent 0, transparent 34px, var(--creme) 35px, transparent 36px);
-}
-.pagina-hero__conteudo { position: relative; max-width: 760px; }
-.pagina-hero h1 { color: var(--branco); }
-.pagina-hero p.lead { font-size: 1.15rem; color: var(--creme-claro); opacity: 0.92; max-width: 640px; }
-
-.sumario { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
-.sumario a {
-  font-family: var(--fonte-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em;
-  background: rgba(255,253,247,0.1); border: 1px solid rgba(255,253,247,0.28); color: var(--creme-claro);
-  padding: 8px 16px; border-radius: 999px; transition: background 0.15s ease, color 0.15s ease;
-}
-.sumario a:hover { background: var(--amarelo); color: var(--marrom); text-decoration: none; border-color: var(--amarelo); }
-
-.grupo-intro { max-width: 760px; margin: 0 auto 40px; text-align: left; }
-.grupo-cabecalho { display: flex; align-items: baseline; gap: 16px; margin-bottom: 28px; scroll-margin-top: 96px; }
-.grupo-cabecalho .numero { font-family: var(--fonte-display); font-size: 2.6rem; color: var(--creme); line-height: 1; }
-.grupo-cabecalho h2 { margin: 0; }
-
-.tipo-card { scroll-margin-top: 96px; }
-.tipo-card__topo { display: flex; align-items: center; gap: 14px; padding: 20px 24px 0; }
-.tipo-card__icone { width: 44px; height: 44px; flex-shrink: 0; color: var(--laranja); }
-.tipo-card__topo h3 { margin: 0; color: var(--verde-escuro); }
-.tipo-card ul.equip { margin: 0; padding-left: 18px; font-size: 0.92rem; color: var(--marrom); opacity: 0.85; }
-.tipo-card ul.equip li { margin-bottom: 4px; }
-.tipo-card__rodape { border-top: 1px solid rgba(42,31,22,0.08); margin-top: 16px; padding-top: 14px; }
-
-.caixa-atencao { background: var(--branco); border: 2px solid var(--laranja); border-radius: var(--raio); padding: 24px 28px; box-shadow: var(--sombra); }
-.caixa-atencao h3 { color: var(--laranja); margin-bottom: 8px; }
-.caixa-atencao .exemplo { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
-.caixa-atencao .exemplo > div { flex: 1; min-width: 220px; background: var(--creme-claro); border-radius: var(--raio); padding: 16px 18px; }
-.caixa-atencao .exemplo strong { display: block; font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.85rem; color: var(--verde-escuro); margin-bottom: 4px; }
-
-.tabela-graus { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.92rem; }
-.tabela-graus th, .tabela-graus td { text-align: left; padding: 10px 14px; border-bottom: 1px solid rgba(42,31,22,0.1); }
-.tabela-graus th { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.04em; color: var(--verde-escuro); }
-.tabela-graus tbody tr:hover { background: rgba(102,128,98,0.08); }
-.tabela-graus-wrap { overflow-x: auto; background: var(--branco); border-radius: var(--raio); box-shadow: var(--sombra); padding: 8px 20px; }
-.tabela-nota { margin: 14px 0 0; font-size: 0.85rem; opacity: 0.75; }
-
-.comeco-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); counter-reset: passo; }
-.comeco-item { position: relative; padding-left: 44px; }
-.comeco-item::before {
-  counter-increment: passo; content: counter(passo); position: absolute; left: 0; top: 0;
-  width: 32px; height: 32px; border-radius: 50%; background: var(--verde-escuro); color: var(--creme-claro);
-  font-family: var(--fonte-display); display: flex; align-items: center; justify-content: center; font-size: 0.95rem;
-}
-.comeco-item h4 { font-family: var(--fonte-display); text-transform: uppercase; color: var(--verde-escuro); margin: 2px 0 6px; font-size: 1rem; }
-.comeco-item p { font-size: 0.92rem; margin: 0; opacity: 0.85; }
-
-.definicao-grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-.definicao-card { background: var(--branco); border-radius: var(--raio); box-shadow: var(--sombra); border: 1px solid rgba(42,31,22,0.08); padding: 22px 24px; }
-.definicao-card .rotulo { font-family: var(--fonte-display); color: var(--laranja); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.06em; margin-bottom: 6px; display: block; }
-.definicao-card h3 { margin-bottom: 8px; }
-.definicao-card p { font-size: 0.92rem; opacity: 0.9; margin: 0; }
-
-.dicas-lista { display: flex; flex-direction: column; gap: 18px; counter-reset: dica; }
-.dica { position: relative; padding-left: 44px; }
-.dica::before {
-  counter-increment: dica; content: counter(dica); position: absolute; left: 0; top: 0;
-  width: 30px; height: 30px; border-radius: 50%; background: var(--verde-escuro); color: var(--creme-claro);
-  font-family: var(--fonte-display); display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
-}
-.dica p { margin: 0; }
-
-.cta-final { text-align: center; }
-.cta-final .botoes { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
-
-.lista-artigos { display: flex; flex-direction: column; gap: 20px; max-width: 820px; margin: 0 auto; }
-.artigo-item {
-  display: flex; align-items: center; gap: 24px; background: var(--branco); border-radius: var(--raio);
-  box-shadow: var(--sombra); border: 1px solid rgba(42,31,22,0.08); padding: 24px 28px; transition: transform 0.15s ease;
-}
-a.artigo-item:hover { transform: translateY(-2px); text-decoration: none; }
-.artigo-item__numero { font-family: var(--fonte-display); font-size: 2rem; color: var(--creme); flex-shrink: 0; width: 44px; }
-.artigo-item__corpo { flex: 1; }
-.artigo-item__corpo h3 { margin: 0 0 6px; color: var(--verde-escuro); }
-.artigo-item__corpo p { margin: 0; font-size: 0.95rem; opacity: 0.85; }
-.artigo-item__seta { font-family: var(--fonte-display); color: var(--laranja); font-size: 1.3rem; flex-shrink: 0; }
-.artigo-item--em-breve { opacity: 0.75; }
-.artigo-item--em-breve .artigo-item__numero { color: var(--creme-claro); opacity: 0.6; }
-
-/* Em telas estreitas, numero + icone + etiqueta + seta não cabem mais na
-   mesma linha do flex original — o texto (corpo) encolhia até o limite e o
-   resto (etiqueta "Disponível" + seta) vazava pra fora do card. Em vez de
-   forçar tudo numa linha só, vira uma grade de duas linhas: cabeçalho em
-   cima (número, ícone, texto) e etiqueta + seta embaixo. */
-@media (max-width: 640px) {
-  .artigo-item {
-    display: grid;
-    grid-template-columns: auto auto 1fr;
-    grid-template-areas:
-      "numero icone corpo"
-      "etiqueta etiqueta seta";
-    column-gap: 16px;
-    row-gap: 10px;
-    padding: 20px;
+  function normalizar(texto) {
+    return texto
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
   }
-  .artigo-item .artigo-item__numero { grid-area: numero; }
-  .artigo-item .artigo-item__icone { grid-area: icone; margin: 0; }
-  .artigo-item .artigo-item__corpo { grid-area: corpo; min-width: 0; }
-  .artigo-item .etiqueta { grid-area: etiqueta; justify-self: start; }
-  .artigo-item .artigo-item__seta { grid-area: seta; justify-self: end; }
-}
+
+  async function buscarCidadePorCep(cep) {
+    const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const dados = await resposta.json();
+    if (dados.erro) return null;
+    return dados.localidade;
+  }
+
+  function filtrar(cidade) {
+    const termo = normalizar(cidade);
+    let visiveis = 0;
+    const idsVisiveis = new Set();
+
+    document.querySelectorAll('#lista-setores .setor-card').forEach((card) => {
+      const cidadeCard = normalizar(card.dataset.cidade || '');
+      const bate = !termo || cidadeCard.includes(termo);
+      card.hidden = !bate;
+      if (bate) {
+        visiveis++;
+        idsVisiveis.add(card.id.replace('setor-', ''));
+      }
+    });
+
+    // Atualiza os pins do mapa junto com os cards
+    if (mapa) {
+      const bounds = [];
+      Object.entries(marcadores).forEach(([id, marker]) => {
+        if (idsVisiveis.has(id)) {
+          if (!mapa.hasLayer(marker)) marker.addTo(mapa);
+          bounds.push(marker.getLatLng());
+        } else {
+          mapa.removeLayer(marker);
+        }
+      });
+      if (bounds.length === 1) {
+        mapa.setView(bounds[0], 11);
+      } else if (bounds.length > 1) {
+        mapa.fitBounds(bounds, { padding: [30, 30] });
+      }
+    }
+
+    return visiveis;
+  }
+
+  const input = document.getElementById('busca-cidade');
+  const botaoBuscar = document.getElementById('busca-botao');
+  const botaoLimpar = document.getElementById('busca-limpar');
+  const status = document.getElementById('busca-status');
+
+  async function executarBusca() {
+    if (!input || !status) return;
+    const valor = input.value.trim();
+    if (!valor) {
+      filtrar('');
+      status.textContent = '';
+      botaoLimpar?.setAttribute('hidden', '');
+      return;
+    }
+
+    const somenteNumeros = valor.replace(/\D/g, '');
+    let cidadeParaFiltrar = valor;
+
+    if (somenteNumeros.length === 8) {
+      status.textContent = 'Buscando cidade pelo CEP...';
+      const cidade = await buscarCidadePorCep(somenteNumeros);
+      if (!cidade) {
+        status.textContent = 'CEP não encontrado. Tente digitar o nome da cidade.';
+        return;
+      }
+      cidadeParaFiltrar = cidade;
+    }
+
+    const encontrados = filtrar(cidadeParaFiltrar);
+    status.textContent = encontrados > 0
+      ? `${encontrados} setor(es) encontrado(s) em ${cidadeParaFiltrar}.`
+      : `Nenhum setor encontrado em ${cidadeParaFiltrar} ainda.`;
+    botaoLimpar?.removeAttribute('hidden');
+  }
+
+  botaoBuscar?.addEventListener('click', executarBusca);
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') executarBusca();
+  });
+  botaoLimpar?.addEventListener('click', () => {
+    if (input) input.value = '';
+    filtrar('');
+    if (status) status.textContent = '';
+    botaoLimpar?.setAttribute('hidden', '');
+  });
+
+  if (setores.length > 0) {
+    import('leaflet').then((mod) => {
+      L = mod;
+
+      // Corrige um bug conhecido do Leaflet dentro de bundlers (Vite/Astro):
+      // os ícones padrão do pin não são encontrados automaticamente.
+      const iconePin = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      });
+
+      mapa = L.map('mapa').setView([setores[0].latitude, setores[0].longitude], 6);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+      }).addTo(mapa);
+
+      const bounds = [];
+      setores.forEach((s) => {
+        const marker = L.marker([s.latitude, s.longitude], { icon: iconePin }).addTo(mapa);
+        marker.bindPopup(`<strong>${s.nome}</strong><br/><a href="#setor-${s.id}">Ver detalhes</a>`);
+        marcadores[s.id] = marker;
+        bounds.push([s.latitude, s.longitude]);
+      });
+      if (bounds.length > 1) mapa.fitBounds(bounds, { padding: [30, 30] });
+    });
+  }
+</script>
+
+<style is:global>
+  @import 'leaflet/dist/leaflet.css';
+</style>
+
+<style>
+  .busca-local {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 20px 0 8px;
+  }
+  .busca-local input {
+    flex: 1;
+    min-width: 220px;
+    font-family: var(--fonte-corpo);
+    font-size: 1rem;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(42,31,22,0.25);
+    color: var(--marrom);
+  }
+  .busca-status {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 8px;
+    min-height: 1.2em;
+  }
+  .mapa {
+    height: 380px;
+    border-radius: var(--raio);
+    margin: 12px 0 40px;
+    box-shadow: var(--sombra);
+  }
+  .lista-setores {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .setor-card {
+    background: var(--branco);
+    border: 1px solid rgba(42,31,22,0.08);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 24px;
+  }
+  .setor-card__cabecalho {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .setor-card__local { opacity: 0.7; font-size: 0.9rem; margin-top: -8px; }
+  .setor-card__croqui-ref { font-size: 0.9rem; opacity: 0.8; font-style: italic; }
+  .setor-card__croquis { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .setor-card__croqui-link { margin-top: 0; }
+</style>
