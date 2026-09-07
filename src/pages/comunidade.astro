@@ -15,12 +15,11 @@ const colunaEsquerda = fotos ? fotos.filter((_, i) => i % 2 === 0) : [];
 const colunaDireita = fotos ? fotos.filter((_, i) => i % 2 === 1) : [];
 ---
 <Layout titulo="Comunidade" descricao="Fotos de escalada mandadas pela própria comunidade Climbeiros.">
-  <section class="pagina-hero">
-    <div class="pagina-hero__contorno" aria-hidden="true"></div>
-    <div class="container pagina-hero__conteudo">
-      <span class="eyebrow">Feito por quem escala</span>
+  <section class="secao">
+    <div class="container">
+      <p class="eyebrow">Feito por quem escala</p>
       <h1>Comunidade</h1>
-      <p class="lead">
+      <p>
         Fotos de escalada mandadas por gente de verdade — dos boulders de
         academia até os setores mais escondidos do Brasil. Manda a sua foto
         aí embaixo!
