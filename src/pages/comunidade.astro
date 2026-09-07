@@ -272,7 +272,7 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 2 === 1) : [];
   }
   .galeria-item__botao img {
     width: 100%;
-    height: 170px;
+    aspect-ratio: 4 / 6;
     object-fit: cover;
     display: block;
     transition: opacity 0.15s ease;
@@ -348,11 +348,8 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 2 === 1) : [];
       padding-bottom: 4px;
     }
     .galeria-item {
-      min-width: 180px;
+      min-width: 140px;
       flex: 0 0 auto;
-    }
-    .galeria-item__botao img {
-      height: 120px;
     }
   }
 
