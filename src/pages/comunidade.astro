@@ -34,16 +34,23 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 2 === 1) : [];
       <div class="moldura-fotos">
         <div class="coluna-fotos">
           {colunaEsquerda.map((foto) => (
-            <button
-              type="button"
-              class="galeria-item__botao"
-              aria-label={`Ver foto de ${foto.nome} em tamanho maior`}
-              data-nome={foto.nome}
-              data-insta={foto.instagram || ''}
-              data-local={foto.local || ''}
-            >
-              <img src={foto.imagem_url} alt={`Foto de escalada enviada por ${foto.nome}`} loading="lazy" />
-            </button>
+            <figure class="galeria-item">
+              <button
+                type="button"
+                class="galeria-item__botao"
+                aria-label={`Ver foto de ${foto.nome} em tamanho maior`}
+                data-nome={foto.nome}
+                data-insta={foto.instagram || ''}
+                data-local={foto.local || ''}
+              >
+                <img src={foto.imagem_url} alt={`Foto de escalada enviada por ${foto.nome}`} loading="lazy" />
+              </button>
+              <figcaption>
+                <strong>{foto.nome}</strong>
+                {foto.instagram && <span class="galeria-item__insta"> · {foto.instagram}</span>}
+                {foto.local && <span class="galeria-item__local">{foto.local}</span>}
+              </figcaption>
+            </figure>
           ))}
         </div>
 
@@ -79,16 +86,23 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 2 === 1) : [];
 
         <div class="coluna-fotos">
           {colunaDireita.map((foto) => (
-            <button
-              type="button"
-              class="galeria-item__botao"
-              aria-label={`Ver foto de ${foto.nome} em tamanho maior`}
-              data-nome={foto.nome}
-              data-insta={foto.instagram || ''}
-              data-local={foto.local || ''}
-            >
-              <img src={foto.imagem_url} alt={`Foto de escalada enviada por ${foto.nome}`} loading="lazy" />
-            </button>
+            <figure class="galeria-item">
+              <button
+                type="button"
+                class="galeria-item__botao"
+                aria-label={`Ver foto de ${foto.nome} em tamanho maior`}
+                data-nome={foto.nome}
+                data-insta={foto.instagram || ''}
+                data-local={foto.local || ''}
+              >
+                <img src={foto.imagem_url} alt={`Foto de escalada enviada por ${foto.nome}`} loading="lazy" />
+              </button>
+              <figcaption>
+                <strong>{foto.nome}</strong>
+                {foto.instagram && <span class="galeria-item__insta"> · {foto.instagram}</span>}
+                {foto.local && <span class="galeria-item__local">{foto.local}</span>}
+              </figcaption>
+            </figure>
           ))}
         </div>
       </div>
@@ -241,6 +255,13 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 2 === 1) : [];
     gap: 16px;
   }
 
+  .galeria-item {
+    margin: 0;
+    border-radius: var(--raio);
+    overflow: hidden;
+    background: var(--branco);
+    box-shadow: var(--sombra);
+  }
   .galeria-item__botao {
     display: block;
     width: 100%;
@@ -248,13 +269,6 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 2 === 1) : [];
     border: none;
     background: none;
     cursor: zoom-in;
-    border-radius: var(--raio);
-    overflow: hidden;
-    box-shadow: var(--sombra);
-    transition: transform 0.15s ease;
-  }
-  .galeria-item__botao:hover {
-    transform: translateY(-2px);
   }
   .galeria-item__botao img {
     width: 100%;
@@ -265,6 +279,21 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 2 === 1) : [];
   }
   .galeria-item__botao:hover img {
     opacity: 0.9;
+  }
+  .galeria-item figcaption {
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    color: var(--marrom);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .galeria-item__insta {
+    opacity: 0.8;
+  }
+  .galeria-item__local {
+    opacity: 0.65;
+    font-size: 0.76rem;
   }
 
   .form-foto {
@@ -318,8 +347,8 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 2 === 1) : [];
       overflow-x: auto;
       padding-bottom: 4px;
     }
-    .galeria-item__botao {
-      min-width: 160px;
+    .galeria-item {
+      min-width: 180px;
       flex: 0 0 auto;
     }
     .galeria-item__botao img {
