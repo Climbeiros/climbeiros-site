@@ -262,24 +262,27 @@ a.artigo-item:hover { transform: translateY(-2px); text-decoration: none; }
 .artigo-item__seta { font-family: var(--fonte-display); color: var(--laranja); font-size: 1.3rem; flex-shrink: 0; }
 .artigo-item--em-breve { opacity: 0.75; }
 .artigo-item--em-breve .artigo-item__numero { color: var(--creme-claro); opacity: 0.6; }
+
 /* Em telas estreitas, numero + icone + etiqueta + seta não cabem mais na
    mesma linha do flex original — o texto (corpo) encolhia até o limite e o
-   resto (etiqueta "Disponível" + seta) vazava pra fora do card. Em vez de
-   forçar tudo numa linha só, vira uma grade de duas linhas: cabeçalho em
-   cima (número, ícone, texto) e etiqueta + seta embaixo. */
+   resto (etiqueta + seta) vazava pra fora do card. Em vez de forçar tudo
+   numa linha só, vira uma grade de três linhas: número + ícone em cima,
+   título e descrição ocupando a largura toda logo abaixo, e etiqueta +
+   seta por último. */
 @media (max-width: 640px) {
   .artigo-item {
     display: grid;
-    grid-template-columns: auto auto 1fr;
+    grid-template-columns: auto 1fr;
     grid-template-areas:
-      "numero icone corpo"
-      "etiqueta etiqueta seta";
+      "numero icone"
+      "corpo corpo"
+      "etiqueta seta";
     column-gap: 16px;
     row-gap: 10px;
     padding: 20px;
   }
   .artigo-item .artigo-item__numero { grid-area: numero; }
-  .artigo-item .artigo-item__icone { grid-area: icone; margin: 0; }
+  .artigo-item .artigo-item__icone { grid-area: icone; margin: 0; justify-self: start; }
   .artigo-item .artigo-item__corpo { grid-area: corpo; min-width: 0; }
   .artigo-item .etiqueta { grid-area: etiqueta; justify-self: start; }
   .artigo-item .artigo-item__seta { grid-area: seta; justify-self: end; }
