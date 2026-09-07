@@ -11,9 +11,22 @@ const { data: fotos } = await supabase
   .eq('aprovado', true)
   .order('enviado_em', { ascending: false });
 
-const colunaEsquerda = fotos ? fotos.filter((_, i) => i % 3 === 0) : [];
-const colunaCentro = fotos ? fotos.filter((_, i) => i % 3 === 1) : [];
-const colunaDireita = fotos ? fotos.filter((_, i) => i % 3 === 2) : [];
+// Distribui as fotos pelas 3 colunas tentando deixar todas com a MESMA ALTURA no final,
+// em vez de simplesmente alternar 1-2-3-1-2-3 (que deixava uma coluna bem mais alta que
+// as outras e criava aquele espaço vazio do lado da última foto).
+// A coluna do centro já começa "adiantada" porque tem o formulário ocupando espaço lá em cima.
+const listaFotos = fotos ?? [];
+const pesoColunas = [0, 3, 0]; // [esquerda, centro, direita] — 3 = altura estimada do formulário em "fotos"
+const colunasFotos = [[], [], []];
+for (const foto of listaFotos) {
+  let indiceMenor = 0;
+  for (let i = 1; i < 3; i++) {
+    if (pesoColunas[i] < pesoColunas[indiceMenor]) indiceMenor = i;
+  }
+  colunasFotos[indiceMenor].push(foto);
+  pesoColunas[indiceMenor] += 1;
+}
+const [colunaEsquerda, colunaCentro, colunaDireita] = colunasFotos;
 ---
 <Layout titulo="Comunidade" descricao="Fotos de escalada mandadas pela própria comunidade Climbeiros.">
   <section class="secao">
@@ -217,7 +230,7 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 3 === 2) : [];
     botao.disabled = false;
   });
 
-  // Lightbox: clicar numa foto abre ela em tamanho maior
+  // Lightbox: clicar numa foto (esquerda ou direita do formulário) abre ela em tamanho maior
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightbox-img');
   const lightboxLegenda = document.getElementById('lightbox-legenda');
