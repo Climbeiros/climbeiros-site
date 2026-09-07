@@ -33,7 +33,16 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
         </label>
         <label>
           Celular
-          <input type="tel" name="celular" placeholder="(11) 91234-5678" />
+          <input
+            type="tel"
+            name="celular"
+            id="campo-celular"
+            placeholder="(11)991721313"
+            pattern="\(\d{2}\)\d{9}"
+            title="Formato: (11)991721313 — DDD entre parênteses e 9 números, sem espaço"
+            maxlength="13"
+            inputmode="numeric"
+          />
         </label>
         <label>
           Mensagem
@@ -58,6 +67,19 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
 
   const form = document.getElementById('form-contato');
   const status = document.getElementById('form-status');
+
+  const campoCelular = document.getElementById('campo-celular');
+  campoCelular?.addEventListener('input', () => {
+    const numeros = campoCelular.value.replace(/\D/g, '').slice(0, 11);
+    let formatado = '';
+    if (numeros.length > 0) {
+      formatado = '(' + numeros.slice(0, 2);
+    }
+    if (numeros.length >= 2) {
+      formatado += ')' + numeros.slice(2);
+    }
+    campoCelular.value = formatado;
+  });
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
