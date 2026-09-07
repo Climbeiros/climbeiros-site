@@ -24,12 +24,24 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
           <input type="text" name="nome" required />
         </label>
         <label>
+          Assunto
+          <input type="text" name="assunto" placeholder="Ex.: Cadastrar minha academia" required />
+        </label>
+        <label>
           E-mail
           <input type="email" name="email" required />
         </label>
         <label>
+          Celular
+          <input type="tel" name="celular" placeholder="(11) 91234-5678" />
+        </label>
+        <label>
           Mensagem
           <textarea name="mensagem" rows="5" required></textarea>
+        </label>
+        <label class="form-consentimento">
+          <input type="checkbox" name="consentimento" required />
+          Li e concordo com a <a href="/privacidade" target="_blank">Política de Privacidade</a>.
         </label>
         <button type="submit" class="botao">Enviar mensagem</button>
         <p id="form-status" class="form-status" role="status"></p>
@@ -59,7 +71,9 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
 
       const { error } = await supabase.from('mensagens_contato').insert({
         nome: dados.get('nome'),
+        assunto: dados.get('assunto'),
         email: dados.get('email'),
+        celular: dados.get('celular') || null,
         mensagem: dados.get('mensagem'),
       });
 
@@ -113,6 +127,25 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
   }
   .form-contato button { align-self: flex-start; }
   .form-status { font-size: 0.9rem; min-height: 1.2em; margin: 0; }
+
+  .form-consentimento {
+    flex-direction: row !important;
+    align-items: flex-start;
+    gap: 8px !important;
+    text-transform: none !important;
+    font-family: var(--fonte-corpo) !important;
+    font-size: 0.85rem !important;
+    letter-spacing: normal !important;
+    color: var(--marrom) !important;
+  }
+  .form-consentimento input {
+    width: auto;
+    margin-top: 3px;
+  }
+  .form-consentimento a {
+    color: var(--verde-escuro);
+    text-decoration: underline;
+  }
 
   @media (max-width: 760px) {
     .contato { grid-template-columns: 1fr; }
