@@ -181,12 +181,11 @@ function waLink(num) {
               <input type="text" id="fg-cidade" name="cidade_uf" placeholder="Ex.: São Paulo / SP" />
             </div>
             <div class="campo">
-              <label for="fg-pref">Melhor contato para divulgarmos</label>
-              <select id="fg-pref" name="contato_pref" class="form-select">
-                <option value="">Selecione...</option>
-                <option value="WhatsApp">WhatsApp</option>
-                <option value="Instagram">Instagram</option>
-              </select>
+              <span class="campo-label">Melhor contato para divulgarmos</span>
+              <div class="pref-opcoes">
+                <label class="pref-check"><input type="checkbox" name="pref" value="WhatsApp" /> WhatsApp</label>
+                <label class="pref-check"><input type="checkbox" name="pref" value="Instagram" /> Instagram</label>
+              </div>
             </div>
           </div>
 
@@ -242,6 +241,11 @@ function waLink(num) {
 
     const temCupom = form.querySelector('#tem-cupom')?.checked;
 
+    // Junta as preferências de contato marcadas (pode ser uma, as duas, ou nenhuma)
+    const prefContato = Array.from(form.querySelectorAll('input[name="pref"]:checked'))
+      .map((el) => el.value)
+      .join(', ');
+
     btn.setAttribute('disabled', '');
     status.textContent = 'Enviando...';
 
@@ -250,7 +254,7 @@ function waLink(num) {
       email: dados.email,
       telefone: dados.telefone || null,
       instagram: dados.instagram || null,
-      contato_pref: dados.contato_pref || null,
+      contato_pref: prefContato || null,
       cidade_uf: dados.cidade_uf || null,
       especialidades: dados.especialidades || null,
       mensagem: dados.mensagem || null,
@@ -371,9 +375,17 @@ function waLink(num) {
   .form-guia .botao { align-self: flex-start; margin-top: 6px; }
   .form-guia .botao[disabled] { opacity: .6; cursor: default; }
   .form-status { font-size: .92rem; color: var(--verde-escuro); min-height: 1.2em; margin: 0; }
+  .campo-label { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: .8rem; color: var(--verde-escuro); }
+  .pref-opcoes { display: flex; gap: 22px; flex-wrap: wrap; padding: 12px 2px; }
+  .pref-check { display: flex; align-items: center; gap: 8px; font-size: 1rem; color: var(--marrom); cursor: pointer; }
+  .pref-check input { width: 18px; height: 18px; accent-color: var(--laranja); cursor: pointer; }
   .cupom-toggle { display: flex; align-items: flex-start; gap: 10px; font-size: .95rem; color: var(--marrom); cursor: pointer; }
   .cupom-toggle input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--laranja); flex: 0 0 auto; }
   .cupom-campos { display: flex; flex-direction: column; gap: 18px; padding: 18px; border: 1px dashed rgba(218,115,38,.5); border-radius: 8px; background: rgba(218,115,38,.06); }
+  .campo-label { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: .8rem; color: var(--verde-escuro); }
+  .pref-opcoes { display: flex; gap: 22px; flex-wrap: wrap; padding: 12px 2px; }
+  .pref-check { display: flex; align-items: center; gap: 8px; font-size: 1rem; color: var(--marrom); cursor: pointer; }
+  .pref-check input { width: 18px; height: 18px; accent-color: var(--laranja); cursor: pointer; }
   .cupom-toggle { display: flex; align-items: flex-start; gap: 10px; font-size: .95rem; color: var(--creme-claro); cursor: pointer; text-align: left; margin-top: 4px; }
   .cupom-toggle input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--laranja); flex: 0 0 auto; }
   .cupom-campos { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px dashed rgba(224,147,28,.5); border-radius: 8px; background: rgba(224,147,28,.06); }
