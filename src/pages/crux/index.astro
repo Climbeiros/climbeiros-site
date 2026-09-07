@@ -8,6 +8,14 @@ const { data: artigos } = await supabase
   .select('*')
   .eq('categoria', 'crux')
   .order('publicado_em', { ascending: false }) as { data: Artigo[] | null };
+
+// A página de Técnicas & Posições é interativa (código próprio), então não
+// vem do Supabase — é sempre incluída manualmente, aqui no topo da lista.
+const itemTecnicas = {
+  titulo: 'Técnicas & Posições',
+  resumo: 'Bandeira, gancho de calcanhar, joelho caído e mais — os nomes das técnicas em português e inglês, com ilustração.',
+  href: '/crux/tecnicas',
+};
 ---
 <Layout titulo="Crux" descricao="Conteúdo pra quem já escala e quer ir além do básico — guias, dicas e novidades da comunidade Climbeiros.">
   <section class="secao">
@@ -15,11 +23,15 @@ const { data: artigos } = await supabase
       <p class="eyebrow">Pra quem já pega a parte difícil da via</p>
       <h1>Crux</h1>
 
-      {(!artigos || artigos.length === 0) && (
-        <p>Ainda estamos escrevendo os primeiros artigos. Volte em breve!</p>
-      )}
-
       <div class="grade grade--3">
+        <a href={itemTecnicas.href} class="card artigo-card">
+          <img class="card__imagem" src="/logo.png" alt={itemTecnicas.titulo} />
+          <div class="card__corpo">
+            <h3>{itemTecnicas.titulo}</h3>
+            <p>{itemTecnicas.resumo}</p>
+          </div>
+        </a>
+
         {artigos?.map((artigo) => (
           <a href={`/crux/${artigo.slug}`} class="card artigo-card">
             <img class="card__imagem" src={artigo.imagem_capa_url || '/logo.png'} alt={artigo.titulo} />
@@ -31,6 +43,10 @@ const { data: artigos } = await supabase
           </a>
         ))}
       </div>
+
+      {(!artigos || artigos.length === 0) && (
+        <p class="crux-nota">Os outros artigos de Crux ainda estão sendo escritos. Volte em breve!</p>
+      )}
     </div>
   </section>
 </Layout>
@@ -39,4 +55,5 @@ const { data: artigos } = await supabase
   .artigo-card { color: var(--marrom); }
   .artigo-card:hover { text-decoration: none; }
   .artigo-card__autor { font-size: 0.85rem; opacity: 0.6; margin-top: 8px; margin-bottom: 0; }
+  .crux-nota { margin-top: 24px; opacity: 0.75; }
 </style>
