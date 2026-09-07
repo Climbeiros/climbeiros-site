@@ -12,8 +12,8 @@ const { data: fotos } = await supabase
   .order('enviado_em', { ascending: false });
 
 const colunaEsquerda = fotos ? fotos.filter((_, i) => i % 3 === 0) : [];
-const colunaCentro = fotos ? fotos.filter((_, i) => i % 3 === 1) : [];
-const colunaDireita = fotos ? fotos.filter((_, i) => i % 3 === 2) : [];
+const colunaDireita = fotos ? fotos.filter((_, i) => i % 3 === 1) : [];
+const colunaCentro = fotos ? fotos.filter((_, i) => i % 3 === 2) : [];
 ---
 <Layout titulo="Galeria" descricao="Fotos de escalada mandadas pela própria comunidade Climbeiros.">
   <section class="secao">
