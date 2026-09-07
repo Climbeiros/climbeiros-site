@@ -3,28 +3,23 @@
 // Página de Cursos & Guias — lê os dados do Supabase (tabelas "guias" e "cursos").
 // O formulário "É guia e quer aparecer aqui?" grava na tabela "inscricoes_guias".
 // Site estático: após cadastrar/editar guias no Supabase, faça REDEPLOY na Vercel.
-
 import Layout from "../layouts/Layout.astro";
 import { supabase } from "../lib/supabase";
-
 const { data: guias } = await supabase
   .from("guias")
   .select("*")
   .eq("publicado", true)
   .order("ordem", { ascending: true });
-
 const { data: cursos } = await supabase
   .from("cursos")
   .select("*")
   .eq("publicado", true)
   .order("ordem", { ascending: true });
-
 const cursosPorGuia = new Map();
 for (const c of cursos ?? []) {
   if (!cursosPorGuia.has(c.guia_id)) cursosPorGuia.set(c.guia_id, []);
   cursosPorGuia.get(c.guia_id).push(c);
 }
-
 function iniciais(nome) {
   return (nome || "").split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
 }
@@ -40,12 +35,10 @@ function waLink(num) {
   return only ? `https://wa.me/${only}` : null;
 }
 ---
-
 <Layout titulo="Cursos & Guias" descricao="Guias de escalada e montanhismo indicados pela comunidade Climbeiros.">
-  <!-- HERO -->
-  <section class="phero">
+  <section class="secao">
     <div class="container">
-      <span class="eyebrow">Aprenda com quem vive a rocha</span>
+      <p class="eyebrow">Aprenda com quem vive a rocha</p>
       <h1>Cursos &amp; guias</h1>
       <p>
         Conectamos você a guias que conhecemos e confiamos — cada um com sua
@@ -54,8 +47,6 @@ function waLink(num) {
       </p>
     </div>
   </section>
-  <div class="rope"></div>
-
   <!-- LISTA DE GUIAS -->
   <section class="secao">
     <div class="container">
@@ -67,11 +58,9 @@ function waLink(num) {
           contato é direto: você combina data, local e valores com o próprio guia.
         </p>
       </div>
-
       {(!guias || guias.length === 0) && (
         <p class="vazio">Em breve nossa rede de guias estará por aqui. 🧗</p>
       )}
-
       <div class="guides">
         {guias?.map((g) => (
           <article class="guide">
@@ -93,7 +82,6 @@ function waLink(num) {
                   </div>
                 </>
               )}
-
               {cursosPorGuia.get(g.id)?.length > 0 && (
                 <>
                   <div class="lbl">Cursos que oferece</div>
@@ -107,7 +95,6 @@ function waLink(num) {
                   </ul>
                 </>
               )}
-
               <div class="contact">
                 {waLink(g.whatsapp) && (
                   <a class="cbtn c-wa" href={waLink(g.whatsapp)} target="_blank" rel="noopener">WhatsApp</a>
@@ -121,7 +108,6 @@ function waLink(num) {
           </article>
         ))}
       </div>
-
       <p class="safety">
         Os guias são profissionais independentes. O Climbeiros faz a ponte entre
         você e eles; a contratação, os valores e a responsabilidade pelo curso são
@@ -130,7 +116,6 @@ function waLink(num) {
       </p>
     </div>
   </section>
-
   <!-- COMO FUNCIONA -->
   <section class="how">
     <div class="container">
@@ -143,7 +128,6 @@ function waLink(num) {
       </div>
     </div>
   </section>
-
   <!-- SEJA GUIA (com formulário que grava no Supabase) -->
   <section class="beguide" id="seja-guia">
     <div class="container">
@@ -151,7 +135,6 @@ function waLink(num) {
         <h2>É guia e quer aparecer aqui?</h2>
         <p>Se você é guia de escalada ou montanhismo e quer fazer parte da nossa
           rede, preencha abaixo — a gente adora conhecer gente boa da vertical.</p>
-
         <form class="form-guia" id="form-guia">
           <div class="linha">
             <div class="campo">
@@ -163,7 +146,6 @@ function waLink(num) {
               <input type="email" id="fg-email" name="email" required />
             </div>
           </div>
-
           <div class="linha">
             <div class="campo">
               <label for="fg-telefone">WhatsApp</label>
@@ -174,7 +156,6 @@ function waLink(num) {
               <input type="text" id="fg-instagram" name="instagram" placeholder="@seu.perfil" />
             </div>
           </div>
-
           <div class="linha">
             <div class="campo">
               <label for="fg-cidade">Cidade / UF</label>
@@ -188,17 +169,14 @@ function waLink(num) {
               </div>
             </div>
           </div>
-
           <div class="campo">
             <label for="fg-espec">Especialidades</label>
             <input type="text" id="fg-espec" name="especialidades" placeholder="Ex.: escalada esportiva, boulder" />
           </div>
-
           <div class="campo">
             <label for="fg-msg">Mensagem</label>
             <textarea id="fg-msg" name="mensagem" rows="4" placeholder="Conte um pouco sobre você e os cursos que oferece"></textarea>
           </div>
-
           <label class="cupom-toggle">
             <input type="checkbox" name="tem_cupom" id="tem-cupom" />
             Quero oferecer um cupom de desconto para a comunidade Climbeiros
@@ -213,7 +191,6 @@ function waLink(num) {
               <textarea id="fg-cupomdesc" name="cupom_desc" rows="3" placeholder="Ex.: 10% na primeira aula avulsa"></textarea>
             </div>
           </div>
-
           <button type="submit" class="botao" id="btn-enviar-guia">Enviar inscrição</button>
           <p class="form-status" id="form-guia-status" role="status"></p>
         </form>
@@ -221,34 +198,26 @@ function waLink(num) {
     </div>
   </section>
 </Layout>
-
 <script>
   import { supabase } from '../lib/supabase';
-
   const form = document.getElementById('form-guia');
   const status = document.getElementById('form-guia-status');
   const btn = document.getElementById('btn-enviar-guia');
-
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!status || !btn) return;
-
     const dados = Object.fromEntries(new FormData(form).entries());
     if (!dados.nome || !dados.email) {
       status.textContent = 'Por favor, preencha ao menos nome e e-mail.';
       return;
     }
-
     const temCupom = form.querySelector('#tem-cupom')?.checked;
-
     // Junta as preferências de contato marcadas (pode ser uma, as duas, ou nenhuma)
     const prefContato = Array.from(form.querySelectorAll('input[name="pref"]:checked'))
       .map((el) => el.value)
       .join(', ');
-
     btn.setAttribute('disabled', '');
     status.textContent = 'Enviando...';
-
     const { error } = await supabase.from('inscricoes_guias').insert([{
       nome: dados.nome,
       email: dados.email,
@@ -262,18 +231,15 @@ function waLink(num) {
       cupom_codigo: temCupom ? (dados.cupom_codigo || null) : null,
       cupom_desc: temCupom ? (dados.cupom_desc || null) : null,
     }]);
-
     if (error) {
       status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.';
       btn.removeAttribute('disabled');
       return;
     }
-
     form.reset();
     status.textContent = 'Recebemos sua inscrição! Em breve a gente entra em contato. 🧗';
     btn.removeAttribute('disabled');
   });
-
   // Mostra/esconde os campos de cupom conforme o checkbox
   const chkCupom = document.getElementById('tem-cupom');
   const campoCupom = document.getElementById('cupom-campos');
@@ -281,40 +247,12 @@ function waLink(num) {
     if (campoCupom) campoCupom.hidden = !chkCupom.checked;
   });
 </script>
-
 <style>
-  .phero {
-    background:
-      linear-gradient(180deg, rgba(47,66,48,.55), rgba(42,31,22,.82)),
-      radial-gradient(120% 120% at 78% 0%, #84997c 0%, #4f6b4a 46%, #2f4230 100%);
-    color: var(--creme-claro);
-    padding: 72px 0 78px;
-  }
-  .eyebrow {
-    display: inline-flex; align-items: center; gap: 10px;
-    font-weight: 700; text-transform: uppercase; letter-spacing: .18em;
-    font-size: .82rem; color: var(--amarelo); margin-bottom: 18px;
-  }
-  .eyebrow::before { content: ""; width: 34px; height: 2px; background: var(--laranja); }
-  .phero h1 {
-    font-family: var(--fonte-display); font-weight: 700; line-height: .94;
-    text-transform: uppercase; font-size: clamp(2.8rem, 7vw, 5rem);
-    color: #fff; margin-bottom: 18px;
-  }
-  .phero p { max-width: 600px; font-size: 1.14rem; color: #f3ecda; }
-
-  .rope {
-    height: 14px;
-    background: repeating-linear-gradient(135deg,
-      var(--amarelo) 0 10px, var(--laranja) 10px 20px, var(--marrom) 20px 22px);
-  }
-
   .intro { max-width: 720px; margin: 0 auto 8px; text-align: center; }
   .intro .k { font-weight: 700; text-transform: uppercase; letter-spacing: .16em; font-size: .8rem; color: var(--laranja); margin-bottom: 10px; }
   .intro h2 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; line-height: 1; font-size: clamp(2rem, 4.6vw, 3rem); color: var(--verde-escuro); margin-bottom: 16px; }
   .intro p { color: #5f5344; }
   .vazio { text-align: center; color: #5f5344; margin: 40px 0; font-size: 1.1rem; }
-
   .guides { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 26px; margin-top: 48px; }
   .guide { background: var(--branco); border: 1px solid #e6ddc4; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .25s; }
   .guide:hover { transform: translateY(-4px); box-shadow: 0 20px 44px -22px rgba(47,66,48,.5); }
@@ -341,9 +279,7 @@ function waLink(num) {
   .c-wa { background: #25995a; }
   .c-ig { background: linear-gradient(120deg, #e0931c, var(--laranja)); }
   .c-em { background: var(--verde-escuro); color: var(--creme); }
-
   .safety { max-width: 760px; margin: 26px auto 0; font-size: .82rem; color: #8a7d68; text-align: center; font-style: italic; }
-
   .how { background: var(--verde-escuro); color: var(--creme-claro); text-align: center; }
   .how .k { font-weight: 700; text-transform: uppercase; letter-spacing: .16em; font-size: .8rem; color: var(--amarelo); margin-bottom: 10px; }
   .how h2 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; font-size: clamp(1.8rem, 4vw, 2.6rem); color: #fff; margin-bottom: 40px; }
@@ -352,12 +288,10 @@ function waLink(num) {
   .step .n { font-family: var(--fonte-display); font-weight: 700; font-size: 2.4rem; color: var(--amarelo); line-height: 1; margin-bottom: 10px; }
   .step h4 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; font-size: 1.25rem; color: #fff; margin-bottom: 8px; }
   .step p { font-size: .94rem; color: #e2dcc9; }
-
   .beguide { text-align: center; }
   .beguide .box { background: var(--creme-claro); border-radius: 12px; padding: 48px 40px; color: var(--marrom); max-width: 760px; margin: 0 auto; text-align: left; box-shadow: var(--sombra); }
   .beguide h2 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; color: var(--verde-escuro); font-size: clamp(1.8rem, 4vw, 2.6rem); margin-bottom: 12px; text-align: center; }
   .beguide > .container > .box > p { max-width: 520px; margin: 0 auto 32px; color: #5f5344; text-align: center; }
-
   /* Formulário claro (estilo da página de contato) */
   .form-guia { display: flex; flex-direction: column; gap: 18px; }
   .form-guia .linha { display: flex; gap: 18px; flex-wrap: wrap; }
@@ -389,7 +323,6 @@ function waLink(num) {
   .cupom-toggle { display: flex; align-items: flex-start; gap: 10px; font-size: .95rem; color: var(--creme-claro); cursor: pointer; text-align: left; margin-top: 4px; }
   .cupom-toggle input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--laranja); flex: 0 0 auto; }
   .cupom-campos { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px dashed rgba(224,147,28,.5); border-radius: 8px; background: rgba(224,147,28,.06); }
-
   @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
