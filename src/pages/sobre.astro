@@ -41,7 +41,7 @@ const valores = [
   </section>
 
   <!-- MISSÃO -->
-  <section class="secao secao--verde">
+  <section class="secao">
     <div class="container missao">
       <p class="eyebrow">Nossa missão</p>
       <h2>Ninguém precisa subir sozinho</h2>
@@ -55,7 +55,7 @@ const valores = [
   </section>
 
   <!-- VALORES -->
-  <section class="secao secao--creme">
+  <section class="secao">
     <div class="container">
       <p class="eyebrow">No que a gente acredita</p>
       <h2>Nossos valores</h2>
@@ -91,8 +91,8 @@ const valores = [
 
   /* Missão */
   .missao { max-width: 760px; }
-  .missao h2 { color: var(--creme); margin-bottom: 16px; }
-  .missao p { font-size: 1.15rem; color: var(--creme-claro); opacity: 0.95; margin: 0; }
+  .missao h2 { color: var(--verde-escuro); margin-bottom: 16px; }
+  .missao p { font-size: 1.15rem; color: var(--marrom); opacity: 0.9; margin: 0; }
 
   /* Valores */
   .valores { margin-top: 32px; }
@@ -101,6 +101,9 @@ const valores = [
     gap: 18px;
     align-items: flex-start;
     padding: 26px 28px;
+    background: var(--branco);
+    border: 1px solid rgba(42, 31, 22, 0.12);
+    box-shadow: none;
   }
   .valor__numero {
     font-family: var(--fonte-display);
