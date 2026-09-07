@@ -6,7 +6,7 @@ const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
 
 const { data: fotos } = await supabase
-  .from('fotos_comunidade')
+  .from('fotos_galeria')
   .select('nome, instagram, local, imagem_url, enviado_em')
   .eq('aprovado', true)
   .order('enviado_em', { ascending: false });
@@ -28,11 +28,11 @@ for (const foto of listaFotos) {
 }
 const [colunaEsquerda, colunaCentro, colunaDireita] = colunasFotos;
 ---
-<Layout titulo="Comunidade" descricao="Fotos de escalada mandadas pela própria comunidade Climbeiros.">
+<Layout titulo="Galeria" descricao="Fotos de escalada mandadas pela própria comunidade Climbeiros.">
   <section class="secao">
     <div class="container">
       <p class="eyebrow">Feito por quem escala</p>
-      <h1>Comunidade</h1>
+      <h1>Galeria</h1>
       <p>
         Fotos de escalada mandadas por gente de verdade — dos boulders de
         academia até os setores mais escondidos do Brasil. Manda a sua foto
@@ -197,7 +197,7 @@ const [colunaEsquerda, colunaCentro, colunaDireita] = colunasFotos;
       const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extensao}`;
 
       const { error: erroUpload } = await supabase.storage
-        .from('fotos-comunidade')
+        .from('fotos-galeria')
         .upload(nomeArquivo, arquivo);
 
       if (erroUpload) {
@@ -207,10 +207,10 @@ const [colunaEsquerda, colunaCentro, colunaDireita] = colunasFotos;
       }
 
       const { data: urlPublica } = supabase.storage
-        .from('fotos-comunidade')
+        .from('fotos-galeria')
         .getPublicUrl(nomeArquivo);
 
-      const { error: erroInsert } = await supabase.from('fotos_comunidade').insert({
+      const { error: erroInsert } = await supabase.from('fotos_galeria').insert({
         nome: dados.get('nome'),
         instagram: dados.get('instagram') || null,
         local: dados.get('local') || null,
