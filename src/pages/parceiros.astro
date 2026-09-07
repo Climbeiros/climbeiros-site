@@ -2,7 +2,6 @@
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 import type { Parceiro } from '../lib/supabase';
-
 const { data: parceiros } = await supabase.from('parceiros').select('*').order('nome_marca') as { data: Parceiro[] | null };
 ---
 <Layout titulo="Parcerias & Cupons" descricao="Marcas parceiras do Climbeiros e cupons de desconto para a comunidade.">
@@ -10,11 +9,9 @@ const { data: parceiros } = await supabase.from('parceiros').select('*').order('
     <div class="container">
       <p class="eyebrow">Marcas que apoiam a comunidade</p>
       <h1>Parcerias & Cupons</h1>
-
       {(!parceiros || parceiros.length === 0) && (
         <p>Ainda estamos fechando as primeiras parcerias. Volte em breve!</p>
       )}
-
       <div class="grade grade--2">
         {parceiros?.map((p) => (
           <article class="parceiro-card">
@@ -32,7 +29,119 @@ const { data: parceiros } = await supabase.from('parceiros').select('*').order('
       </div>
     </div>
   </section>
+
+  <!-- SEJA UM PARCEIRO (formulário que grava no Supabase) -->
+  <section class="secao secao--creme">
+    <div class="container">
+      <div class="parceiro-cta">
+        <p class="eyebrow">Quer apoiar quem escala?</p>
+        <h2>Seja um parceiro Climbeiros</h2>
+        <p class="parceiro-cta__lead">Sua marca perto de uma comunidade engajada de escaladores. Vamos conversar?</p>
+
+        <form class="form-parceiro" id="form-parceiro">
+          <div class="linha">
+            <div class="campo">
+              <label for="fp-marca">Marca *</label>
+              <input type="text" id="fp-marca" name="marca" required />
+            </div>
+            <div class="campo">
+              <label for="fp-resp">Responsável</label>
+              <input type="text" id="fp-resp" name="responsavel" />
+            </div>
+          </div>
+
+          <div class="linha">
+            <div class="campo">
+              <label for="fp-email">E-mail *</label>
+              <input type="email" id="fp-email" name="email" required />
+            </div>
+            <div class="campo">
+              <label for="fp-tel">WhatsApp</label>
+              <input type="text" id="fp-tel" name="telefone" placeholder="(11) 99172-1313" />
+            </div>
+          </div>
+
+          <div class="linha">
+            <div class="campo">
+              <label for="fp-site">Site</label>
+              <input type="text" id="fp-site" name="site" placeholder="www.suamarca.com.br" />
+            </div>
+            <div class="campo">
+              <label for="fp-insta">Instagram</label>
+              <input type="text" id="fp-insta" name="instagram" placeholder="@suamarca" />
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="fp-cat">Categoria</label>
+            <select id="fp-cat" name="categoria" class="form-select">
+              <option value="">Selecione...</option>
+              <option value="Equipamentos">Equipamentos</option>
+              <option value="Vestuário">Vestuário</option>
+              <option value="Calçados">Calçados</option>
+              <option value="Nutrição">Nutrição</option>
+              <option value="Hospedagem">Hospedagem</option>
+              <option value="Turismo / Agência">Turismo / Agência</option>
+              <option value="Tecnologia">Tecnologia</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label for="fp-msg">Mensagem</label>
+            <textarea id="fp-msg" name="mensagem" rows="4" placeholder="Conte um pouco sobre a marca e o que vocês gostariam de oferecer à comunidade"></textarea>
+          </div>
+
+          <button type="submit" class="botao" id="btn-enviar-parceiro">Enviar proposta</button>
+          <p class="form-status" id="form-parceiro-status" role="status"></p>
+        </form>
+      </div>
+    </div>
+  </section>
 </Layout>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  const form = document.getElementById('form-parceiro');
+  const status = document.getElementById('form-parceiro-status');
+  const btn = document.getElementById('btn-enviar-parceiro');
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!status || !btn) return;
+
+    const dados = Object.fromEntries(new FormData(form).entries());
+    if (!dados.marca || !dados.email) {
+      status.textContent = 'Por favor, preencha ao menos a marca e o e-mail.';
+      return;
+    }
+
+    btn.setAttribute('disabled', '');
+    status.textContent = 'Enviando...';
+
+    const { error } = await supabase.from('inscricoes_parceiros').insert([{
+      marca: dados.marca,
+      responsavel: dados.responsavel || null,
+      email: dados.email,
+      telefone: dados.telefone || null,
+      site: dados.site || null,
+      instagram: dados.instagram || null,
+      categoria: dados.categoria || null,
+      mensagem: dados.mensagem || null,
+    }]);
+
+    if (error) {
+      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.';
+      btn.removeAttribute('disabled');
+      return;
+    }
+
+    form.reset();
+    status.textContent = 'Recebemos sua proposta! Em breve a gente entra em contato. 🤝';
+    btn.removeAttribute('disabled');
+  });
+</script>
 
 <style>
   .parceiro-card {
@@ -68,4 +177,31 @@ const { data: parceiros } = await supabase.from('parceiros').select('*').order('
     border-radius: 6px;
     letter-spacing: 0.03em;
   }
+
+  /* Seja um parceiro — bloco de captação */
+  .parceiro-cta { max-width: 720px; }
+  .parceiro-cta h2 { color: var(--verde-escuro); margin-bottom: 12px; }
+  .parceiro-cta__lead { font-size: 1.1rem; color: var(--marrom); opacity: 0.9; margin-bottom: 28px; max-width: 560px; }
+
+  .form-parceiro { display: flex; flex-direction: column; gap: 18px; }
+  .form-parceiro .linha { display: flex; gap: 18px; flex-wrap: wrap; }
+  .form-parceiro .linha > * { flex: 1; min-width: 200px; }
+  .form-parceiro .campo { display: flex; flex-direction: column; gap: 6px; }
+  .form-parceiro label {
+    font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: 0.04em;
+    font-size: 0.8rem; color: var(--verde-escuro);
+  }
+  .form-parceiro input, .form-parceiro textarea, .form-parceiro .form-select {
+    font-family: var(--fonte-corpo); font-size: 1rem; padding: 12px 14px; border-radius: 8px;
+    border: 1px solid rgba(42,31,22,0.18); background: var(--branco); color: var(--marrom); width: 100%;
+  }
+  .form-parceiro input::placeholder, .form-parceiro textarea::placeholder { color: rgba(42,31,22,0.4); }
+  .form-parceiro input:focus, .form-parceiro textarea:focus, .form-parceiro .form-select:focus {
+    outline: 2px solid var(--laranja); border-color: var(--laranja);
+  }
+  .form-parceiro textarea { resize: vertical; }
+  .form-select { cursor: pointer; }
+  .form-parceiro .botao { align-self: flex-start; margin-top: 6px; }
+  .form-parceiro .botao[disabled] { opacity: 0.6; cursor: default; }
+  .form-status { font-size: 0.92rem; color: var(--verde-escuro); min-height: 1.2em; margin: 0; }
 </style>
