@@ -184,7 +184,7 @@ const colunaCentro = fotos ? fotos.filter((_, i) => i % 3 === 2) : [];
       const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extensao}`;
 
       const { error: erroUpload } = await supabase.storage
-        .from('fotos-comunidade')
+        .from('fotos-galeria')
         .upload(nomeArquivo, arquivo);
 
       if (erroUpload) {
@@ -194,7 +194,7 @@ const colunaCentro = fotos ? fotos.filter((_, i) => i % 3 === 2) : [];
       }
 
       const { data: urlPublica } = supabase.storage
-        .from('fotos-comunidade')
+        .from('fotos-galeria')
         .getPublicUrl(nomeArquivo);
 
       const { error: erroInsert } = await supabase.from('fotos_galeria').insert({
