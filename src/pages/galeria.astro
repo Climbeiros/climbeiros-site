@@ -1,0 +1,453 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
+
+const { data: fotos } = await supabase
+  .from('fotos_comunidade')
+  .select('nome, instagram, local, imagem_url, enviado_em')
+  .eq('aprovado', true)
+  .order('enviado_em', { ascending: false });
+
+// Distribui as fotos pelas 3 colunas tentando deixar todas com a MESMA ALTURA no final,
+// em vez de simplesmente alternar 1-2-3-1-2-3 (que deixava uma coluna bem mais alta que
+// as outras e criava aquele espaço vazio do lado da última foto).
+// A coluna do centro já começa "adiantada" porque tem o formulário ocupando espaço lá em cima.
+const listaFotos = fotos ?? [];
+const pesoColunas = [0, 3, 0]; // [esquerda, centro, direita] — 3 = altura estimada do formulário em "fotos"
+const colunasFotos = [[], [], []];
+for (const foto of listaFotos) {
+  let indiceMenor = 0;
+  for (let i = 1; i < 3; i++) {
+    if (pesoColunas[i] < pesoColunas[indiceMenor]) indiceMenor = i;
+  }
+  colunasFotos[indiceMenor].push(foto);
+  pesoColunas[indiceMenor] += 1;
+}
+const [colunaEsquerda, colunaCentro, colunaDireita] = colunasFotos;
+---
+<Layout titulo="Galeria" descricao="Fotos de escalada mandadas pela própria comunidade Climbeiros.">
+  <section class="secao">
+    <div class="container">
+      <p class="eyebrow">Feito por quem escala</p>
+      <h1>Galeria</h1>
+      <p>
+        Fotos de escalada mandadas por gente de verdade — dos boulders de
+        academia até os setores mais escondidos do Brasil. Manda a sua foto
+        aí embaixo!
+      </p>
+    </div>
+  </section>
+
+  <section class="secao secao--creme">
+    <div class="container">
+      <h2 class="titulo-secao">Manda sua foto</h2>
+
+      <div class="fotos-area">
+      <div class="moldura-fotos">
+        <div class="coluna-fotos">
+          {colunaEsquerda.map((foto) => (
+            <figure class="galeria-item">
+              <button
+                type="button"
+                class="galeria-item__botao"
+                aria-label={`Ver foto de ${foto.nome} em tamanho maior`}
+                data-nome={foto.nome}
+                data-insta={foto.instagram || ''}
+                data-local={foto.local || ''}
+              >
+                <img src={foto.imagem_url} alt={`Foto de escalada enviada por ${foto.nome}`} loading="lazy" />
+              </button>
+              <figcaption>
+                <strong>{foto.nome}</strong>
+                {foto.instagram && <span class="galeria-item__insta"> · {foto.instagram}</span>}
+                {foto.local && <span class="galeria-item__local">{foto.local}</span>}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+
+        <div class="coluna-centro">
+          <form
+            id="form-foto"
+            class="form-foto"
+            data-supabase-url={supabaseUrl}
+            data-supabase-key={supabaseKey}
+          >
+            <label>
+              Nome
+              <input type="text" name="nome" required />
+            </label>
+            <label>
+              Instagram (opcional)
+              <input type="text" name="instagram" placeholder="@seuusuario" />
+            </label>
+            <label>
+              Local da foto (opcional)
+              <input type="text" name="local" placeholder="Ex.: Academia Vertical, Setor Pedra Grande" />
+            </label>
+            <label>
+              Foto (até 5 MB)
+              <input type="file" name="foto" accept="image/png, image/jpeg, image/webp" required />
+            </label>
+            <button type="submit" class="botao">Enviar foto</button>
+            <p id="form-foto-status" class="form-status" role="status"></p>
+            <p class="form-foto-aviso">
+              Sua foto passa por uma revisão da equipe do Climbeiros antes de
+              aparecer aqui na galeria.
+            </p>
+          </form>
+
+          <div class="coluna-fotos">
+            {colunaCentro.map((foto) => (
+              <figure class="galeria-item">
+                <button
+                  type="button"
+                  class="galeria-item__botao"
+                  aria-label={`Ver foto de ${foto.nome} em tamanho maior`}
+                  data-nome={foto.nome}
+                  data-insta={foto.instagram || ''}
+                  data-local={foto.local || ''}
+                >
+                  <img src={foto.imagem_url} alt={`Foto de escalada enviada por ${foto.nome}`} loading="lazy" />
+                </button>
+                <figcaption>
+                  <strong>{foto.nome}</strong>
+                  {foto.instagram && <span class="galeria-item__insta"> · {foto.instagram}</span>}
+                  {foto.local && <span class="galeria-item__local">{foto.local}</span>}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+
+        <div class="coluna-fotos">
+          {colunaDireita.map((foto) => (
+            <figure class="galeria-item">
+              <button
+                type="button"
+                class="galeria-item__botao"
+                aria-label={`Ver foto de ${foto.nome} em tamanho maior`}
+                data-nome={foto.nome}
+                data-insta={foto.instagram || ''}
+                data-local={foto.local || ''}
+              >
+                <img src={foto.imagem_url} alt={`Foto de escalada enviada por ${foto.nome}`} loading="lazy" />
+              </button>
+              <figcaption>
+                <strong>{foto.nome}</strong>
+                {foto.instagram && <span class="galeria-item__insta"> · {foto.instagram}</span>}
+                {foto.local && <span class="galeria-item__local">{foto.local}</span>}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+      </div>
+
+      {(!fotos || fotos.length === 0) && (
+        <p class="crux-nota">
+          Ainda não temos fotos aprovadas por aqui — seja a primeira pessoa a
+          mandar a sua!
+        </p>
+      )}
+    </div>
+  </section>
+
+  <div id="lightbox" class="lightbox" hidden>
+    <button type="button" class="lightbox__fechar" id="lightbox-fechar" aria-label="Fechar foto">×</button>
+    <div class="lightbox__conteudo">
+      <img id="lightbox-img" src="" alt="" />
+      <p id="lightbox-legenda" class="lightbox__legenda"></p>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const form = document.getElementById('form-foto');
+  const status = document.getElementById('form-foto-status');
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const dados = new FormData(form);
+    const arquivo = dados.get('foto');
+    const botao = form.querySelector('button');
+
+    if (!arquivo || arquivo.size === 0) {
+      status.textContent = 'Escolha uma foto antes de enviar.';
+      return;
+    }
+    if (arquivo.size > 5 * 1024 * 1024) {
+      status.textContent = 'A foto precisa ter no máximo 5 MB.';
+      return;
+    }
+
+    botao.disabled = true;
+    status.textContent = 'Enviando...';
+
+    try {
+      const supabase = createClient(form.dataset.supabaseUrl, form.dataset.supabaseKey);
+
+      const extensao = arquivo.name.split('.').pop();
+      const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extensao}`;
+
+      const { error: erroUpload } = await supabase.storage
+        .from('fotos-comunidade')
+        .upload(nomeArquivo, arquivo);
+
+      if (erroUpload) {
+        status.textContent = 'Erro ao enviar a foto: ' + erroUpload.message;
+        botao.disabled = false;
+        return;
+      }
+
+      const { data: urlPublica } = supabase.storage
+        .from('fotos-comunidade')
+        .getPublicUrl(nomeArquivo);
+
+      const { error: erroInsert } = await supabase.from('fotos_comunidade').insert({
+        nome: dados.get('nome'),
+        instagram: dados.get('instagram') || null,
+        local: dados.get('local') || null,
+        imagem_url: urlPublica.publicUrl,
+      });
+
+      if (erroInsert) {
+        status.textContent = 'Erro ao registrar a foto: ' + erroInsert.message;
+      } else {
+        status.textContent = 'Foto enviada! Ela aparece aqui assim que for aprovada pela equipe do Climbeiros.';
+        form.reset();
+      }
+    } catch (err) {
+      status.textContent = 'Erro inesperado: ' + (err && err.message ? err.message : String(err));
+    }
+
+    botao.disabled = false;
+  });
+
+  // Lightbox: clicar numa foto (esquerda ou direita do formulário) abre ela em tamanho maior
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxLegenda = document.getElementById('lightbox-legenda');
+  const lightboxFechar = document.getElementById('lightbox-fechar');
+
+  function abrirLightbox(src, legenda) {
+    if (!lightbox || !lightboxImg || !lightboxLegenda) return;
+    lightboxImg.src = src;
+    lightboxImg.alt = legenda || '';
+    lightboxLegenda.textContent = legenda || '';
+    lightbox.hidden = false;
+  }
+
+  function fecharLightbox() {
+    if (!lightbox || !lightboxImg) return;
+    lightbox.hidden = true;
+    lightboxImg.src = '';
+  }
+
+  document.querySelectorAll('.galeria-item__botao').forEach((botaoFoto) => {
+    botaoFoto.addEventListener('click', () => {
+      const img = botaoFoto.querySelector('img');
+      const partes = [
+        botaoFoto.dataset.nome,
+        botaoFoto.dataset.insta,
+        botaoFoto.dataset.local,
+      ].filter(Boolean);
+      const legenda = partes.join(' · ');
+      if (img) abrirLightbox(img.src, legenda);
+    });
+  });
+
+  lightboxFechar?.addEventListener('click', fecharLightbox);
+  lightbox?.addEventListener('click', (e) => {
+    if (e.target === lightbox) fecharLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lightbox && !lightbox.hidden) fecharLightbox();
+  });
+</script>
+
+<style>
+  .titulo-secao {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    color: var(--verde-escuro);
+    font-size: 1.4rem;
+    margin: 0 0 1.25rem;
+    text-align: center;
+  }
+
+  .moldura-fotos {
+    display: grid;
+    grid-template-columns: 1fr minmax(280px, 480px) 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .coluna-fotos {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .coluna-centro {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .galeria-item {
+    margin: 0;
+    border-radius: var(--raio);
+    overflow: hidden;
+    background: var(--branco);
+    box-shadow: var(--sombra);
+  }
+  .galeria-item__botao {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: zoom-in;
+  }
+  .galeria-item__botao img {
+    width: 100%;
+    aspect-ratio: 4 / 6;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.15s ease;
+  }
+  .galeria-item__botao:hover img {
+    opacity: 0.9;
+  }
+  .galeria-item figcaption {
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    color: var(--marrom);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .galeria-item__insta {
+    opacity: 0.8;
+  }
+  .galeria-item__local {
+    opacity: 0.65;
+    font-size: 0.76rem;
+  }
+
+  .form-foto {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--branco);
+    padding: 28px;
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+  }
+  .form-foto label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    color: var(--verde-escuro);
+    letter-spacing: 0.03em;
+  }
+  .form-foto input {
+    font-family: var(--fonte-corpo);
+    font-size: 1rem;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(42,31,22,0.2);
+    color: var(--marrom);
+  }
+  .form-foto button { align-self: flex-start; }
+  .form-status { font-size: 0.9rem; min-height: 1.2em; margin: 0; }
+  .form-foto-aviso {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin: 0;
+  }
+
+  .crux-nota {
+    max-width: 820px;
+    margin: 24px auto 0;
+    opacity: 0.75;
+    text-align: center;
+  }
+
+  @media (max-width: 880px) {
+    .fotos-area {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .moldura-fotos,
+    .coluna-centro,
+    .coluna-fotos {
+      display: contents;
+    }
+    .form-foto {
+      order: -1;
+      grid-column: 1 / -1;
+    }
+  }
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 15, 10, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    z-index: 999;
+  }
+  .lightbox[hidden] {
+    display: none;
+  }
+  .lightbox__conteudo {
+    max-width: min(900px, 92vw);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .lightbox__conteudo img {
+    max-width: 100%;
+    max-height: 78vh;
+    object-fit: contain;
+    border-radius: var(--raio);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .lightbox__legenda {
+    color: var(--creme-claro);
+    text-align: center;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+  .lightbox__fechar {
+    position: fixed;
+    top: 24px;
+    right: 28px;
+    background: none;
+    border: none;
+    color: var(--creme-claro);
+    font-size: 2.4rem;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 1000;
+  }
+  .lightbox__fechar:hover {
+    color: var(--amarelo);
+  }
+</style>
