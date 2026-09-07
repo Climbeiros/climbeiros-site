@@ -32,6 +32,7 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 3 === 2) : [];
     <div class="container">
       <h2 class="titulo-secao">Manda sua foto</h2>
 
+      <div class="fotos-area">
       <div class="moldura-fotos">
         <div class="coluna-fotos">
           {colunaEsquerda.map((foto) => (
@@ -131,6 +132,7 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 3 === 2) : [];
           ))}
         </div>
       </div>
+      </div>
 
       {(!fotos || fotos.length === 0) && (
         <p class="crux-nota">
@@ -215,7 +217,7 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 3 === 2) : [];
     botao.disabled = false;
   });
 
-  // Lightbox: clicar numa foto (esquerda, direita ou abaixo do formulário) abre ela em tamanho maior
+  // Lightbox: clicar numa foto abre ela em tamanho maior
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightbox-img');
   const lightboxLegenda = document.getElementById('lightbox-legenda');
@@ -370,17 +372,19 @@ const colunaDireita = fotos ? fotos.filter((_, i) => i % 3 === 2) : [];
   }
 
   @media (max-width: 880px) {
-    .moldura-fotos {
-      grid-template-columns: 1fr;
+    .fotos-area {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
     }
+    .moldura-fotos,
+    .coluna-centro,
     .coluna-fotos {
-      flex-direction: row;
-      overflow-x: auto;
-      padding-bottom: 4px;
+      display: contents;
     }
-    .galeria-item {
-      min-width: 140px;
-      flex: 0 0 auto;
+    .form-foto {
+      order: -1;
+      grid-column: 1 / -1;
     }
   }
 
