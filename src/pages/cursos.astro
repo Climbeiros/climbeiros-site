@@ -1,0 +1,340 @@
+---
+// src/pages/cursos.astro
+// Página de Cursos & Guias — lê os dados do Supabase (tabelas "guias" e "cursos").
+// Como o site é estático, os dados são buscados no momento do build (astro build).
+// Depois de cadastrar/editar guias no Supabase, faça REDEPLOY na Vercel para o site atualizar.
+
+import Layout from "../layouts/Layout.astro";
+import { supabase } from "../lib/supabase";
+
+// Busca guias publicados, em ordem
+const { data: guias } = await supabase
+  .from("guias")
+  .select("*")
+  .eq("publicado", true)
+  .order("ordem", { ascending: true });
+
+// Busca cursos publicados
+const { data: cursos } = await supabase
+  .from("cursos")
+  .select("*")
+  .eq("publicado", true)
+  .order("ordem", { ascending: true });
+
+// Agrupa os cursos por guia_id para facilitar no HTML
+const cursosPorGuia = new Map();
+for (const c of cursos ?? []) {
+  if (!cursosPorGuia.has(c.guia_id)) cursosPorGuia.set(c.guia_id, []);
+  cursosPorGuia.get(c.guia_id).push(c);
+}
+
+// Iniciais para o avatar (placeholder enquanto não há foto)
+function iniciais(nome: string) {
+  return (nome || "")
+    .split(" ")
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+// Classe de cor conforme o nível do curso
+function nivelClasse(nivel: string) {
+  const n = (nivel || "").toLowerCase();
+  if (n.includes("inici")) return "lv-ini";
+  if (n.includes("interm")) return "lv-int";
+  if (n.includes("avan")) return "lv-adv";
+  return "lv-all";
+}
+
+// Monta o link de WhatsApp (só números no banco → link wa.me)
+function waLink(num: string) {
+  const only = (num || "").replace(/\D/g, "");
+  return only ? `https://wa.me/${only}` : null;
+}
+---
+
+<Layout title="Cursos & Guias — Climbeiros">
+  <!-- HERO -->
+  <section class="phero">
+    <div class="container">
+      <span class="eyebrow">Aprenda com quem vive a rocha</span>
+      <h1>Cursos &amp; guias</h1>
+      <p>
+        Conectamos você a guias que conhecemos e confiamos — cada um com sua
+        especialidade. Escolha a modalidade, fale direto com o guia e marque sua
+        próxima subida com segurança.
+      </p>
+    </div>
+  </section>
+  <div class="rope"></div>
+
+  <!-- LISTA DE GUIAS -->
+  <section class="secao">
+    <div class="container">
+      <div class="intro">
+        <div class="k">Nossa rede de guias</div>
+        <h2>Escolha por especialidade</h2>
+        <p>
+          Todos os guias abaixo foram indicados ou já escalaram com a gente. O
+          contato é direto: você combina data, local e valores com o próprio guia.
+        </p>
+      </div>
+
+      {(!guias || guias.length === 0) && (
+        <p class="vazio">Em breve nossa rede de guias estará por aqui. 🧗</p>
+      )}
+
+      <div class="guides">
+        {guias?.map((g) => (
+          <article class="guide">
+            <div class="head">
+              {g.foto_url ? (
+                <img class="photo-img" src={g.foto_url} alt={g.nome} />
+              ) : (
+                <div class="photo">{iniciais(g.nome)}</div>
+              )}
+              <h3>{g.nome}</h3>
+              <div class="base">
+                {[g.cidade, g.uf].filter(Boolean).join(" · ")}
+              </div>
+            </div>
+            <div class="body">
+              {g.especialidades?.length > 0 && (
+                <>
+                  <div class="lbl">Especialidades</div>
+                  <div class="tags">
+                    {g.especialidades.map((e) => (
+                      <span class="tag">{e}</span>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {cursosPorGuia.get(g.id)?.length > 0 && (
+                <>
+                  <div class="lbl">Cursos que oferece</div>
+                  <ul class="courses">
+                    {cursosPorGuia.get(g.id).map((c) => (
+                      <li>
+                        {c.titulo}
+                        {c.nivel && (
+                          <span class={`level ${nivelClasse(c.nivel)}`}>
+                            {c.nivel}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              <div class="contact">
+                {waLink(g.whatsapp) && (
+                  <a class="cbtn c-wa" href={waLink(g.whatsapp)} target="_blank" rel="noopener">
+                    WhatsApp
+                  </a>
+                )}
+                {g.instagram && (
+                  <a class="cbtn c-ig" href={`https://instagram.com/${g.instagram}`} target="_blank" rel="noopener">
+                    @{g.instagram}
+                  </a>
+                )}
+                {g.email && (
+                  <a class="cbtn c-em" href={`mailto:${g.email}`}>E-mail</a>
+                )}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <p class="safety">
+        Os guias são profissionais independentes. O Climbeiros faz a ponte entre
+        você e eles; a contratação, os valores e a responsabilidade pelo curso são
+        combinados diretamente com cada guia. Recomendamos sempre verificar
+        certificação e seguro antes de qualquer atividade.
+      </p>
+    </div>
+  </section>
+
+  <!-- COMO FUNCIONA -->
+  <section class="how">
+    <div class="container">
+      <div class="k">Como funciona</div>
+      <h2>Três passos até a rocha</h2>
+      <div class="steps">
+        <div class="step"><div class="n">01</div><h4>Escolha o guia</h4><p>Navegue pelas especialidades e encontre o guia certo para o que você quer aprender.</p></div>
+        <div class="step"><div class="n">02</div><h4>Fale direto</h4><p>Chame no WhatsApp, Instagram ou e-mail. Combine data, local, nível e valores com o guia.</p></div>
+        <div class="step"><div class="n">03</div><h4>Suba com segurança</h4><p>Curta a experiência com quem entende do terreno — check de segurança sempre.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA PARA GUIAS -->
+  <section class="beguide">
+    <div class="container">
+      <div class="box">
+        <h2>É guia e quer aparecer aqui?</h2>
+        <p>Se você é guia de escalada ou montanhismo e quer fazer parte da nossa rede, a gente adora conhecer gente boa da vertical.</p>
+        <a class="botao" href="mailto:climbeiros@gmail.com">Fale com a gente</a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  /* Usa as variáveis de cor globais já definidas em global.css:
+     --verde, --verde-escuro, --creme, --creme-claro, --laranja, --amarelo, --marrom.
+     Os estilos abaixo são específicos desta página. */
+
+  .phero {
+    background:
+      linear-gradient(180deg, rgba(47,66,48,.55), rgba(42,31,22,.82)),
+      radial-gradient(120% 120% at 78% 0%, #84997c 0%, #4f6b4a 46%, #2f4230 100%);
+    color: var(--creme-claro);
+    padding: 72px 0 78px;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: .18em;
+    font-size: .82rem; color: var(--amarelo); margin-bottom: 18px;
+  }
+  .eyebrow::before { content: ""; width: 34px; height: 2px; background: var(--laranja); }
+  .phero h1 {
+    font-family: 'Oswald', sans-serif; font-weight: 700; line-height: .94;
+    text-transform: uppercase; font-size: clamp(2.8rem, 7vw, 5rem);
+    color: #fff; margin-bottom: 18px;
+  }
+  .phero p { max-width: 600px; font-size: 1.14rem; color: #f3ecda; }
+
+  .rope {
+    height: 14px;
+    background: repeating-linear-gradient(135deg,
+      var(--amarelo) 0 10px, var(--laranja) 10px 20px, var(--marrom) 20px 22px);
+  }
+
+  .intro { max-width: 720px; margin: 0 auto 8px; text-align: center; }
+  .intro .k {
+    font-weight: 700; text-transform: uppercase; letter-spacing: .16em;
+    font-size: .8rem; color: var(--laranja); margin-bottom: 10px;
+  }
+  .intro h2 {
+    font-family: 'Oswald', sans-serif; font-weight: 700; text-transform: uppercase;
+    line-height: 1; font-size: clamp(2rem, 4.6vw, 3rem);
+    color: var(--verde-escuro); margin-bottom: 16px;
+  }
+  .intro p { color: #5f5344; }
+  .vazio { text-align: center; color: #5f5344; margin: 40px 0; font-size: 1.1rem; }
+
+  .guides {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 26px; margin-top: 48px;
+  }
+  .guide {
+    background: #fff; border: 1px solid #e6ddc4; border-radius: 8px; overflow: hidden;
+    display: flex; flex-direction: column; transition: transform .2s, box-shadow .25s;
+  }
+  .guide:hover { transform: translateY(-4px); box-shadow: 0 20px 44px -22px rgba(47,66,48,.5); }
+  .guide .head {
+    background: linear-gradient(150deg, var(--verde-escuro), var(--marrom));
+    padding: 24px; color: var(--creme-claro);
+  }
+  .guide .photo {
+    width: 70px; height: 70px; border-radius: 50%;
+    background: linear-gradient(150deg, #7d9576, #4f6b4a);
+    border: 2px solid var(--creme); display: grid; place-items: center;
+    font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 1.6rem;
+    color: var(--creme); margin-bottom: 14px;
+  }
+  .guide .photo-img {
+    width: 70px; height: 70px; border-radius: 50%; object-fit: cover;
+    border: 2px solid var(--creme); margin-bottom: 14px;
+  }
+  .guide h3 {
+    font-family: 'Oswald', sans-serif; font-weight: 700; text-transform: uppercase;
+    font-size: 1.7rem; line-height: 1; color: #fff;
+  }
+  .guide .base { font-size: .86rem; color: var(--creme); opacity: .85; margin-top: 4px; }
+  .guide .body { padding: 22px 24px 24px; display: flex; flex-direction: column; flex: 1; }
+  .lbl {
+    font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+    font-size: .72rem; color: var(--laranja); margin-bottom: 9px;
+  }
+  .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
+  .tag {
+    font-weight: 600; text-transform: uppercase; letter-spacing: .03em; font-size: .8rem;
+    background: var(--creme-claro); color: var(--verde-escuro); border: 1px solid #e0d6bd;
+    padding: 4px 11px; border-radius: 30px;
+  }
+  .courses { list-style: none; margin-bottom: 22px; display: flex; flex-direction: column; gap: 9px; flex: 1; padding: 0; }
+  .courses li { display: flex; gap: 10px; font-size: .95rem; color: #4a4033; align-items: flex-start; }
+  .courses li::before {
+    content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 2px;
+    background: var(--amarelo); margin-top: 8px; transform: rotate(45deg);
+  }
+  .level {
+    display: inline-block; font-weight: 700; text-transform: uppercase;
+    font-size: .72rem; letter-spacing: .04em; padding: 2px 9px; border-radius: 3px;
+    margin-left: 8px;
+  }
+  .lv-ini { background: #DBEDDB; color: #2f6b3a; }
+  .lv-int { background: #FDECC8; color: #9F6B00; }
+  .lv-adv { background: #FFE2DD; color: #A13A2E; }
+  .lv-all { background: #D3E5EF; color: #2b5f7a; }
+  .contact { display: flex; gap: 10px; flex-wrap: wrap; border-top: 1px solid #eee4cc; padding-top: 18px; }
+  .cbtn {
+    font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .84rem;
+    padding: 9px 16px; border-radius: 3px; display: inline-flex; align-items: center; gap: 7px;
+    transition: transform .15s; color: #fff; text-decoration: none;
+  }
+  .cbtn:hover { transform: translateY(-2px); }
+  .c-wa { background: #25995a; }
+  .c-ig { background: linear-gradient(120deg, #e0931c, var(--laranja)); }
+  .c-em { background: var(--verde-escuro); color: var(--creme); }
+
+  .safety {
+    max-width: 760px; margin: 26px auto 0; font-size: .82rem; color: #8a7d68;
+    text-align: center; font-style: italic;
+  }
+
+  .how { background: var(--verde-escuro); color: var(--creme-claro); text-align: center; }
+  .how .k {
+    font-weight: 700; text-transform: uppercase; letter-spacing: .16em;
+    font-size: .8rem; color: var(--amarelo); margin-bottom: 10px;
+  }
+  .how h2 {
+    font-family: 'Oswald', sans-serif; font-weight: 700; text-transform: uppercase;
+    font-size: clamp(1.8rem, 4vw, 2.6rem); color: #fff; margin-bottom: 40px;
+  }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .step {
+    background: rgba(255,255,255,.05); border: 1px solid rgba(231,209,142,.2);
+    border-radius: 8px; padding: 28px 22px; text-align: left;
+  }
+  .step .n {
+    font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 2.4rem;
+    color: var(--amarelo); line-height: 1; margin-bottom: 10px;
+  }
+  .step h4 {
+    font-family: 'Oswald', sans-serif; font-weight: 700; text-transform: uppercase;
+    font-size: 1.25rem; color: #fff; margin-bottom: 8px;
+  }
+  .step p { font-size: .94rem; color: #e2dcc9; }
+
+  .beguide { text-align: center; }
+  .beguide .box {
+    background: var(--marrom); border-radius: 12px; padding: 56px 32px; color: var(--creme-claro);
+  }
+  .beguide h2 {
+    font-family: 'Oswald', sans-serif; font-weight: 700; text-transform: uppercase;
+    color: #fff; font-size: clamp(1.8rem, 4vw, 2.8rem); margin-bottom: 14px;
+  }
+  .beguide p { max-width: 480px; margin: 0 auto 28px; color: #e8e0cd; }
+
+  @media (max-width: 860px) {
+    .steps { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
