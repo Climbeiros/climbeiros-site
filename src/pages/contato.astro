@@ -41,7 +41,7 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
         </label>
         <label class="form-consentimento">
           <input type="checkbox" name="consentimento" required />
-          Li e concordo com a <a href="/privacidade" target="_blank">Política de Privacidade</a>.
+          <span>Li e concordo com a <a href="/privacidade" target="_blank">Política de Privacidade</a></span>
         </label>
         <button type="submit" class="botao">Enviar mensagem</button>
         <p id="form-status" class="form-status" role="status"></p>
@@ -145,6 +145,9 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
   .form-consentimento a {
     color: var(--verde-escuro);
     text-decoration: underline;
+  }
+  .form-consentimento span::after {
+    content: ".";
   }
 
   @media (max-width: 760px) {
