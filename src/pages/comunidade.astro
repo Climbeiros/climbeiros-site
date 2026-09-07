@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import PageHero from '../components/PageHero.astro';
 import { supabase } from '../lib/supabase';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
@@ -12,18 +13,12 @@ const { data: fotos } = await supabase
   .order('enviado_em', { ascending: false });
 ---
 <Layout titulo="Comunidade" descricao="Fotos de escalada mandadas pela própria comunidade Climbeiros.">
-  <section class="pagina-hero">
-    <div class="pagina-hero__contorno" aria-hidden="true"></div>
-    <div class="container pagina-hero__conteudo">
-      <span class="eyebrow">Feito por quem escala</span>
-      <h1>Comunidade</h1>
-      <p class="lead">
-        Fotos de escalada mandadas por gente de verdade — dos boulders de
-        academia até os setores mais escondidos do Brasil. Manda a sua foto
-        aí embaixo!
-      </p>
-    </div>
-  </section>
+  <PageHero
+    eyebrow="Feito por quem escala"
+    descricao="Fotos de escalada mandadas por gente de verdade — dos boulders de academia até os setores mais escondidos do Brasil. Manda a sua foto aí embaixo!"
+  >
+    Comunidade
+  </PageHero>
 
   <section class="secao secao--creme">
     <div class="container">
