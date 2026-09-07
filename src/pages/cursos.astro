@@ -154,24 +154,67 @@ function waLink(num) {
 
         <form class="form-guia" id="form-guia">
           <div class="linha">
-            <input type="text" name="nome" placeholder="Seu nome *" required />
-            <input type="email" name="email" placeholder="Seu e-mail *" required />
+            <div class="campo">
+              <label for="fg-nome">Nome *</label>
+              <input type="text" id="fg-nome" name="nome" required />
+            </div>
+            <div class="campo">
+              <label for="fg-email">E-mail *</label>
+              <input type="email" id="fg-email" name="email" required />
+            </div>
           </div>
+
           <div class="linha">
-            <input type="text" name="telefone" placeholder="WhatsApp / telefone" />
-            <input type="text" name="cidade_uf" placeholder="Cidade / UF" />
+            <div class="campo">
+              <label for="fg-telefone">WhatsApp</label>
+              <input type="text" id="fg-telefone" name="telefone" placeholder="(11) 99172-1313" />
+            </div>
+            <div class="campo">
+              <label for="fg-instagram">Instagram</label>
+              <input type="text" id="fg-instagram" name="instagram" placeholder="@seu.perfil" />
+            </div>
           </div>
-          <input type="text" name="especialidades" placeholder="Suas especialidades (ex.: escalada esportiva, boulder)" />
-          <textarea name="mensagem" rows="4" placeholder="Conte um pouco sobre você e os cursos que oferece"></textarea>
+
+          <div class="linha">
+            <div class="campo">
+              <label for="fg-cidade">Cidade / UF</label>
+              <input type="text" id="fg-cidade" name="cidade_uf" placeholder="Ex.: São Paulo / SP" />
+            </div>
+            <div class="campo">
+              <label for="fg-pref">Melhor contato para divulgarmos</label>
+              <select id="fg-pref" name="contato_pref" class="form-select">
+                <option value="">Selecione...</option>
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="Instagram">Instagram</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="fg-espec">Especialidades</label>
+            <input type="text" id="fg-espec" name="especialidades" placeholder="Ex.: escalada esportiva, boulder" />
+          </div>
+
+          <div class="campo">
+            <label for="fg-msg">Mensagem</label>
+            <textarea id="fg-msg" name="mensagem" rows="4" placeholder="Conte um pouco sobre você e os cursos que oferece"></textarea>
+          </div>
 
           <label class="cupom-toggle">
             <input type="checkbox" name="tem_cupom" id="tem-cupom" />
             Quero oferecer um cupom de desconto para a comunidade Climbeiros
           </label>
           <div class="cupom-campos" id="cupom-campos" hidden>
-            <input type="text" name="cupom_codigo" placeholder="Código do cupom (ex.: GUIA10)" />
-            <textarea name="cupom_desc" rows="3" placeholder="Como funciona o desconto? (ex.: 10% na primeira aula avulsa)"></textarea>
+            <div class="campo">
+              <label for="fg-cupom">Código do cupom</label>
+              <input type="text" id="fg-cupom" name="cupom_codigo" placeholder="Ex.: GUIA10" />
+            </div>
+            <div class="campo">
+              <label for="fg-cupomdesc">Como funciona o desconto?</label>
+              <textarea id="fg-cupomdesc" name="cupom_desc" rows="3" placeholder="Ex.: 10% na primeira aula avulsa"></textarea>
+            </div>
           </div>
+
           <button type="submit" class="botao" id="btn-enviar-guia">Enviar inscrição</button>
           <p class="form-status" id="form-guia-status" role="status"></p>
         </form>
@@ -206,6 +249,8 @@ function waLink(num) {
       nome: dados.nome,
       email: dados.email,
       telefone: dados.telefone || null,
+      instagram: dados.instagram || null,
+      contato_pref: dados.contato_pref || null,
       cidade_uf: dados.cidade_uf || null,
       especialidades: dados.especialidades || null,
       mensagem: dados.mensagem || null,
@@ -305,21 +350,30 @@ function waLink(num) {
   .step p { font-size: .94rem; color: #e2dcc9; }
 
   .beguide { text-align: center; }
-  .beguide .box { background: var(--marrom); border-radius: 12px; padding: 56px 32px; color: var(--creme-claro); }
-  .beguide h2 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; color: #fff; font-size: clamp(1.8rem, 4vw, 2.8rem); margin-bottom: 14px; }
-  .beguide p { max-width: 480px; margin: 0 auto 28px; color: #e8e0cd; }
+  .beguide .box { background: var(--creme-claro); border-radius: 12px; padding: 48px 40px; color: var(--marrom); max-width: 760px; margin: 0 auto; text-align: left; box-shadow: var(--sombra); }
+  .beguide h2 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; color: var(--verde-escuro); font-size: clamp(1.8rem, 4vw, 2.6rem); margin-bottom: 12px; text-align: center; }
+  .beguide > .container > .box > p { max-width: 520px; margin: 0 auto 32px; color: #5f5344; text-align: center; }
 
-  /* Formulário "seja guia" */
-  .form-guia { display: flex; flex-direction: column; gap: 14px; max-width: 560px; margin: 8px auto 0; text-align: left; }
-  .form-guia .linha { display: flex; gap: 14px; flex-wrap: wrap; }
+  /* Formulário claro (estilo da página de contato) */
+  .form-guia { display: flex; flex-direction: column; gap: 18px; }
+  .form-guia .linha { display: flex; gap: 18px; flex-wrap: wrap; }
   .form-guia .linha > * { flex: 1; min-width: 200px; }
-  .form-guia input, .form-guia textarea { font-family: var(--fonte-corpo); font-size: 1rem; padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); color: var(--creme-claro); width: 100%; }
-  .form-guia input::placeholder, .form-guia textarea::placeholder { color: rgba(240,226,178,.6); }
-  .form-guia input:focus, .form-guia textarea:focus { outline: 2px solid var(--amarelo); border-color: var(--amarelo); }
+  .form-guia .campo { display: flex; flex-direction: column; gap: 6px; }
+  .form-guia label { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: .8rem; color: var(--verde-escuro); }
+  .form-guia input, .form-guia textarea, .form-guia .form-select {
+    font-family: var(--fonte-corpo); font-size: 1rem; padding: 12px 14px; border-radius: 8px;
+    border: 1px solid rgba(42,31,22,.18); background: var(--branco); color: var(--marrom); width: 100%;
+  }
+  .form-guia input::placeholder, .form-guia textarea::placeholder { color: rgba(42,31,22,.4); }
+  .form-guia input:focus, .form-guia textarea:focus, .form-guia .form-select:focus { outline: 2px solid var(--laranja); border-color: var(--laranja); }
   .form-guia textarea { resize: vertical; }
-  .form-guia .botao { align-self: flex-start; margin-top: 4px; }
+  .form-select { cursor: pointer; }
+  .form-guia .botao { align-self: flex-start; margin-top: 6px; }
   .form-guia .botao[disabled] { opacity: .6; cursor: default; }
-  .form-status { font-size: .92rem; color: var(--creme-claro); min-height: 1.2em; margin: 0; }
+  .form-status { font-size: .92rem; color: var(--verde-escuro); min-height: 1.2em; margin: 0; }
+  .cupom-toggle { display: flex; align-items: flex-start; gap: 10px; font-size: .95rem; color: var(--marrom); cursor: pointer; }
+  .cupom-toggle input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--laranja); flex: 0 0 auto; }
+  .cupom-campos { display: flex; flex-direction: column; gap: 18px; padding: 18px; border: 1px dashed rgba(218,115,38,.5); border-radius: 8px; background: rgba(218,115,38,.06); }
   .cupom-toggle { display: flex; align-items: flex-start; gap: 10px; font-size: .95rem; color: var(--creme-claro); cursor: pointer; text-align: left; margin-top: 4px; }
   .cupom-toggle input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--laranja); flex: 0 0 auto; }
   .cupom-campos { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px dashed rgba(224,147,28,.5); border-radius: 8px; background: rgba(224,147,28,.06); }
