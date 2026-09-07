@@ -1,0 +1,50 @@
+---
+// Hero padrão de página interna — mesmo visual usado em "Cursos & Guias"
+// (fundo verde em gradiente radial + título grande + linha de corda listrada
+// embaixo). Use em qualquer página nova para manter o padrão visual do site.
+interface Props {
+  eyebrow: string;
+  descricao: string;
+}
+const { eyebrow, descricao } = Astro.props;
+---
+
+<section class="phero">
+  <div class="container">
+    <span class="eyebrow"><slot name="eyebrow">{eyebrow}</slot></span>
+    <h1><slot /></h1>
+    <p><slot name="descricao">{descricao}</slot></p>
+  </div>
+</section>
+<div class="rope"></div>
+
+<style>
+  /* Usa as variáveis de cor globais já definidas em global.css:
+     --verde, --verde-escuro, --creme, --creme-claro, --laranja, --amarelo, --marrom. */
+
+  .phero {
+    background:
+      linear-gradient(180deg, rgba(47,66,48,.55), rgba(42,31,22,.82)),
+      radial-gradient(120% 120% at 78% 0%, #84997c 0%, #4f6b4a 46%, #2f4230 100%);
+    color: var(--creme-claro);
+    padding: 72px 0 78px;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: .18em;
+    font-size: .82rem; color: var(--amarelo); margin-bottom: 18px;
+  }
+  .eyebrow::before { content: ""; width: 34px; height: 2px; background: var(--laranja); }
+  .phero h1 {
+    font-family: 'Oswald', sans-serif; font-weight: 700; line-height: .94;
+    text-transform: uppercase; font-size: clamp(2.8rem, 7vw, 5rem);
+    color: #fff; margin-bottom: 18px;
+  }
+  .phero p { max-width: 600px; font-size: 1.14rem; color: #f3ecda; margin: 0; }
+
+  .rope {
+    height: 14px;
+    background: repeating-linear-gradient(135deg,
+      var(--amarelo) 0 10px, var(--laranja) 10px 20px, var(--marrom) 20px 22px);
+  }
+</style>
