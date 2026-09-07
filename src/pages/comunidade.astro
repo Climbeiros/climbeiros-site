@@ -28,7 +28,6 @@ const { data: fotos } = await supabase
   <section class="secao secao--creme">
     <div class="container">
       <h2 class="titulo-secao">Manda sua foto</h2>
-
       <form
         id="form-foto"
         class="form-foto"
@@ -64,12 +63,13 @@ const { data: fotos } = await supabase
   <section class="secao">
     <div class="container">
       <h2 class="titulo-secao">Galeria da comunidade</h2>
-
       {fotos && fotos.length > 0 ? (
         <div class="galeria-fotos">
           {fotos.map((foto) => (
             <figure class="galeria-item">
-              <img src={foto.imagem_url} alt={`Foto de escalada enviada por ${foto.nome}`} loading="lazy" />
+              <button type="button" class="galeria-item__botao" aria-label={`Ver foto de ${foto.nome} em tamanho maior`}>
+                <img src={foto.imagem_url} alt={`Foto de escalada enviada por ${foto.nome}`} loading="lazy" />
+              </button>
               <figcaption>
                 <strong>{foto.nome}</strong>
                 {foto.instagram && <span class="galeria-item__insta"> · {foto.instagram}</span>}
@@ -86,6 +86,14 @@ const { data: fotos } = await supabase
       )}
     </div>
   </section>
+
+  <div id="lightbox" class="lightbox" hidden>
+    <button type="button" class="lightbox__fechar" id="lightbox-fechar" aria-label="Fechar foto">×</button>
+    <div class="lightbox__conteudo">
+      <img id="lightbox-img" src="" alt="" />
+      <p id="lightbox-legenda" class="lightbox__legenda"></p>
+    </div>
+  </div>
 </Layout>
 
 <script>
@@ -96,6 +104,7 @@ const { data: fotos } = await supabase
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
+
     const dados = new FormData(form);
     const arquivo = dados.get('foto');
     const botao = form.querySelector('button');
@@ -151,6 +160,43 @@ const { data: fotos } = await supabase
 
     botao.disabled = false;
   });
+
+  // Lightbox: clicar numa foto da galeria abre ela em tamanho maior
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxLegenda = document.getElementById('lightbox-legenda');
+  const lightboxFechar = document.getElementById('lightbox-fechar');
+
+  function abrirLightbox(src, legenda) {
+    if (!lightbox || !lightboxImg || !lightboxLegenda) return;
+    lightboxImg.src = src;
+    lightboxImg.alt = legenda || '';
+    lightboxLegenda.textContent = legenda || '';
+    lightbox.hidden = false;
+  }
+
+  function fecharLightbox() {
+    if (!lightbox || !lightboxImg) return;
+    lightbox.hidden = true;
+    lightboxImg.src = '';
+  }
+
+  document.querySelectorAll('.galeria-item__botao').forEach((botaoFoto) => {
+    botaoFoto.addEventListener('click', () => {
+      const img = botaoFoto.querySelector('img');
+      const figcaption = botaoFoto.closest('.galeria-item')?.querySelector('figcaption');
+      const legenda = figcaption ? figcaption.textContent.trim().replace(/\s+/g, ' ') : '';
+      if (img) abrirLightbox(img.src, legenda);
+    });
+  });
+
+  lightboxFechar?.addEventListener('click', fecharLightbox);
+  lightbox?.addEventListener('click', (e) => {
+    if (e.target === lightbox) fecharLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lightbox && !lightbox.hidden) fecharLightbox();
+  });
 </script>
 
 <style>
@@ -162,7 +208,6 @@ const { data: fotos } = await supabase
     margin: 0 0 1.25rem;
     text-align: center;
   }
-
   .form-foto {
     display: flex;
     flex-direction: column;
@@ -198,7 +243,6 @@ const { data: fotos } = await supabase
     opacity: 0.7;
     margin: 0;
   }
-
   .galeria-fotos {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -211,11 +255,23 @@ const { data: fotos } = await supabase
     background: var(--creme-claro);
     box-shadow: var(--sombra);
   }
+  .galeria-item__botao {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: zoom-in;
+  }
   .galeria-item img {
     width: 100%;
     height: 240px;
     object-fit: cover;
     display: block;
+    transition: opacity 0.15s ease;
+  }
+  .galeria-item__botao:hover img {
+    opacity: 0.9;
   }
   .galeria-item figcaption {
     padding: 12px 14px;
@@ -232,11 +288,60 @@ const { data: fotos } = await supabase
     opacity: 0.65;
     font-size: 0.8rem;
   }
-
   .crux-nota {
     max-width: 820px;
     margin: 0 auto;
     opacity: 0.75;
     text-align: center;
+  }
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 15, 10, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    z-index: 999;
+  }
+  .lightbox[hidden] {
+    display: none;
+  }
+  .lightbox__conteudo {
+    max-width: min(900px, 92vw);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .lightbox__conteudo img {
+    max-width: 100%;
+    max-height: 78vh;
+    object-fit: contain;
+    border-radius: var(--raio);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .lightbox__legenda {
+    color: var(--creme-claro);
+    text-align: center;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+  .lightbox__fechar {
+    position: fixed;
+    top: 24px;
+    right: 28px;
+    background: none;
+    border: none;
+    color: var(--creme-claro);
+    font-size: 2.4rem;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 1000;
+  }
+  .lightbox__fechar:hover {
+    color: var(--amarelo);
   }
 </style>
