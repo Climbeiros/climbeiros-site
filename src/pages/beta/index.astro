@@ -1,15 +1,14 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import PageHero from '../../components/PageHero.astro';
 ---
 <Layout titulo="Beta" descricao="Conteúdo pra todo nível: dos fundamentos da escalada (Escalada 101) até dicas mais avançadas pra quem já pega a parte difícil da via (Crux).">
-  <section class="pagina-hero">
-    <div class="pagina-hero__contorno" aria-hidden="true"></div>
-    <div class="container pagina-hero__conteudo">
-      <span class="eyebrow">Conteúdo Climbeiros</span>
-      <h1>Beta</h1>
-      <p class="lead">Na escalada, dar um "beta" é passar a dica de como fazer uma via. É exatamente isso que essa seção faz — só que pro esporte inteiro. Escolha por onde começar:</p>
-    </div>
-  </section>
+  <PageHero
+    eyebrow="Conteúdo Climbeiros"
+    descricao='Na escalada, dar um "beta" é passar a dica de como fazer uma via. É exatamente isso que essa seção faz — só que pro esporte inteiro. Escolha por onde começar:'
+  >
+    Beta
+  </PageHero>
 
   <section class="secao">
     <div class="container">
