@@ -38,8 +38,6 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
             name="celular"
             id="campo-celular"
             placeholder="(11)991721313"
-            pattern="\(\d{2}\)\d{9}"
-            title="Formato: (11)991721313 — DDD entre parênteses e 9 números, sem espaço"
             maxlength="13"
             inputmode="numeric"
           />
@@ -83,6 +81,14 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    const celularValor = campoCelular ? campoCelular.value : '';
+    if (celularValor && !/^\(\d{2}\)\d{9}$/.test(celularValor)) {
+      status.textContent = 'Preencha o celular no formato (11)991721313, com DDD e 9 números — ou deixe o campo em branco.';
+      campoCelular.focus();
+      return;
+    }
+
     const dados = new FormData(form);
     const botao = form.querySelector('button');
     botao.disabled = true;
