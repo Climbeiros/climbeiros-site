@@ -11,9 +11,10 @@ const { data: fotos } = await supabase
   .eq('aprovado', true)
   .order('enviado_em', { ascending: false });
 
-// Distribui as fotos pelas 3 colunas dando um "atraso" pra coluna do centro,
-// porque ela já tem o formulário ocupando espaço lá em cima — sem isso, mesmo
-// com o mesmo número de fotos, o centro sempre parece mais comprido que os lados.
+// Distribui as fotos pelas 3 colunas tentando deixar todas com a MESMA ALTURA no final,
+// em vez de simplesmente alternar 1-2-3-1-2-3 (que deixava uma coluna bem mais alta que
+// as outras e criava aquele espaço vazio do lado da última foto).
+// A coluna do centro já começa "adiantada" porque tem o formulário ocupando espaço lá em cima.
 const listaFotos = fotos ?? [];
 const pesoColunas = [0, 1, 0]; // [esquerda, centro, direita] — 1 = altura estimada do formulário em "fotos"
 const colunasFotos = [[], [], []];
@@ -61,7 +62,7 @@ const [colunaEsquerda, colunaCentro, colunaDireita] = colunasFotos;
               </button>
               <figcaption>
                 <strong>{foto.nome}</strong>
-                {foto.instagram && <span class="galeria-item__insta"> · {foto.instagram}</span>}
+                {foto.instagram && <span class="galeria-item__insta">{foto.instagram}</span>}
                 {foto.local && <span class="galeria-item__local">{foto.local}</span>}
               </figcaption>
             </figure>
@@ -114,7 +115,7 @@ const [colunaEsquerda, colunaCentro, colunaDireita] = colunasFotos;
                 </button>
                 <figcaption>
                   <strong>{foto.nome}</strong>
-                  {foto.instagram && <span class="galeria-item__insta"> · {foto.instagram}</span>}
+                  {foto.instagram && <span class="galeria-item__insta">{foto.instagram}</span>}
                   {foto.local && <span class="galeria-item__local">{foto.local}</span>}
                 </figcaption>
               </figure>
@@ -137,7 +138,7 @@ const [colunaEsquerda, colunaCentro, colunaDireita] = colunasFotos;
               </button>
               <figcaption>
                 <strong>{foto.nome}</strong>
-                {foto.instagram && <span class="galeria-item__insta"> · {foto.instagram}</span>}
+                {foto.instagram && <span class="galeria-item__insta">{foto.instagram}</span>}
                 {foto.local && <span class="galeria-item__local">{foto.local}</span>}
               </figcaption>
             </figure>
