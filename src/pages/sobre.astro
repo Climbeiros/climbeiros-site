@@ -59,7 +59,7 @@ const valores = [
     <div class="container">
       <p class="eyebrow">No que a gente acredita</p>
       <h2>Nossos valores</h2>
-      <div class="grade grade--2 valores">
+      <div class="valores">
         {valores.map((v, i) => (
           <article class="card valor">
             <div class="valor__numero">{String(i + 1).padStart(2, '0')}</div>
@@ -90,12 +90,11 @@ const valores = [
   }
 
   /* Missão */
-  .missao { max-width: 760px; }
   .missao h2 { color: var(--verde-escuro); margin-bottom: 16px; }
-  .missao p { font-size: 1.15rem; color: var(--marrom); opacity: 0.9; margin: 0; }
+  .missao p { font-size: 1.15rem; color: var(--marrom); opacity: 0.9; margin: 0; max-width: 760px; }
 
   /* Valores */
-  .valores { margin-top: 32px; }
+  .valores { margin-top: 32px; display: flex; flex-direction: column; gap: 18px; }
   .valor {
     display: flex;
     gap: 18px;
