@@ -294,6 +294,17 @@ const nomeCategoria = {
         <span class="selo-topou" id="selo-topou" hidden>Mandou tudo de cadena! 🧗</span>
         <p class="quiz-resultado-numero" id="quiz-resultado-numero"></p>
         <p id="quiz-resultado-texto"></p>
+        <div class="compartilhar-wrap" id="compartilhar-wrap" hidden>
+          <p class="compartilhar-legenda">Manda pra galera:</p>
+          <div class="compartilhar-botoes">
+            <a id="btn-compartilhar-whatsapp" class="botao" href="#" target="_blank" rel="noopener">
+              Compartilhar no WhatsApp
+            </a>
+            <button type="button" id="btn-compartilhar-nativo" class="botao botao--secundario" hidden>
+              Compartilhar
+            </button>
+          </div>
+        </div>
         <button type="button" id="btn-jogar-de-novo" class="botao">Jogar de novo</button>
       </div>
     </div>
@@ -556,6 +567,26 @@ const nomeCategoria = {
     100% { opacity: 1; transform: scale(1) rotate(0deg); }
   }
 
+  .compartilhar-wrap {
+    margin: 0 0 1.5rem;
+  }
+
+  .compartilhar-legenda {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    color: var(--verde-escuro);
+    margin: 0 0 0.6rem;
+  }
+
+  .compartilhar-botoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+  }
+
   .nuvem {
     animation: flutuar 26s linear infinite;
   }
@@ -703,6 +734,9 @@ const nomeCategoria = {
   const seloTopou = document.getElementById('selo-topou');
   const climberEl = document.getElementById('climber');
   const bandeiraEl = document.getElementById('bandeira');
+  const compartilharWrap = document.getElementById('compartilhar-wrap');
+  const btnCompartilharWhatsapp = document.getElementById('btn-compartilhar-whatsapp');
+  const btnCompartilharNativo = document.getElementById('btn-compartilhar-nativo');
 
   const TOTAL_PERGUNTAS_QUIZ = Math.min(5, TERMOS_QUIZ.length);
 
@@ -766,6 +800,7 @@ const nomeCategoria = {
     seloTopou.classList.remove('mostrar');
     climberEl.classList.remove('subindo');
     bandeiraEl.classList.remove('festejando');
+    if (compartilharWrap) compartilharWrap.hidden = true;
     PONTOS_GIZ.forEach((ponto) => {
       const el = document.getElementById('poof' + ponto);
       if (el) el.classList.remove('disparar');
@@ -794,6 +829,30 @@ const nomeCategoria = {
     }
   }
 
+  // Monta o link do WhatsApp e mostra o botão de compartilhar nativo (usado
+  // no celular pra abrir Instagram, WhatsApp, etc. direto do menu do
+  // sistema) quando o navegador suporta.
+  function mostrarCompartilhar() {
+    if (!compartilharWrap) return;
+    const textoCompartilhar =
+      'Acertei todas as perguntas do quiz de vocabulário de escalada do Climbeiros! 🧗 Testa você também:';
+    const url = window.location.href;
+
+    btnCompartilharWhatsapp.href =
+      'https://wa.me/?text=' + encodeURIComponent(textoCompartilhar + ' ' + url);
+
+    if (navigator.share) {
+      btnCompartilharNativo.hidden = false;
+      btnCompartilharNativo.onclick = () => {
+        navigator.share({ title: 'Climbeiros', text: textoCompartilhar, url }).catch(() => {});
+      };
+    } else {
+      btnCompartilharNativo.hidden = true;
+    }
+
+    compartilharWrap.hidden = false;
+  }
+
   function tocarAnimacaoComemoracao() {
     cenaComemoracao.hidden = false;
     seloTopou.hidden = false;
@@ -809,6 +868,7 @@ const nomeCategoria = {
       bandeiraEl.classList.add('festejando');
       seloTopou.classList.add('mostrar');
       confettiComemoracao();
+      mostrarCompartilhar();
     }, DURACAO_ESCALADA_MS - 150);
   }
 
