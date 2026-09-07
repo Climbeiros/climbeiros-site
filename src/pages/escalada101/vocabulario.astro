@@ -858,6 +858,7 @@ const nomeCategoria = {
     seloTopou.hidden = false;
     void climberEl.getBBox();
     climberEl.classList.add('subindo');
+    mostrarCompartilhar();
 
     PONTOS_GIZ.forEach((ponto, i) => {
       const atraso = (DURACAO_ESCALADA_MS / PONTOS_GIZ.length) * (i + 1) - 150;
@@ -868,7 +869,6 @@ const nomeCategoria = {
       bandeiraEl.classList.add('festejando');
       seloTopou.classList.add('mostrar');
       confettiComemoracao();
-      mostrarCompartilhar();
     }, DURACAO_ESCALADA_MS - 150);
   }
 
