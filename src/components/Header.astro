@@ -21,12 +21,7 @@ const path = Astro.url.pathname;
       <ul class="header__lista header__lista--desktop">
         {links.map((link) => (
           <li>
-            
-              href={link.href}
-              class:list={['header__link', { 'header__link--ativo': path === link.href }]}
-            >
-              {link.label}
-            </a>
+            <a href={link.href} class:list={['header__link', { 'header__link--ativo': path === link.href }]}>{link.label}</a>
           </li>
         ))}
       </ul>
@@ -41,12 +36,7 @@ const path = Astro.url.pathname;
   <ul class="header__lista header__lista--mobile" id="menu-lista-mobile">
     {links.map((link) => (
       <li>
-        
-          href={link.href}
-          class:list={['header__link', { 'header__link--ativo': path === link.href }]}
-        >
-          {link.label}
-        </a>
+        <a href={link.href} class:list={['header__link', { 'header__link--ativo': path === link.href }]}>{link.label}</a>
       </li>
     ))}
   </ul>
