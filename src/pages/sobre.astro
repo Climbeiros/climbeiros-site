@@ -96,29 +96,37 @@ const valores = [
   .missao h2 { color: var(--verde-escuro); margin-bottom: 16px; }
   .missao p { font-size: 1.15rem; color: var(--marrom); opacity: 0.9; margin: 0; max-width: 760px; }
 
-  /* Valores — grade responsiva (2 colunas no PC, 1 no celular) */
+  /* Valores — blocos de cor cheia, colados, formando um quadrado 2x2 */
   .valores--grade {
     margin-top: 32px;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
+    gap: 0;
+    border-radius: var(--raio);
+    overflow: hidden;
+    box-shadow: var(--sombra);
   }
   .valor {
-    padding: 28px 30px;
-    border-radius: var(--raio);
-    border: 1px solid rgba(42, 31, 22, 0.08);
+    padding: 40px 38px;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
-  /* Tons suaves da paleta, com barrinha lateral no acento vivo */
-  .valor--verde   { background: #eef1ec; border-left: 5px solid var(--verde); }
-  .valor--laranja { background: #faf0e6; border-left: 5px solid var(--laranja); }
-  .valor--amarelo { background: #fbf3df; border-left: 5px solid var(--amarelo); }
-  .valor--creme   { background: #f7efd6; border-left: 5px solid var(--creme); }
+  /* Cores cheias da paleta, texto claro por cima */
+  .valor--verde   { background: var(--verde); }
+  .valor--laranja { background: var(--laranja); }
+  .valor--amarelo { background: var(--amarelo); }
+  .valor--creme   { background: var(--verde-escuro); }
 
-
-  .valor__corpo h3 { color: var(--verde-escuro); margin-bottom: 8px; }
-  .valor__corpo p { margin: 0; font-size: 0.96rem; color: var(--marrom); opacity: 0.88; }
+  .valor__corpo h3 { color: var(--creme); margin-bottom: 10px; }
+  .valor__corpo p { margin: 0; font-size: 0.98rem; color: var(--creme-claro); opacity: 0.95; }
+  /* No bloco amarelo, texto escuro garante melhor contraste */
+  .valor--amarelo .valor__corpo h3 { color: var(--marrom); }
+  .valor--amarelo .valor__corpo p { color: var(--marrom); opacity: 0.85; }
 
   @media (max-width: 760px) {
     .valores--grade { grid-template-columns: 1fr; }
+    .valor { min-height: 0; padding: 32px 30px; }
   }
 </style>
