@@ -11,9 +11,21 @@ const { data: fotos } = await supabase
   .eq('aprovado', true)
   .order('enviado_em', { ascending: false });
 
-const colunaEsquerda = fotos ? fotos.filter((_, i) => i % 3 === 0) : [];
-const colunaDireita = fotos ? fotos.filter((_, i) => i % 3 === 1) : [];
-const colunaCentro = fotos ? fotos.filter((_, i) => i % 3 === 2) : [];
+// Distribui as fotos pelas 3 colunas dando um "atraso" pra coluna do centro,
+// porque ela já tem o formulário ocupando espaço lá em cima — sem isso, mesmo
+// com o mesmo número de fotos, o centro sempre parece mais comprido que os lados.
+const listaFotos = fotos ?? [];
+const pesoColunas = [0, 1, 0]; // [esquerda, centro, direita] — 1 = altura estimada do formulário em "fotos"
+const colunasFotos = [[], [], []];
+for (const foto of listaFotos) {
+  let indiceMenor = 0;
+  for (let i = 1; i < 3; i++) {
+    if (pesoColunas[i] < pesoColunas[indiceMenor]) indiceMenor = i;
+  }
+  colunasFotos[indiceMenor].push(foto);
+  pesoColunas[indiceMenor] += 1;
+}
+const [colunaEsquerda, colunaCentro, colunaDireita] = colunasFotos;
 ---
 <Layout titulo="Galeria" descricao="Fotos de escalada mandadas pela própria comunidade Climbeiros.">
   <section class="secao">
