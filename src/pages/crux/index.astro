@@ -30,17 +30,12 @@ const listaArtigos = (artigos ?? []).map((artigo) => ({
 const todosItens = [itemTecnicas, ...listaArtigos];
 ---
 <Layout titulo="Crux" descricao="Conteúdo pra quem já escala e quer ir além do básico. Guias, dicas e novidades da comunidade Climbeiros.">
-  <section class="pagina-hero">
-    <div class="pagina-hero__contorno" aria-hidden="true"></div>
-    <div class="container pagina-hero__conteudo">
-      <span class="eyebrow">Pra quem já pega a parte difícil da via</span>
-      <h1>Crux</h1>
-      <p class="lead">Conteúdo pra ir além do básico. Dicas mais avançadas, guias práticos e novidades da comunidade.</p>
-    </div>
-  </section>
-
   <section class="secao">
     <div class="container">
+      <p class="eyebrow">Pra quem já pega a parte difícil da via</p>
+      <h1>Crux</h1>
+      <p>Conteúdo pra ir além do básico. Dicas mais avançadas, guias práticos e novidades da comunidade.</p>
+
       <div class="lista-artigos">
         {todosItens.map((item, i) => (
           <a class="artigo-item" href={item.href}>
