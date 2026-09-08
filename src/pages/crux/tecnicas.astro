@@ -5,9 +5,7 @@
 // inglês, com uma ilustração simples de cada uma. Conteúdo fixo no
 // código (não vem do Supabase) — pra adicionar, editar ou remover uma
 // técnica, mexa direto no array TECNICAS aqui embaixo.
-
 import Layout from '../../layouts/Layout.astro';
-
 const TECNICAS = [
   {
     nome: 'Bandeira',
@@ -16,6 +14,7 @@ const TECNICAS = [
     descricao:
       'A perna livre estica pro lado, sem tocar em nada, só pra fazer contrapeso. Evita que o corpo gire e "abra a porta" (barn door) pra longe da parede.',
     video: '/videos/tecnicas_flag.mov',
+    videoThumb: '/images/tecnicas/bandeira.jpg',
   },
   {
     nome: 'Gancho de Calcanhar',
@@ -40,6 +39,7 @@ const TECNICAS = [
     descricao:
       'O quadril gira e o joelho cai pra dentro e pra baixo, aproximando o corpo da parede. Ganha alcance pro braço oposto sem precisar de tanta força.',
     video: '/videos/tecnicas_knee_drop.mov',
+    videoThumb: '/images/tecnicas/joelho-caido.jpg',
   },
   {
     nome: 'Mantle (Apoio Alto)',
@@ -48,6 +48,7 @@ const TECNICAS = [
     descricao:
       'As mãos empurram uma borda ou ressalto pra baixo até o corpo ficar em pé sobre ela, tipo o movimento de sair da borda de uma piscina.',
     video: '/videos/tecnicas_balconar.mov',
+    videoThumb: '/images/tecnicas/balconar.jpg',
   },
   {
     nome: 'Balconar',
@@ -56,6 +57,7 @@ const TECNICAS = [
     descricao:
       'É como muita gente por aqui chama o mantle: subir numa borda ou ressalto como se estivesse se apoiando pra subir num balcão. Mesmo movimento do card acima, nome mais popular na gíria brasileira.',
     video: '/videos/tecnicas_balconar.mov',
+    videoThumb: '/images/tecnicas/balconar.jpg',
   },
   {
     nome: 'Grampo',
@@ -124,7 +126,6 @@ const TECNICAS = [
       <p class="lead">Os nomes que você vai ouvir na academia ou lendo sobre escalada lá fora, em português e em inglês, com uma ilustração simples pra entender a posição do corpo.</p>
     </div>
   </section>
-
   <section class="secao">
     <div class="container">
       <div class="grade grade--3 tecnicas-grade">
@@ -304,13 +305,20 @@ const TECNICAS = [
               </div>
             </div>
             <p>{tecnica.descricao}</p>
-            {tecnica.video && <span class="tecnica-card__play">▶ Ver vídeo</span>}
+            {tecnica.video && (
+              <div class="tecnica-card__thumb">
+                <img src={tecnica.videoThumb} alt={`Prévia do vídeo de ${tecnica.nome}`} loading="lazy" />
+                <span class="tecnica-card__thumb-legenda">Ver vídeo</span>
+                <span class="tecnica-card__thumb-play">
+                  <svg viewBox="0 0 24 24" fill="#3d5439"><path d="M8 5v14l11-7z" /></svg>
+                </span>
+              </div>
+            )}
           </div>
         ))}
       </div>
     </div>
   </section>
-
   <div id="video-lightbox" class="video-lightbox" hidden>
     <button type="button" class="video-lightbox__fechar" id="video-lightbox-fechar" aria-label="Fechar vídeo">×</button>
     <div class="video-lightbox__conteudo">
@@ -319,7 +327,6 @@ const TECNICAS = [
     </div>
   </div>
 </Layout>
-
 <script>
   // Abre um vídeo em destaque quando a pessoa clica num card de técnica
   // que tem vídeo cadastrado (campo "video" no array TECNICAS lá em cima).
@@ -327,7 +334,6 @@ const TECNICAS = [
   const player = document.getElementById('video-lightbox-player');
   const legenda = document.getElementById('video-lightbox-legenda');
   const fechar = document.getElementById('video-lightbox-fechar');
-
   function abrirVideo(src, nome) {
     if (!lightbox || !player) return;
     player.src = src;
@@ -335,21 +341,18 @@ const TECNICAS = [
     lightbox.hidden = false;
     player.play().catch(() => {});
   }
-
   function fecharVideo() {
     if (!lightbox || !player) return;
     lightbox.hidden = true;
     player.pause();
     player.src = '';
   }
-
   document.querySelectorAll('.tecnica-card--comvideo').forEach((card) => {
     card.addEventListener('click', () => {
       const src = card.getAttribute('data-video');
       if (src) abrirVideo(src, card.getAttribute('data-nome'));
     });
   });
-
   fechar?.addEventListener('click', fecharVideo);
   lightbox?.addEventListener('click', (e) => {
     if (e.target === lightbox) fecharVideo();
@@ -358,23 +361,19 @@ const TECNICAS = [
     if (e.key === 'Escape' && lightbox && !lightbox.hidden) fecharVideo();
   });
 </script>
-
 <style>
   .tecnicas-grade { align-items: stretch; }
-
   .tecnica-card {
     padding: 22px 24px;
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
-
   .tecnica-card__topo {
     display: flex;
     align-items: center;
     gap: 14px;
   }
-
   .tecnica-card__icone {
     width: 56px;
     height: 56px;
@@ -385,18 +384,15 @@ const TECNICAS = [
     justify-content: center;
     flex-shrink: 0;
   }
-
   .tecnica-card__icone svg {
     width: 38px;
     height: 38px;
     overflow: visible;
   }
-
   .tecnica-card__titulos h3 {
     margin: 0;
     font-size: 1.1rem;
   }
-
   .tecnica-card__ingles {
     display: block;
     font-family: var(--fonte-display);
@@ -406,14 +402,12 @@ const TECNICAS = [
     color: var(--laranja);
     margin-top: 2px;
   }
-
   .tecnica-card p {
     margin: 0;
     font-size: 0.92rem;
     opacity: 0.88;
     line-height: 1.45;
   }
-
   .tecnica-card--comvideo {
     cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.2s ease;
@@ -422,20 +416,58 @@ const TECNICAS = [
     transform: translateY(-3px);
     box-shadow: var(--sombra);
   }
-
-  .tecnica-card__play {
-    display: inline-flex;
+  .tecnica-card__thumb {
+    position: relative;
+    margin-top: 4px;
+    border-radius: 8px;
+    overflow: hidden;
+    line-height: 0;
+  }
+  .tecnica-card__thumb img {
+    width: 100%;
+    height: 130px;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.25s ease;
+  }
+  .tecnica-card--comvideo:hover .tecnica-card__thumb img {
+    transform: scale(1.05);
+  }
+  .tecnica-card__thumb::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%);
+  }
+  .tecnica-card__thumb-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 2px;
+    justify-content: center;
+    z-index: 2;
+  }
+  .tecnica-card__thumb-play svg {
+    width: 42px;
+    height: 42px;
+    padding: 13px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+  }
+  .tecnica-card__thumb-legenda {
+    position: absolute;
+    left: 10px;
+    bottom: 8px;
+    z-index: 2;
+    color: #fff;
     font-family: var(--fonte-display);
     text-transform: uppercase;
-    font-size: 0.72rem;
-    letter-spacing: 0.04em;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
     font-weight: 700;
-    color: var(--laranja);
   }
-
   .video-lightbox {
     position: fixed;
     inset: 0;
