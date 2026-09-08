@@ -57,7 +57,14 @@ const { data: parceiros } = await supabase.from('parceiros').select('*').order('
             </div>
             <div class="campo">
               <label for="fp-tel">WhatsApp</label>
-              <input type="text" id="fp-tel" name="telefone" placeholder="(11) 99172-1313" />
+              <input
+                type="tel"
+                id="fp-tel"
+                name="telefone"
+                placeholder="(11)991721313"
+                maxlength="13"
+                inputmode="numeric"
+              />
             </div>
           </div>
 
@@ -106,6 +113,17 @@ const { data: parceiros } = await supabase.from('parceiros').select('*').order('
   const form = document.getElementById('form-parceiro');
   const status = document.getElementById('form-parceiro-status');
   const btn = document.getElementById('btn-enviar-parceiro');
+  const campoTelefone = document.getElementById('fp-tel');
+
+  // Máscara do WhatsApp: só deixa digitar números, no formato (11)991721313,
+  // sem passar do tamanho de um telefone de verdade.
+  campoTelefone?.addEventListener('input', () => {
+    const numeros = campoTelefone.value.replace(/\D/g, '').slice(0, 11);
+    let formatado = '';
+    if (numeros.length > 0) formatado = '(' + numeros.slice(0, 2);
+    if (numeros.length >= 2) formatado += ')' + numeros.slice(2);
+    campoTelefone.value = formatado;
+  });
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -114,6 +132,13 @@ const { data: parceiros } = await supabase.from('parceiros').select('*').order('
     const dados = Object.fromEntries(new FormData(form).entries());
     if (!dados.marca || !dados.email) {
       status.textContent = 'Por favor, preencha ao menos a marca e o e-mail.';
+      return;
+    }
+
+    const telefoneValor = campoTelefone ? campoTelefone.value : '';
+    if (telefoneValor && !/^\(\d{2}\)\d{9}$/.test(telefoneValor)) {
+      status.textContent = 'Preencha o WhatsApp no formato (11)991721313, com DDD e 9 números — ou deixe o campo em branco.';
+      campoTelefone.focus();
       return;
     }
 
