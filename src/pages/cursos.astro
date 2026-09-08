@@ -109,7 +109,7 @@ function waLink(num) {
         ))}
       </div>
       <p class="safety">
-        Os guias são profissionais independentes. Os Climbeiros fazem a ponte entre
+        Os guias são profissionais independentes. O Climbeiros faz a ponte entre
         você e eles; a contratação, os valores e a responsabilidade pelo curso são
         combinados diretamente com cada guia. Recomendamos sempre verificar
         certificação e seguro antes de qualquer atividade.
@@ -149,7 +149,14 @@ function waLink(num) {
           <div class="linha">
             <div class="campo">
               <label for="fg-telefone">WhatsApp</label>
-              <input type="text" id="fg-telefone" name="telefone" placeholder="(11) 99172-1313" />
+              <input
+                type="tel"
+                id="fg-telefone"
+                name="telefone"
+                placeholder="(11)991721313"
+                maxlength="13"
+                inputmode="numeric"
+              />
             </div>
             <div class="campo">
               <label for="fg-instagram">Instagram</label>
@@ -203,12 +210,33 @@ function waLink(num) {
   const form = document.getElementById('form-guia');
   const status = document.getElementById('form-guia-status');
   const btn = document.getElementById('btn-enviar-guia');
+
+  // Máscara do campo WhatsApp: só deixa dígitos e formata como (11)991721313,
+  // igual ao campo Celular da página de Contato.
+  const campoTelefone = document.getElementById('fg-telefone');
+  campoTelefone?.addEventListener('input', () => {
+    const numeros = campoTelefone.value.replace(/\D/g, '').slice(0, 11);
+    let formatado = '';
+    if (numeros.length > 0) {
+      formatado = '(' + numeros.slice(0, 2);
+    }
+    if (numeros.length >= 2) {
+      formatado += ')' + numeros.slice(2);
+    }
+    campoTelefone.value = formatado;
+  });
+
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!status || !btn) return;
     const dados = Object.fromEntries(new FormData(form).entries());
     if (!dados.nome || !dados.email) {
       status.textContent = 'Por favor, preencha ao menos nome e e-mail.';
+      return;
+    }
+    if (dados.telefone && !/^\(\d{2}\)\d{9}$/.test(dados.telefone)) {
+      status.textContent = 'Preencha o WhatsApp no formato (11)991721313, com DDD e 9 números — ou deixe o campo em branco.';
+      campoTelefone?.focus();
       return;
     }
     const temCupom = form.querySelector('#tem-cupom')?.checked;
