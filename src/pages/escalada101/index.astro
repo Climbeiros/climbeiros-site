@@ -51,16 +51,12 @@ function getIconeChave(titulo: string) {
 }
 ---
 <Layout titulo="Escalada 101" descricao="O básico que todo escalador precisa saber: tipos de escalada, graduação de vias e equipamentos, num só lugar.">
-  <section class="pagina-hero">
-    <div class="pagina-hero__contorno" aria-hidden="true"></div>
-    <div class="container pagina-hero__conteudo">
-      <span class="eyebrow">Comece por aqui</span>
-      <h1>Escalada 101</h1>
-      <p class="lead">O básico que todo escalador precisa saber, sem enrolação. Reunimos aqui os fundamentos — de modalidades a equipamento — pra quem tá chegando agora.</p>
-    </div>
-  </section>
   <section class="secao">
     <div class="container">
+      <p class="eyebrow">Comece por aqui</p>
+      <h1>Escalada 101</h1>
+      <p>O básico que todo escalador precisa saber, sem enrolação. Reunimos aqui os fundamentos — de modalidades a equipamento — pra quem tá chegando agora.</p>
+
       <div class="lista-artigos">
         {todosItens.map((item, i) => {
           const chave = getIconeChave(item.titulo);
