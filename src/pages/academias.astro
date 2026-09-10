@@ -1,12 +1,35 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
-import type { Academia } from '../lib/supabase';
+import type { Academia, AvaliacaoPublica } from '../lib/supabase';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
 
 const { data: academias } = await supabase
   .from('academias')
   .select('*')
   .order('nome') as { data: Academia[] | null };
+
+const { data: avaliacoes } = await supabase
+  .from('avaliacoes_publicas')
+  .select('*')
+  .order('enviado_em', { ascending: false }) as { data: AvaliacaoPublica[] | null };
+
+// Agrupa as avaliações (já aprovadas — a view só devolve essas) por academia.
+const avaliacoesPorAcademia = new Map<string, AvaliacaoPublica[]>();
+(avaliacoes ?? []).forEach((av) => {
+  const lista = avaliacoesPorAcademia.get(av.academia_id) ?? [];
+  lista.push(av);
+  avaliacoesPorAcademia.set(av.academia_id, lista);
+});
+
+function resumo(academiaId: string) {
+  const lista = avaliacoesPorAcademia.get(academiaId) ?? [];
+  if (lista.length === 0) return null;
+  const media = lista.reduce((soma, a) => soma + a.nota, 0) / lista.length;
+  return { media: media.toFixed(1), total: lista.length };
+}
 ---
 <Layout titulo="Academias" descricao="Academias de escalada recomendadas pela comunidade Climbeiros.">
   <section class="secao">
@@ -35,23 +58,93 @@ const { data: academias } = await supabase
       )}
 
       <div class="grade grade--3" data-busca-lista="academias">
-        {academias?.map((a) => (
-          <article class="card" data-cidade={(a.cidade || '').toLowerCase()}>
-            <img class="card__imagem" src={a.imagem_url || '/logo.png'} alt={a.nome} />
-            <div class="card__corpo">
-              <h3>{a.nome}</h3>
-              <p class="card__local">{a.cidade}{a.estado ? `, ${a.estado}` : ''}</p>
-              {a.endereco && <p class="card__endereco">{a.endereco}</p>}
-              {a.Modalidades && <p class="card__modalidades"><strong>Modalidades:</strong> {a.Modalidades}</p>}
-              {a.descricao && <p>{a.descricao}</p>}
-              <div class="card__links">
-                {a.website && <a href={a.website} target="_blank" rel="noopener">Site</a>}
-                {a.whatsapp && <a href={`https://wa.me/${a.whatsapp}`} target="_blank" rel="noopener">WhatsApp</a>}
-                {a.instagram && <a href={a.instagram} target="_blank" rel="noopener">Instagram</a>}
+        {academias?.map((a) => {
+          const res = resumo(a.id);
+          const comentarios = avaliacoesPorAcademia.get(a.id) ?? [];
+          return (
+            <article class="card" data-cidade={(a.cidade || '').toLowerCase()}>
+              <img class="card__imagem" src={a.imagem_url || '/logo.png'} alt={a.nome} />
+              <div class="card__corpo">
+                <h3>{a.nome}</h3>
+                <p class="card__local">{a.cidade}{a.estado ? `, ${a.estado}` : ''}</p>
+                {a.endereco && <p class="card__endereco">{a.endereco}</p>}
+                {a.Modalidades && <p class="card__modalidades"><strong>Modalidades:</strong> {a.Modalidades}</p>}
+                {a.descricao && <p>{a.descricao}</p>}
+                <div class="card__links">
+                  {a.website && <a href={a.website} target="_blank" rel="noopener">Site</a>}
+                  {a.whatsapp && <a href={`https://wa.me/${a.whatsapp}`} target="_blank" rel="noopener">WhatsApp</a>}
+                  {a.instagram && <a href={a.instagram} target="_blank" rel="noopener">Instagram</a>}
+                </div>
+
+                <div class="card__avaliacoes">
+                  {res ? (
+                    <p class="avaliacao-resumo">
+                      <span class="avaliacao-resumo__estrelas" aria-hidden="true">★</span>
+                      <strong>{res.media}</strong> · {res.total} avaliaç{res.total === 1 ? 'ão' : 'ões'}
+                    </p>
+                  ) : (
+                    <p class="avaliacao-resumo avaliacao-resumo--vazia">Ainda sem avaliações</p>
+                  )}
+
+                  <details class="avaliacao-detalhes">
+                    <summary>Ver e deixar uma avaliação</summary>
+
+                    {comentarios.length > 0 && (
+                      <ul class="avaliacao-lista">
+                        {comentarios.map((c) => (
+                          <li class="avaliacao-item">
+                            <div class="avaliacao-item__topo">
+                              <span class="avaliacao-item__estrelas" aria-hidden="true">{'★'.repeat(c.nota)}{'☆'.repeat(5 - c.nota)}</span>
+                              <strong>{c.nome}</strong>
+                            </div>
+                            {c.comentario && <p class="avaliacao-item__comentario">{c.comentario}</p>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <form
+                      class="form-avaliacao"
+                      data-academia-id={a.id}
+                      data-supabase-url={supabaseUrl}
+                      data-supabase-key={supabaseKey}
+                    >
+                      <fieldset class="estrelas-input">
+                        <legend>Sua nota</legend>
+                        {[5, 4, 3, 2, 1].map((n) => (
+                          <>
+                            <input type="radio" name="nota" id={`nota-${a.id}-${n}`} value={n} required />
+                            <label for={`nota-${a.id}-${n}`} title={`${n} estrela${n > 1 ? 's' : ''}`}>★</label>
+                          </>
+                        ))}
+                      </fieldset>
+                      <label>
+                        Comentário (opcional)
+                        <textarea name="comentario" rows="3" placeholder="Como foi sua experiência nessa academia?"></textarea>
+                      </label>
+                      <label>
+                        Seu nome
+                        <input type="text" name="nome" required />
+                      </label>
+                      <label>
+                        Seu e-mail
+                        <input type="email" name="email" required />
+                        <small>Não é exibido publicamente — usamos só pra contato, se precisar.</small>
+                      </label>
+                      {/* honeypot: campo escondido para visitantes reais, bots costumam preencher */}
+                      <input type="text" name="site" class="campo-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+                      <button type="submit" class="botao botao--pequeno">Enviar avaliação</button>
+                      <p class="form-status" role="status"></p>
+                      <p class="form-avaliacao-aviso">
+                        Sua avaliação passa por uma checagem da equipe do Climbeiros antes de aparecer aqui.
+                      </p>
+                    </form>
+                  </details>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </div>
   </section>
@@ -142,6 +235,61 @@ const { data: academias } = await supabase
   });
 </script>
 
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  document.querySelectorAll<HTMLFormElement>('.form-avaliacao').forEach((form) => {
+    const status = form.querySelector<HTMLElement>('.form-status');
+    const botao = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!status || !botao) return;
+
+      const dados = new FormData(form);
+
+      // Honeypot: campo escondido via CSS que só um bot preencheria.
+      if (dados.get('site')) {
+        status.textContent = 'Avaliação enviada!';
+        form.reset();
+        return;
+      }
+
+      const nota = dados.get('nota');
+      if (!nota) {
+        status.textContent = 'Escolha uma nota de 1 a 5 estrelas.';
+        return;
+      }
+
+      botao.disabled = true;
+      status.textContent = 'Enviando...';
+
+      try {
+        const supabase = createClient(form.dataset.supabaseUrl!, form.dataset.supabaseKey!);
+
+        const { error } = await supabase.from('avaliacoes_academias').insert({
+          academia_id: form.dataset.academiaId,
+          nome: dados.get('nome'),
+          email: dados.get('email'),
+          nota: Number(nota),
+          comentario: dados.get('comentario') || null,
+        });
+
+        if (error) {
+          status.textContent = 'Erro ao enviar: ' + error.message;
+        } else {
+          status.textContent = 'Obrigado! Sua avaliação passará por uma checagem antes de aparecer no site.';
+          form.reset();
+        }
+      } catch (err) {
+        status.textContent = 'Erro inesperado: ' + (err instanceof Error ? err.message : String(err));
+      }
+
+      botao.disabled = false;
+    });
+  });
+</script>
+
 <style>
   .card__local { font-size: 0.85rem; color: var(--laranja); font-weight: 600; margin-bottom: 8px; }
   .card__endereco { font-size: 0.85rem; opacity: 0.65; margin-top: -8px; margin-bottom: 8px; font-style: italic; }
@@ -169,5 +317,137 @@ const { data: academias } = await supabase
     opacity: 0.8;
     margin-bottom: 24px;
     min-height: 1.2em;
+  }
+
+  .card__avaliacoes {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(42, 31, 22, 0.12);
+  }
+
+  .avaliacao-resumo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    font-size: 0.9rem;
+  }
+  .avaliacao-resumo__estrelas { color: var(--amarelo); }
+  .avaliacao-resumo--vazia { opacity: 0.6; font-style: italic; }
+
+  .avaliacao-detalhes summary {
+    cursor: pointer;
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    color: var(--laranja);
+  }
+  .avaliacao-detalhes[open] summary { margin-bottom: 12px; }
+
+  .avaliacao-lista {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .avaliacao-item {
+    background: var(--creme-claro);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .avaliacao-item__topo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+  .avaliacao-item__estrelas { color: var(--amarelo); letter-spacing: 1px; }
+  .avaliacao-item__comentario {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    opacity: 0.85;
+  }
+
+  .form-avaliacao {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--branco);
+    border: 1px solid rgba(42, 31, 22, 0.15);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .form-avaliacao label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    color: var(--verde-escuro);
+    letter-spacing: 0.03em;
+  }
+  .form-avaliacao input,
+  .form-avaliacao textarea {
+    font-family: var(--fonte-corpo);
+    font-size: 0.9rem;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(42, 31, 22, 0.2);
+    color: var(--marrom);
+    resize: vertical;
+  }
+  .form-avaliacao small { text-transform: none; letter-spacing: normal; opacity: 0.65; font-size: 0.72rem; }
+  .botao--pequeno { align-self: flex-start; padding: 8px 16px; font-size: 0.85rem; }
+  .form-avaliacao-aviso { font-size: 0.72rem; opacity: 0.65; margin: 0; }
+
+  .campo-honeypot {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Fieldset de estrelas: radios na ordem 5→1 no HTML + row-reverse deixa a UI 1→5,
+     e o seletor ~ pinta a estrela clicada e todas as anteriores (visualmente, à esquerda). */
+  .estrelas-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 2px;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+  .estrelas-input legend {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+  }
+  .estrelas-input input {
+    position: absolute;
+    opacity: 0;
+    width: 1px; height: 1px;
+  }
+  .estrelas-input label {
+    cursor: pointer;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: rgba(42, 31, 22, 0.25);
+    padding: 2px;
+  }
+  .estrelas-input input:checked ~ label,
+  .estrelas-input label:hover,
+  .estrelas-input label:hover ~ label {
+    color: var(--amarelo);
   }
 </style>

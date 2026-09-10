@@ -95,6 +95,15 @@ export type SiteConfig = {
   tipo: string | null;
 };
 
+export type AvaliacaoPublica = {
+  id: string;
+  academia_id: string;
+  nome: string;
+  nota: number;
+  comentario: string | null;
+  enviado_em: string;
+};
+
 // Busca as configs da Home/Sobre e devolve como um objeto fácil de usar: { headline: "...", foto_capa: "..." }
 export async function getSiteConfig(): Promise<Record<string, string>> {
   const { data } = await supabase.from('site_config').select('chave, valor');
