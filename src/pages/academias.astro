@@ -30,12 +30,22 @@ function resumo(academiaId: string) {
   const media = lista.reduce((soma, a) => soma + a.nota, 0) / lista.length;
   return { media: media.toFixed(1), total: lista.length };
 }
+
+const temSeloIndica = (academias ?? []).some((a) => a.climbeiros_indica);
+const textoSeloIndica = 'O selo Climbeiros indica marca academias recomendadas pela nossa equipe, com base na experiência da comunidade e nos nossos critérios de qualidade.';
 ---
 <Layout titulo="Academias" descricao="Academias de escalada recomendadas pela comunidade Climbeiros.">
   <section class="secao">
     <div class="container">
       <p class="eyebrow">Onde treinar</p>
       <h1>Academias de escalada</h1>
+
+      {temSeloIndica && (
+        <p class="selo-disclaimer">
+          <img class="selo-disclaimer__icone" src="/selo-climbeiros-indica.png" alt="" aria-hidden="true" />
+          {textoSeloIndica}
+        </p>
+      )}
 
       {(!academias || academias.length === 0) && (
         <p>Ainda estamos cadastrando as primeiras academias. Volte em breve!</p>
@@ -63,7 +73,18 @@ function resumo(academiaId: string) {
           const comentarios = avaliacoesPorAcademia.get(a.id) ?? [];
           return (
             <article class="card" data-cidade={(a.cidade || '').toLowerCase()}>
-              <img class="card__imagem" src={a.imagem_url || '/logo.png'} alt={a.nome} />
+              <div class="card__imagem-wrap">
+                <img class="card__imagem" src={a.imagem_url || '/logo.png'} alt={a.nome} />
+                {a.climbeiros_indica && (
+                  <img
+                    class="card__selo"
+                    src="/selo-climbeiros-indica.png"
+                    alt="Selo Climbeiros indica"
+                    title={textoSeloIndica}
+                    loading="lazy"
+                  />
+                )}
+              </div>
               <div class="card__corpo">
                 <h3>{a.nome}</h3>
                 <p class="card__local">{a.cidade}{a.estado ? `, ${a.estado}` : ''}</p>
@@ -291,6 +312,31 @@ function resumo(academiaId: string) {
 </script>
 
 <style>
+  .selo-disclaimer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 720px;
+    font-size: 0.85rem;
+    opacity: 0.75;
+    margin: 12px 0 0;
+  }
+  .selo-disclaimer__icone {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+
+  .card__imagem-wrap { position: relative; }
+  .card__selo {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 52px;
+    height: 52px;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));
+  }
+
   .card__local { font-size: 0.85rem; color: var(--laranja); font-weight: 600; margin-bottom: 8px; }
   .card__endereco { font-size: 0.85rem; opacity: 0.65; margin-top: -8px; margin-bottom: 8px; font-style: italic; }
   .card__modalidades { font-size: 0.85rem; margin-bottom: 8px; }

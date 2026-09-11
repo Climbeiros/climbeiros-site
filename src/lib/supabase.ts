@@ -19,6 +19,7 @@ export type Academia = {
   instagram: string | null;
   descricao: string | null;
   imagem_url: string | null;
+  climbeiros_indica: boolean;
 };
 
 export type Curso = {
