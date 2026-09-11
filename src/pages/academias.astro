@@ -331,8 +331,10 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
   .card__imagem {
     /* "contain" em vez de "cover": mostra a foto/logo inteira, sem cortar,
        já que as imagens das academias vêm em proporções bem diferentes
-       (fotos, logos quadrados, etc). O fundo creme preenche a sobra. */
+       (fotos, logos quadrados, etc). Fundo branco igual ao resto do card,
+       em vez do creme padrão, pra não ficar bicolor. */
     object-fit: contain;
+    background: var(--branco);
     padding: 10px;
   }
   .card__selo {
