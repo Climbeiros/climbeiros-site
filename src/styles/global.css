@@ -174,7 +174,7 @@ img { max-width: 100%; display: block; }
 }
 
 /* ==================================================
-   Escalada 101 — estilos trazidos dos artigos da Emilie
+   Escalada 101 â€” estilos trazidos dos artigos da Emilie
    ================================================== */
 .pagina-hero { background: linear-gradient(160deg, var(--verde-escuro) 0%, #2e4029 100%); position: relative; overflow: hidden; padding: 72px 0 56px; }
 .pagina-hero__contorno {
@@ -196,8 +196,8 @@ img { max-width: 100%; display: block; }
 .sumario a:hover { background: var(--amarelo); color: var(--marrom); text-decoration: none; border-color: var(--amarelo); }
 
 .grupo-intro { max-width: 760px; margin: 0 auto 40px; text-align: left; }
-.grupo-cabecalho { display: flex; align-items: baseline; gap: 16px; margin-bottom: 28px; scroll-margin-top: 96px; }
-.grupo-cabecalho .numero { font-family: var(--fonte-display); font-size: 2.6rem; color: var(--creme); line-height: 1; }
+.grupo-cabecalho { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; scroll-margin-top: 96px; }
+.grupo-cabecalho .numero { font-family: var(--fonte-display); font-size: 2.6rem; color: var(--verde-escuro); opacity: 0.35; line-height: 1; }
 .grupo-cabecalho h2 { margin: 0; }
 
 .tipo-card { scroll-margin-top: 96px; }
@@ -263,12 +263,12 @@ a.artigo-item:hover { transform: translateY(-2px); text-decoration: none; }
 .artigo-item--em-breve { opacity: 0.75; }
 .artigo-item--em-breve .artigo-item__numero { color: var(--creme-claro); opacity: 0.6; }
 
-/* Em telas estreitas, numero + icone + etiqueta + seta não cabem mais na
-   mesma linha do flex original — o texto (corpo) encolhia até o limite e o
-   resto (etiqueta + seta) vazava pra fora do card. Em vez de forçar tudo
-   numa linha só, vira uma grade de três linhas: número + ícone em cima,
-   título e descrição ocupando a largura toda logo abaixo, e etiqueta +
-   seta por último. */
+/* Em telas estreitas, numero + icone + etiqueta + seta nÃ£o cabem mais na
+   mesma linha do flex original â€” o texto (corpo) encolhia atÃ© o limite e o
+   resto (etiqueta + seta) vazava pra fora do card. Em vez de forÃ§ar tudo
+   numa linha sÃ³, vira uma grade de trÃªs linhas: nÃºmero + Ã­cone em cima,
+   tÃ­tulo e descriÃ§Ã£o ocupando a largura toda logo abaixo, e etiqueta +
+   seta por Ãºltimo. */
 @media (max-width: 640px) {
   .artigo-item {
     display: grid;
