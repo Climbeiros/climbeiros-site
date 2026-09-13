@@ -339,7 +339,7 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
   /* ===================== Esteira sem fim ===================== */
   .secao-esteira {
     background: var(--verde-escuro);
-    padding: 26px 0;
+    padding: 34px 0;
   }
   .esteira-titulo {
     text-align: center;
@@ -353,12 +353,12 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
   }
   .esteira-viewport {
     overflow: hidden;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 60px, #000 calc(100% - 60px), transparent 100%);
-    mask-image: linear-gradient(90deg, transparent 0, #000 60px, #000 calc(100% - 60px), transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 90px, #000 calc(100% - 90px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 90px, #000 calc(100% - 90px), transparent 100%);
   }
   .esteira-trilho {
     display: flex;
-    gap: 18px;
+    gap: 26px;
     width: max-content;
     padding: 0 18px;
   }
@@ -374,12 +374,18 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
   }
   .esteira-item {
     flex: 0 0 auto;
-    width: 110px;
-    height: 138px;
-    border-radius: 8px;
+    width: 220px;
+    height: 276px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 8px 18px rgba(0,0,0,0.3);
-    border: 3px solid rgba(255,255,255,0.15);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+    border: 4px solid rgba(255,255,255,0.15);
+  }
+  @media (max-width: 640px) {
+    .esteira-item {
+      width: 170px;
+      height: 213px;
+    }
   }
   .esteira-item:nth-child(odd) { transform: rotate(-4deg); }
   .esteira-item:nth-child(even) { transform: rotate(3deg); }
