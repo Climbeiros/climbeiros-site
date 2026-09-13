@@ -1,3 +1,4 @@
+---
 // src/pages/escalada101/tipos-de-agarras.astro
 //
 // Página interativa com os tipos de agarra e os tipos de inclinação de
@@ -125,10 +126,7 @@ import Layout from '../../layouts/Layout.astro';
     background:
       repeating-linear-gradient(115deg, rgba(0,0,0,0.05) 0 2px, transparent 2px 90px),
       repeating-linear-gradient(25deg, rgba(0,0,0,0.04) 0 2px, transparent 2px 70px),
-      linear-gradient(160deg, 
-#cfc3a3, 
-#b9ac86 55%, 
-#a89873);
+      linear-gradient(160deg, #cfc3a3, #b9ac86 55%, #a89873);
       box-shadow: inset 0 0 40px rgba(0,0,0,0.25), 0 6px 16px rgba(42,31,22,0.2);
   }
   .agarra-btn {
@@ -302,70 +300,60 @@ import Layout from '../../layouts/Layout.astro';
 <script>
   const TIPOS_AGARRA = [
     {
-      id: 'regua', nome: 'Régua (edge)', formato: 'barra-fina', forca: 'baixo', cor: '
-#b5476b', tamanho: 62,
+      id: 'regua', nome: 'Régua (edge)', formato: 'barra-fina', forca: 'baixo', cor: '#b5476b', tamanho: 62,
       foto: '/images/agarras/regua.jpg',
       descricao: 'Uma borda comprida e reta na parede, meio como uma prateleira. Diferente da réglete (que é bem fininha), a régua é mais larga e dá pra apoiar boa parte da mão, não só a ponta dos dedos.',
       comoUsar: 'Distribua a mão ao longo da borda, com os dedos dobrados por cima e o polegar ajudando a travar. Quanto mais reta e comprida, mais fácil de segurar — mas se ela inclinar pra fora, vira quase uma abaulada.',
     },
     {
-      id: 'reglete', nome: 'Réglete', formato: 'barra-fina', forca: 'baixo', cor: '
-#da7326',
+      id: 'reglete', nome: 'Réglete', formato: 'barra-fina', forca: 'baixo', cor: '#da7326',
       video: '/videos/agarras/reglete.mp4',
       tamanho: 46,
       descricao: 'Uma borda fina e reta na parede. Só dá pra encostar a ponta dos dedos — não fecha a mão inteira nela.',
       comoUsar: 'Mantenha os dedos retos ou levemente dobrados e os cotovelos altos. Quanto mais fina a réglete, mais força vai pra ponta dos dedos — por isso ela cansa rápido.',
     },
     {
-      id: 'abaulada', nome: 'Abaulada (sloper)', formato: 'bola', forca: 'baixo', cor: '
-#c9a24a',
+      id: 'abaulada', nome: 'Abaulada (sloper)', formato: 'bola', forca: 'baixo', cor: '#c9a24a',
       foto: '/images/agarras/abaulada.jpg', tamanho: 58,
       descricao: 'Uma bola ou curva lisa, sem nenhuma borda pra segurar — não existe "encaixe", você fica em cima dela só com atrito.',
       comoUsar: 'Abra a palma da mão inteira sobre a agarra e mantenha o corpo baixo e próximo da parede. Quanto mais peso for pra trás, mais fácil ela escorrega.',
     },
     {
-      id: 'concha', nome: 'Concha (bom pegador)', formato: 'concha', forca: 'baixo', cor: '
-#668062',
+      id: 'concha', nome: 'Concha (bom pegador)', formato: 'concha', forca: 'baixo', cor: '#668062',
       foto: '/images/agarras/concha.jpg', tamanho: 56,
       descricao: 'Uma agarra grande e funda, com um "buraco" onde a mão inteira entra e se apoia com conforto.',
       comoUsar: 'Feche a mão inteira por dentro da concha, como se estivesse segurando uma alça. É a agarra mais fácil de usar — ótima pra descansar no meio da via.',
     },
     {
-      id: 'pinca', nome: 'Pinça', formato: 'pinca', forca: 'squeeze', cor: '
-#e0931c', tamanho: 46,
+      id: 'pinca', nome: 'Pinça', formato: 'pinca', forca: 'squeeze', cor: '#e0931c', tamanho: 46,
       foto: '/images/agarras/pinca.jpg',
       descricao: 'Uma agarra estreita que se aperta dos dois lados, com o polegar de um lado e os outros dedos do outro.',
       comoUsar: 'Aperte como numa pinça de roupa — a força vem do polegar espremendo contra os outros dedos, não de puxar pra baixo.',
     },
     {
-      id: 'furo', nome: 'Furo (monodedo/bidedo)', formato: 'furo', forca: 'baixo', cor: '
-#5b4632', tamanho: 34,
+      id: 'furo', nome: 'Furo (monodedo/bidedo)', formato: 'furo', forca: 'baixo', cor: '#5b4632', tamanho: 34,
       video: '/videos/agarras/furo.mp4',
       descricao: 'Um buraco pequeno na parede onde só cabe um ou dois dedos.',
       comoUsar: 'Encaixe só a ponta de um ou dois dedos, sem forçar o dedo esticado — e vá com calma: furos machucam tendão fácil se usados sem aquecer.',
     },
     {
-      id: 'invertida', nome: 'Invertida', formato: 'invertida', forca: 'cima', cor: '
-#b5476b', tamanho: 50,
+      id: 'invertida', nome: 'Invertida', formato: 'invertida', forca: 'cima', cor: '#b5476b', tamanho: 50,
       descricao: 'Uma agarra virada de cabeça pra baixo — a abertura dela aponta pro chão, não pra cima.',
       comoUsar: 'Puxe de baixo pra cima, com a palma virada pro teto. Geralmente vem com um bom apoio de pé logo abaixo, porque o corpo tende a abrir pra fora.',
     },
     {
-      id: 'lateral', nome: 'Lateral (side pull)', formato: 'lateral', forca: 'lateral-esquerda', cor: '
-#3b6e8f',
+      id: 'lateral', nome: 'Lateral (side pull)', formato: 'lateral', forca: 'lateral-esquerda', cor: '#3b6e8f',
       foto: '/images/agarras/lateral.jpg', tamanho: 50,
       descricao: 'Uma agarra virada de lado, com a borda apontando pra direita ou esquerda em vez de pra cima.',
       comoUsar: 'Puxe na horizontal, na direção do seu corpo, girando o quadril pra parede em vez de ficar de frente. Puxar pra baixo nela quase não segura.',
     },
     {
-      id: 'gaston', nome: 'Gastão', formato: 'gaston', forca: 'lateral-direita', cor: '
-#6b4a8a', tamanho: 50,
+      id: 'gaston', nome: 'Gastão', formato: 'gaston', forca: 'lateral-direita', cor: '#6b4a8a', tamanho: 50,
       descricao: 'Parecida com a lateral, só que ao contrário: você empurra a agarra pra longe do corpo em vez de puxar pra perto.',
       comoUsar: 'Cotovelo pra fora, tipo abrindo uma porta pesada. É um dos movimentos mais cansativos de segurar por muito tempo.',
     },
     {
-      id: 'volume', nome: 'Volume', formato: 'volume', forca: 'baixo', cor: '
-#a9855a',
+      id: 'volume', nome: 'Módulo (Volume)', formato: 'volume', forca: 'baixo', cor: '#a9855a',
       foto: '/images/agarras/volume.jpg', tamanho: 74,
       descricao: 'Uma peça grande, geralmente lisa e sem pontos definidos — às vezes tem outras agarras menores parafusadas em cima dela.',
       comoUsar: 'Usa-se mais com o corpo inteiro do que com força de mão: apoie a palma ou o pé na superfície larga e jogue o peso a favor, em vez de tentar "agarrar" ela.',
@@ -392,16 +380,7 @@ import Layout from '../../layouts/Layout.astro';
     [82,62],[24,74],[46,76],[68,74],[86,80],[14,88],[36,90],[58,88],
     [78,90],[50,52],[62,32],
   ];
-  const CORES_PAREDE = ['
-#da7326', '
-#e0931c', '
-#668062', '
-#c9a24a', '
-#b5476b', '
-#3b6e8f', '
-#6b4a8a', '
-#a9855a', '
-#5b4632'];
+  const CORES_PAREDE = ['#da7326', '#e0931c', '#668062', '#c9a24a', '#b5476b', '#3b6e8f', '#6b4a8a', '#a9855a', '#5b4632'];
   function anguloForca(forca) {
     switch (forca) {
       case 'cima': return 0;
@@ -424,7 +403,7 @@ import Layout from '../../layouts/Layout.astro';
       btn.style.height = tipo.tamanho + 'px';
       btn.style.color = cor;
       btn.setAttribute('aria-label', tipo.nome);
-      btn.innerHTML = <svg viewBox="0 0 100 100"><use href="#f-${tipo.formato}"></use></svg>;
+      btn.innerHTML = `<svg viewBox="0 0 100 100"><use href="#f-${tipo.formato}"></use></svg>`;
       btn.addEventListener('click', () => abrirModalAgarra(tipo));
       parede.appendChild(btn);
     });
@@ -435,12 +414,12 @@ import Layout from '../../layouts/Layout.astro';
     emOrdem.forEach((tipo) => {
       const item = document.createElement('button');
       item.className = 'legenda-item';
-      item.innerHTML = 
+      item.innerHTML = `
         <svg class="legenda-icone" viewBox="0 0 100 100" style="color:${tipo.cor}">
           <use href="#f-${tipo.formato}"></use>
         </svg>
         <span class="legenda-nome">${tipo.nome}</span>
-      ;
+      `;
       item.addEventListener('click', () => abrirModalAgarra(tipo));
       legenda.appendChild(item);
     });
@@ -450,7 +429,7 @@ import Layout from '../../layouts/Layout.astro';
     TIPOS_PAREDE.forEach((tipo) => {
       const card = document.createElement('button');
       card.className = 'parede-tipo-card';
-      card.innerHTML = 
+      card.innerHTML = `
         <svg viewBox="0 0 100 60">
           <line x1="10" y1="55" x2="90" y2="55" stroke="#2a1f16" stroke-width="3" opacity="0.3" />
           <g transform="rotate(${tipo.angulo}, 30, 55)">
@@ -460,75 +439,75 @@ import Layout from '../../layouts/Layout.astro';
         </svg>
         <span class="nome">${tipo.nome}</span>
         <p>${tipo.descricao}</p>
-      ;
+      `;
       card.addEventListener('click', () => abrirModalParede(tipo));
       wrap.appendChild(card);
     });
   }
   function iconeComForca(tipo) {
     if (tipo.forca === 'squeeze') {
-      return 
+      return `
         <svg viewBox="0 0 160 100">
           <g transform="translate(30,50)"><use href="#f-${tipo.formato}" width="40" height="40" x="-20" y="-40" style="color:${tipo.cor}"></use></g>
           <g transform="translate(10,10) rotate(90)"><use href="#seta" width="30" height="30" style="color:#3d5439"></use></g>
           <g transform="translate(115,60) rotate(270)"><use href="#seta" width="30" height="30" style="color:#3d5439"></use></g>
-        </svg>;
+        </svg>`;
     }
     const rot = anguloForca(tipo.forca);
-    return 
+    return `
       <svg viewBox="0 0 100 100">
         <use href="#f-${tipo.formato}" style="color:${tipo.cor}"></use>
       </svg>
       <svg viewBox="0 0 100 100" style="position:absolute;">
         <g transform="rotate(${rot},50,50)"><use href="#seta" width="34" height="34" x="33" y="33" style="color:#3d543999"></use></g>
-      </svg>;
+      </svg>`;
   }
   function abrirModalAgarra(tipo) {
-    document.getElementById('modal-icone').innerHTML = <div style="position:relative;width:140px;height:140px;">${iconeComForca(tipo)}</div>;
+    document.getElementById('modal-icone').innerHTML = `<div style="position:relative;width:140px;height:140px;">${iconeComForca(tipo)}</div>`;
     document.getElementById('modal-titulo').textContent = tipo.nome;
     document.getElementById('modal-descricao').textContent = tipo.descricao;
     document.getElementById('modal-como-usar').textContent = tipo.comoUsar;
     const fotoArea = document.getElementById('modal-foto-area');
     if (tipo.video) {
-      fotoArea.innerHTML = 
+      fotoArea.innerHTML = `
         <span class="modal-foto-legenda">Vídeo real usando essa agarra</span>
         <video class="modal-video-real" src="${tipo.video}" controls playsinline muted loop></video>
-      ;
+      `;
     } else if (tipo.foto) {
-      fotoArea.innerHTML = 
+      fotoArea.innerHTML = `
         <span class="modal-foto-legenda">Exemplo real desse tipo de agarra</span>
         <img class="modal-foto-real" src="${tipo.foto}" alt="Foto de uma agarra real do tipo ${tipo.nome}">
-      ;
+      `;
     } else {
-      fotoArea.innerHTML = <span class="modal-foto-legenda">Ainda sem foto real desse tipo — manda uma que eu adiciono</span>;
+      fotoArea.innerHTML = `<span class="modal-foto-legenda">Ainda sem foto real desse tipo — manda uma que eu adiciono</span>`;
     }
     document.getElementById('modal-overlay').hidden = false;
   }
   function abrirModalParede(tipo) {
-    document.getElementById('modal-icone').innerHTML = 
+    document.getElementById('modal-icone').innerHTML = `
       <svg viewBox="0 0 100 60" style="width:180px;height:110px;">
         <line x1="10" y1="55" x2="90" y2="55" stroke="#2a1f16" stroke-width="3" opacity="0.3" />
         <g transform="rotate(${tipo.angulo}, 30, 55)">
           <line x1="30" y1="55" x2="30" y2="5" stroke="#3d5439" stroke-width="6" stroke-linecap="round" />
           <circle cx="30" cy="5" r="6" fill="#da7326" />
         </g>
-      </svg>;
+      </svg>`;
     document.getElementById('modal-titulo').textContent = tipo.nome;
     document.getElementById('modal-descricao').textContent = tipo.descricao;
     document.getElementById('modal-como-usar').textContent = tipo.comoUsar;
     const fotoArea = document.getElementById('modal-foto-area');
     if (tipo.video) {
-      fotoArea.innerHTML = 
+      fotoArea.innerHTML = `
         <span class="modal-foto-legenda">Vídeo real desse tipo de parede</span>
         <video class="modal-video-real" src="${tipo.video}" controls playsinline muted loop></video>
-      ;
+      `;
     } else if (tipo.foto) {
-      fotoArea.innerHTML = 
+      fotoArea.innerHTML = `
         <span class="modal-foto-legenda">Exemplo real desse tipo de parede</span>
         <img class="modal-foto-real" src="${tipo.foto}" alt="Foto de uma parede real do tipo ${tipo.nome}">
-      ;
+      `;
     } else {
-      fotoArea.innerHTML = <span class="modal-foto-legenda">Ainda sem foto ou vídeo real desse tipo — manda um que eu adiciono</span>;
+      fotoArea.innerHTML = `<span class="modal-foto-legenda">Ainda sem foto ou vídeo real desse tipo — manda um que eu adiciono</span>`;
     }
     document.getElementById('modal-overlay').hidden = false;
   }
