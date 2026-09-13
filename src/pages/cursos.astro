@@ -15,6 +15,16 @@ const { data: cursos } = await supabase
   .select("*")
   .eq("publicado", true)
   .order("ordem", { ascending: true });
+// Setores: usados pra mostrar em quais lugares cada guia atua (setores_ids)
+// e pra dar a lista de nomes conhecidos no campo do formulário de inscrição.
+const { data: setores } = await supabase
+  .from("setores")
+  .select("id, nome")
+  .order("nome", { ascending: true });
+const setoresPorId = new Map((setores ?? []).map((s) => [s.id, s.nome]));
+function nomesDosSetores(setoresIds) {
+  return (setoresIds ?? []).map((id) => setoresPorId.get(id)).filter(Boolean);
+}
 const cursosPorGuia = new Map();
 for (const c of cursos ?? []) {
   if (!cursosPorGuia.has(c.guia_id)) cursosPorGuia.set(c.guia_id, []);
@@ -79,6 +89,14 @@ function waLink(num) {
                   <div class="lbl">Especialidades</div>
                   <div class="tags">
                     {g.especialidades.map((e) => <span class="tag">{e}</span>)}
+                  </div>
+                </>
+              )}
+              {nomesDosSetores(g.setores_ids).length > 0 && (
+                <>
+                  <div class="lbl">Atua nos setores</div>
+                  <div class="tags">
+                    {nomesDosSetores(g.setores_ids).map((nome) => <span class="tag">{nome}</span>)}
                   </div>
                 </>
               )}
@@ -181,6 +199,16 @@ function waLink(num) {
             <input type="text" id="fg-espec" name="especialidades" placeholder="Ex.: escalada esportiva, boulder" />
           </div>
           <div class="campo">
+            <label for="fg-setores">Em quais setores você atua?</label>
+            <input
+              type="text"
+              id="fg-setores"
+              name="setores_interesse"
+              placeholder="Ex.: Pedra do Baú, Gruta do Baú"
+            />
+            <small class="campo-ajuda">Pode listar mais de um, separados por vírgula. Usamos isso pra te mostrar na página de cada setor.</small>
+          </div>
+          <div class="campo">
             <label for="fg-msg">Mensagem</label>
             <textarea id="fg-msg" name="mensagem" rows="4" placeholder="Conte um pouco sobre você e os cursos que oferece"></textarea>
           </div>
@@ -254,6 +282,7 @@ function waLink(num) {
       contato_pref: prefContato || null,
       cidade_uf: dados.cidade_uf || null,
       especialidades: dados.especialidades || null,
+      setores_interesse: dados.setores_interesse || null,
       mensagem: dados.mensagem || null,
       tem_cupom: temCupom ? 'Sim' : 'Não',
       cupom_codigo: temCupom ? (dados.cupom_codigo || null) : null,
@@ -326,6 +355,7 @@ function waLink(num) {
   .form-guia .linha > * { flex: 1; min-width: 200px; }
   .form-guia .campo { display: flex; flex-direction: column; gap: 6px; }
   .form-guia label { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: .8rem; color: var(--verde-escuro); }
+  .campo-ajuda { text-transform: none; letter-spacing: normal; font-size: .72rem; opacity: .65; font-family: var(--fonte-corpo); }
   .form-guia input, .form-guia textarea, .form-guia .form-select {
     font-family: var(--fonte-corpo); font-size: 1rem; padding: 12px 14px; border-radius: 8px;
     border: 1px solid rgba(42,31,22,.18); background: var(--branco); color: var(--marrom); width: 100%;

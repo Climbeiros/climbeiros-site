@@ -197,7 +197,7 @@ const [colunaEsquerda, colunaCentro, colunaDireita] = colunasFotos;
       const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extensao}`;
 
       const { error: erroUpload } = await supabase.storage
-        .from('fotos-galeria')
+        .from('fotos-comunidade')
         .upload(nomeArquivo, arquivo);
 
       if (erroUpload) {
@@ -207,7 +207,7 @@ const [colunaEsquerda, colunaCentro, colunaDireita] = colunasFotos;
       }
 
       const { data: urlPublica } = supabase.storage
-        .from('fotos-galeria')
+        .from('fotos-comunidade')
         .getPublicUrl(nomeArquivo);
 
       const { error: erroInsert } = await supabase.from('fotos_galeria').insert({

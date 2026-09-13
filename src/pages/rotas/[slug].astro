@@ -1,0 +1,542 @@
+---
+// src/pages/rotas/[slug].astro
+// Página individual de um setor de escalada: croqui, como chegar, hospedagens
+// próximas, guias que atuam ali, e avaliações da comunidade (nota + comentário +
+// fotos + link de vídeo). Site estático: depois de aprovar hospedagem/guia/avaliação
+// no Supabase, é preciso rodar um novo deploy na Vercel pra aparecer aqui.
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+import type {
+  Setor,
+  Croqui,
+  Hospedagem,
+  Guia,
+  AvaliacaoSetorPublica,
+  FotoAvaliacaoSetorPublica,
+} from '../../lib/supabase';
+
+export async function getStaticPaths() {
+  const { data: setores } = await supabase
+    .from('setores')
+    .select('slug')
+    .not('slug', 'is', null) as { data: { slug: string }[] | null };
+  return (setores ?? []).map((s) => ({ params: { slug: s.slug } }));
+}
+
+const { slug } = Astro.params;
+
+const { data: setor } = await supabase
+  .from('setores')
+  .select('*')
+  .eq('slug', slug)
+  .single() as { data: Setor | null };
+
+const { data: croquis } = setor
+  ? await supabase.from('croquis').select('*').eq('setor_id', setor.id) as { data: Croqui[] | null }
+  : { data: null };
+
+// Hospedagens e guias são filtrados em JS a partir do array setores_ids —
+// mesmo espírito do filtro por setor_id já usado nos croquis desta página.
+const { data: hospedagens } = setor
+  ? await supabase.from('hospedagens').select('*').eq('publicado', true).order('ordem') as { data: Hospedagem[] | null }
+  : { data: null };
+const hospedagensDoSetor = (hospedagens ?? []).filter((h) => (h.setores_ids ?? []).includes(setor?.id ?? ''));
+
+const { data: guias } = setor
+  ? await supabase.from('guias').select('*').eq('publicado', true).order('ordem') as { data: Guia[] | null }
+  : { data: null };
+const guiasDoSetor = (guias ?? []).filter((g) => (g.setores_ids ?? []).includes(setor?.id ?? ''));
+
+const { data: avaliacoes } = setor
+  ? await supabase
+      .from('avaliacoes_setores_publicas')
+      .select('*')
+      .eq('setor_id', setor.id)
+      .order('enviado_em', { ascending: false }) as { data: AvaliacaoSetorPublica[] | null }
+  : { data: null };
+
+const { data: fotosAvaliacoes } = setor
+  ? await supabase.from('avaliacoes_setores_fotos_publicas').select('*') as { data: FotoAvaliacaoSetorPublica[] | null }
+  : { data: null };
+
+function fotosDaAvaliacao(avaliacaoId: string) {
+  return (fotosAvaliacoes ?? []).filter((f) => f.avaliacao_id === avaliacaoId);
+}
+
+const resumoAvaliacoes = (avaliacoes ?? []).length > 0
+  ? {
+      media: ((avaliacoes ?? []).reduce((soma, a) => soma + a.nota, 0) / (avaliacoes ?? []).length).toFixed(1),
+      total: (avaliacoes ?? []).length,
+    }
+  : null;
+
+const rotuloCroqui: Record<string, string> = {
+  link: 'Ver croqui (site)',
+  pdf: 'Abrir croqui (PDF)',
+  foto: 'Ver croqui (foto)',
+};
+---
+<Layout titulo={setor?.nome || 'Setor'} descricao={setor?.descricao || undefined}>
+  {setor ? (
+    <section class="secao">
+      <div class="container setor-detalhe">
+        <a href="/rotas" class="voltar">← Rotas & Setores</a>
+
+        <h1>{setor.nome}</h1>
+        <p class="setor-detalhe__local">{[setor.regiao, setor.cidade, setor.estado].filter(Boolean).join(' · ')}</p>
+
+        {setor.descricao && <p class="setor-detalhe__descricao">{setor.descricao}</p>}
+
+        {setor.como_chegar && (
+          <div class="bloco">
+            <h2>Como chegar</h2>
+            <p>{setor.como_chegar}</p>
+          </div>
+        )}
+
+        {croquis && croquis.length > 0 && (
+          <div class="bloco">
+            <h2>Croqui</h2>
+            <div class="setor-detalhe__croquis">
+              {croquis.map((c) => (
+                c.tipo === 'referencia' ? (
+                  <p class="setor-card__croqui-ref">📍 {c.texto}</p>
+                ) : (
+                  <a href={c.url ?? '#'} target="_blank" rel="noopener" class="botao botao--secundario">
+                    {rotuloCroqui[c.tipo] || 'Ver croqui'}
+                  </a>
+                )
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div class="bloco">
+          <h2>Onde ficar</h2>
+          {hospedagensDoSetor.length > 0 ? (
+            <ul class="hospedagens-lista">
+              {hospedagensDoSetor.map((h) => (
+                <li class="hospedagem-item">
+                  <strong>{h.nome}</strong>
+                  {h.distancia && <span class="hospedagem-item__distancia"> · {h.distancia}</span>}
+                  {h.tem_desconto && (
+                    <span class="hospedagem-item__desconto">🎟️ Desconto Climbeiros{h.desconto_desc ? `: ${h.desconto_desc}` : ''}</span>
+                  )}
+                  <div class="hospedagem-item__contato">
+                    {h.contato_reserva && <span>{h.contato_reserva}</span>}
+                    {h.link_reserva && <a href={h.link_reserva} target="_blank" rel="noopener">Reservar</a>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="vazio">Ainda não temos hospedagens cadastradas perto daqui.</p>
+          )}
+
+          <details class="cadastro-detalhes">
+            <summary>Tem uma hospedagem por aqui? Cadastre-se</summary>
+            <form
+              class="form-hospedagem"
+              id="form-hospedagem"
+            >
+              <div class="linha">
+                <label>
+                  Nome da hospedagem *
+                  <input type="text" name="nome" required />
+                </label>
+                <label>
+                  Distância até aqui
+                  <input type="text" name="distancia" placeholder="Ex.: a 5 min a pé, 10 km de carro" />
+                </label>
+              </div>
+              <div class="linha">
+                <label>
+                  Contato para reserva *
+                  <input type="text" name="contato_reserva" placeholder="Telefone, WhatsApp ou e-mail" required />
+                </label>
+                <label>
+                  Link de reserva (opcional)
+                  <input type="url" name="link_reserva" placeholder="Booking, site próprio, Instagram..." />
+                </label>
+              </div>
+              <label>
+                Setores que atende
+                <input type="text" name="setores_interesse" value={setor.nome} />
+                <small>Se atender mais de um setor, pode listar todos aqui, separados por vírgula.</small>
+              </label>
+              <label class="cupom-toggle">
+                <input type="checkbox" name="tem_desconto" id="hp-tem-desconto" />
+                Quero oferecer desconto para quem vier do Climbeiros
+              </label>
+              <div class="cupom-campos" id="hp-desconto-campos" hidden>
+                <label>
+                  Código do desconto
+                  <input type="text" name="desconto_codigo" placeholder="Ex.: CLIMBEIROS10" />
+                </label>
+                <label>
+                  Como funciona o desconto?
+                  <textarea name="desconto_desc" rows="2" placeholder="Ex.: 10% na diária pra quem mencionar o Climbeiros"></textarea>
+                </label>
+              </div>
+              <label>
+                Mensagem (opcional)
+                <textarea name="mensagem" rows="3"></textarea>
+              </label>
+              <input type="text" name="site" class="campo-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+              <button type="submit" class="botao botao--pequeno">Enviar cadastro</button>
+              <p class="form-status" role="status"></p>
+              <p class="form-aviso">Seu cadastro passa por uma checagem da equipe do Climbeiros antes de aparecer aqui.</p>
+            </form>
+          </details>
+        </div>
+
+        <div class="bloco">
+          <h2>Guias que atuam aqui</h2>
+          {guiasDoSetor.length > 0 ? (
+            <ul class="guias-lista">
+              {guiasDoSetor.map((g) => (
+                <li class="guia-item">
+                  <strong>{g.nome}</strong>
+                  {g.especialidades && g.especialidades.length > 0 && (
+                    <span class="guia-item__espec"> · {g.especialidades.join(', ')}</span>
+                  )}
+                  <div class="guia-item__contato">
+                    {g.whatsapp && <a href={`https://wa.me/${g.whatsapp}`} target="_blank" rel="noopener">WhatsApp</a>}
+                    {g.instagram && <a href={`https://instagram.com/${g.instagram}`} target="_blank" rel="noopener">Instagram</a>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="vazio">Ainda não temos guias indicados para este setor.</p>
+          )}
+          <p class="cta-guia">
+            Você é guia e atua aqui? <a href="/cursos#seja-guia">Cadastre-se na nossa rede de guias →</a>
+          </p>
+        </div>
+
+        <div class="bloco">
+          <h2>Avaliações da comunidade</h2>
+          {resumoAvaliacoes ? (
+            <p class="avaliacao-resumo">
+              <span class="avaliacao-resumo__estrelas" aria-hidden="true">★</span>
+              <strong>{resumoAvaliacoes.media}</strong> · {resumoAvaliacoes.total} avaliaç{resumoAvaliacoes.total === 1 ? 'ão' : 'ões'}
+            </p>
+          ) : (
+            <p class="avaliacao-resumo avaliacao-resumo--vazia">Ainda sem avaliações</p>
+          )}
+
+          {avaliacoes && avaliacoes.length > 0 && (
+            <ul class="avaliacao-lista">
+              {avaliacoes.map((a) => (
+                <li class="avaliacao-item">
+                  <div class="avaliacao-item__topo">
+                    <span class="avaliacao-item__estrelas" aria-hidden="true">{'★'.repeat(a.nota)}{'☆'.repeat(5 - a.nota)}</span>
+                    <strong>{a.nome}</strong>
+                  </div>
+                  {a.comentario && <p class="avaliacao-item__comentario">{a.comentario}</p>}
+                  {a.link_video && (
+                    <p class="avaliacao-item__video">
+                      <a href={a.link_video} target="_blank" rel="noopener">Ver vídeo →</a>
+                    </p>
+                  )}
+                  {fotosDaAvaliacao(a.id).length > 0 && (
+                    <div class="avaliacao-item__fotos">
+                      {fotosDaAvaliacao(a.id).map((f) => (
+                        <img src={f.imagem_url} alt={`Foto enviada por ${a.nome}`} loading="lazy" />
+                      ))}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <details class="cadastro-detalhes">
+            <summary>Já escalou aqui? Deixe sua avaliação</summary>
+            <form
+              class="form-avaliacao"
+              id="form-avaliacao-setor"
+              data-setor-id={setor.id}
+            >
+              <fieldset class="estrelas-input">
+                <legend>Sua nota</legend>
+                {[5, 4, 3, 2, 1].map((n) => (
+                  <>
+                    <input type="radio" name="nota" id={`av-nota-${n}`} value={n} required />
+                    <label for={`av-nota-${n}`} title={`${n} estrela${n > 1 ? 's' : ''}`}>★</label>
+                  </>
+                ))}
+              </fieldset>
+              <label>
+                Comentário (opcional)
+                <textarea name="comentario" rows="3" placeholder="Dicas pra quem for escalar aqui: acesso, condição das vias, etc."></textarea>
+              </label>
+              <label>
+                Link de vídeo (opcional)
+                <input type="url" name="link_video" placeholder="Link do YouTube, Instagram ou TikTok" />
+              </label>
+              <label>
+                Fotos (opcional, até 5 MB cada)
+                <input type="file" name="fotos" accept="image/png, image/jpeg, image/webp" multiple />
+              </label>
+              <label>
+                Seu nome
+                <input type="text" name="nome" required />
+              </label>
+              <label>
+                Seu e-mail
+                <input type="email" name="email" required />
+                <small>Não é exibido publicamente, usamos só pra contato, se precisar.</small>
+              </label>
+              <input type="text" name="site" class="campo-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+              <button type="submit" class="botao botao--pequeno">Enviar avaliação</button>
+              <p class="form-status" role="status"></p>
+              <p class="form-aviso">Sua avaliação (e fotos) passam por uma checagem da equipe do Climbeiros antes de aparecer aqui.</p>
+            </form>
+          </details>
+        </div>
+      </div>
+    </section>
+  ) : (
+    <div class="container secao">
+      <h1>Setor não encontrado</h1>
+      <a href="/rotas">Voltar para Rotas & Setores</a>
+    </div>
+  )}
+</Layout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  // ---- Formulário de cadastro de hospedagem ----
+  const formHosp = document.getElementById('form-hospedagem') as HTMLFormElement | null;
+  const statusHosp = formHosp?.querySelector('.form-status') as HTMLElement | null;
+  const toggleDesconto = document.getElementById('hp-tem-desconto') as HTMLInputElement | null;
+  const camposDesconto = document.getElementById('hp-desconto-campos');
+
+  toggleDesconto?.addEventListener('change', () => {
+    if (camposDesconto) camposDesconto.hidden = !toggleDesconto.checked;
+  });
+
+  formHosp?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!statusHosp) return;
+    const dados = new FormData(formHosp);
+
+    if (dados.get('site')) {
+      statusHosp.textContent = 'Cadastro enviado!';
+      formHosp.reset();
+      return;
+    }
+
+    const botao = formHosp.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+    botao?.setAttribute('disabled', '');
+    statusHosp.textContent = 'Enviando...';
+
+    const temDesconto = (dados.get('tem_desconto') as string) === 'on';
+
+    const { error } = await supabase.from('inscricoes_hospedagens').insert([{
+      nome: dados.get('nome'),
+      contato_reserva: dados.get('contato_reserva'),
+      link_reserva: dados.get('link_reserva') || null,
+      distancia: dados.get('distancia') || null,
+      setores_interesse: dados.get('setores_interesse') || null,
+      tem_desconto: temDesconto ? 'Sim' : 'Não',
+      desconto_codigo: temDesconto ? (dados.get('desconto_codigo') || null) : null,
+      desconto_desc: temDesconto ? (dados.get('desconto_desc') || null) : null,
+      mensagem: dados.get('mensagem') || null,
+    }]);
+
+    if (error) {
+      statusHosp.textContent = 'Ops, algo deu errado: ' + error.message;
+    } else {
+      statusHosp.textContent = 'Recebemos seu cadastro! Ele passa por uma checagem antes de aparecer no site.';
+      formHosp.reset();
+    }
+    botao?.removeAttribute('disabled');
+  });
+
+  // ---- Formulário de avaliação (nota + comentário + fotos + vídeo) ----
+  const formAv = document.getElementById('form-avaliacao-setor') as HTMLFormElement | null;
+  const statusAv = formAv?.querySelector('.form-status') as HTMLElement | null;
+
+  formAv?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!statusAv || !formAv) return;
+    const dados = new FormData(formAv);
+
+    if (dados.get('site')) {
+      statusAv.textContent = 'Avaliação enviada!';
+      formAv.reset();
+      return;
+    }
+
+    const nota = dados.get('nota');
+    if (!nota) {
+      statusAv.textContent = 'Escolha uma nota de 1 a 5 estrelas.';
+      return;
+    }
+
+    const botao = formAv.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+    botao?.setAttribute('disabled', '');
+    statusAv.textContent = 'Enviando...';
+
+    try {
+      const { data: avaliacaoInserida, error: erroAvaliacao } = await supabase
+        .from('avaliacoes_setores')
+        .insert({
+          setor_id: formAv.dataset.setorId,
+          nome: dados.get('nome'),
+          email: dados.get('email'),
+          nota: Number(nota),
+          comentario: dados.get('comentario') || null,
+          link_video: dados.get('link_video') || null,
+        })
+        .select('id')
+        .single();
+
+      if (erroAvaliacao || !avaliacaoInserida) {
+        statusAv.textContent = 'Erro ao enviar: ' + (erroAvaliacao?.message ?? 'tente novamente.');
+        botao?.removeAttribute('disabled');
+        return;
+      }
+
+      const arquivos = (formAv.querySelector('input[name="fotos"]') as HTMLInputElement | null)?.files;
+      if (arquivos && arquivos.length > 0) {
+        for (const arquivo of Array.from(arquivos)) {
+          if (arquivo.size > 5 * 1024 * 1024) continue; // pula fotos maiores que 5 MB
+          const extensao = arquivo.name.split('.').pop();
+          const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extensao}`;
+
+          const { error: erroUpload } = await supabase.storage
+            .from('fotos-avaliacoes-setores')
+            .upload(nomeArquivo, arquivo);
+          if (erroUpload) continue;
+
+          const { data: urlPublica } = supabase.storage
+            .from('fotos-avaliacoes-setores')
+            .getPublicUrl(nomeArquivo);
+
+          await supabase.from('avaliacoes_setores_fotos').insert({
+            avaliacao_id: avaliacaoInserida.id,
+            imagem_url: urlPublica.publicUrl,
+          });
+        }
+      }
+
+      statusAv.textContent = 'Obrigado! Sua avaliação passa por uma checagem antes de aparecer no site.';
+      formAv.reset();
+    } catch (err) {
+      statusAv.textContent = 'Erro inesperado: ' + (err instanceof Error ? err.message : String(err));
+    }
+
+    botao?.removeAttribute('disabled');
+  });
+</script>
+
+<style>
+  .voltar { display: inline-block; margin-bottom: 20px; font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.85rem; }
+  .setor-detalhe { max-width: 760px; }
+  .setor-detalhe__local { opacity: 0.7; font-size: 0.95rem; margin-top: -8px; }
+  .setor-detalhe__descricao { margin-top: 12px; }
+
+  .bloco { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(42, 31, 22, 0.12); }
+  .bloco h2 { font-family: var(--fonte-display); text-transform: uppercase; font-size: 1.2rem; color: var(--verde-escuro); margin-bottom: 10px; }
+
+  .setor-detalhe__croquis { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .vazio { opacity: 0.65; font-style: italic; }
+
+  .hospedagens-lista, .guias-lista, .avaliacao-lista { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .hospedagem-item, .guia-item { background: var(--creme-claro); border-radius: 8px; padding: 10px 12px; font-size: 0.92rem; }
+  .hospedagem-item__distancia, .guia-item__espec { opacity: 0.75; }
+  .hospedagem-item__desconto { display: block; margin-top: 4px; color: var(--laranja); font-weight: 600; font-size: 0.85rem; }
+  .hospedagem-item__contato, .guia-item__contato { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; font-size: 0.85rem; }
+
+  .cta-guia { font-size: 0.9rem; margin-top: 10px; }
+
+  .avaliacao-resumo { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; font-size: 0.95rem; }
+  .avaliacao-resumo__estrelas { color: var(--amarelo); }
+  .avaliacao-resumo--vazia { opacity: 0.6; font-style: italic; }
+  .avaliacao-item__topo { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+  .avaliacao-item__estrelas { color: var(--amarelo); letter-spacing: 1px; }
+  .avaliacao-item__comentario { margin: 4px 0 0; font-size: 0.9rem; opacity: 0.9; }
+  .avaliacao-item__video { margin: 6px 0 0; font-size: 0.85rem; }
+  .avaliacao-item__fotos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .avaliacao-item__fotos img { width: 84px; height: 84px; object-fit: cover; border-radius: 6px; }
+
+  .cadastro-detalhes summary {
+    cursor: pointer;
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    color: var(--laranja);
+    margin-top: 10px;
+  }
+  .cadastro-detalhes[open] summary { margin-bottom: 12px; }
+
+  .form-hospedagem, .form-avaliacao {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--branco);
+    border: 1px solid rgba(42, 31, 22, 0.15);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .form-hospedagem .linha, .form-avaliacao .linha { display: flex; gap: 12px; flex-wrap: wrap; }
+  .form-hospedagem .linha > *, .form-avaliacao .linha > * { flex: 1; min-width: 200px; }
+  .form-hospedagem label, .form-avaliacao label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    color: var(--verde-escuro);
+    letter-spacing: 0.03em;
+  }
+  .form-hospedagem input, .form-hospedagem textarea,
+  .form-avaliacao input, .form-avaliacao textarea {
+    font-family: var(--fonte-corpo);
+    font-size: 0.9rem;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(42, 31, 22, 0.2);
+    color: var(--marrom);
+    resize: vertical;
+  }
+  .form-hospedagem small, .form-avaliacao small { text-transform: none; letter-spacing: normal; opacity: 0.65; font-size: 0.72rem; }
+  .cupom-toggle { flex-direction: row !important; align-items: center; gap: 8px !important; text-transform: none !important; font-size: 0.88rem !important; color: var(--marrom) !important; }
+  .cupom-campos { display: flex; flex-direction: column; gap: 10px; }
+  .botao--pequeno { align-self: flex-start; padding: 8px 16px; font-size: 0.85rem; }
+  .form-aviso { font-size: 0.72rem; opacity: 0.65; margin: 0; }
+
+  .campo-honeypot {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .estrelas-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 2px;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+  .estrelas-input legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  .estrelas-input input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .estrelas-input label { cursor: pointer; font-size: 1.6rem; line-height: 1; color: rgba(42, 31, 22, 0.25); padding: 2px; }
+  .estrelas-input input:checked ~ label,
+  .estrelas-input label:hover,
+  .estrelas-input label:hover ~ label { color: var(--amarelo); }
+</style>

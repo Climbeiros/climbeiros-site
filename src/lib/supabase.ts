@@ -38,12 +38,14 @@ export type Curso = {
 export type Setor = {
   id: string;
   nome: string;
+  slug: string | null;
   regiao: string | null;
   cidade: string | null;
   estado: string | null;
   latitude: number | null;
   longitude: number | null;
   descricao: string | null;
+  como_chegar: string | null;
   croqui_tipo: 'link' | 'pdf' | 'foto' | 'referencia' | null;
   croqui_url: string | null;
   croqui_texto: string | null;
@@ -102,6 +104,55 @@ export type AvaliacaoPublica = {
   nome: string;
   nota: number;
   comentario: string | null;
+  enviado_em: string;
+};
+
+export type Guia = {
+  id: number;
+  nome: string;
+  slug: string | null;
+  cidade: string | null;
+  uf: string | null;
+  especialidades: string[] | null;
+  bio: string | null;
+  foto_url: string | null;
+  whatsapp: string | null;
+  instagram: string | null;
+  email: string | null;
+  certificacao: string | null;
+  setores_ids: string[] | null;
+  publicado: boolean;
+  ordem: number;
+};
+
+export type Hospedagem = {
+  id: string;
+  nome: string;
+  contato_reserva: string | null;
+  link_reserva: string | null;
+  distancia: string | null;
+  tem_desconto: boolean;
+  desconto_codigo: string | null;
+  desconto_desc: string | null;
+  setores_ids: string[] | null;
+  publicado: boolean;
+  ordem: number;
+};
+
+export type AvaliacaoSetorPublica = {
+  id: string;
+  setor_id: string;
+  nome: string;
+  nota: number;
+  comentario: string | null;
+  link_video: string | null;
+  enviado_em: string;
+};
+
+export type FotoAvaliacaoSetorPublica = {
+  id: string;
+  avaliacao_id: string;
+  imagem_url: string;
   enviado_em: string;
 };
 
