@@ -1,0 +1,278 @@
+---
+// src/components/BotaoFeedback.astro
+//
+// Botão flutuante de feedback (typo, informação errada, sugestão) que qualquer
+// visitante pode usar em qualquer página. Ao enviar, insere uma linha na tabela
+// `feedback_paginas` do Supabase (inserção pública, sem leitura pública — mesmo
+// espírito da tabela `mensagens_contato` já usada no formulário de contato).
+//
+// Uso:
+//   import BotaoFeedback from '../../components/BotaoFeedback.astro';
+//   <BotaoFeedback pagina={`Setor: ${setor.nome}`} />
+//
+// O prop `pagina` é só um rótulo pra facilitar a leitura lá no Supabase — a
+// URL completa da página é capturada automaticamente pelo script no navegador.
+
+interface Props {
+  pagina: string;
+}
+const { pagina } = Astro.props;
+---
+
+<button class="botao-fb" id="fbBotao" type="button" data-pagina={pagina} aria-label="Dar feedback sobre essa página">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+  <span class="texto-botao">Feedback</span>
+</button>
+
+<div class="fb-overlay" id="fbOverlay"></div>
+
+<div class="fb-painel" id="fbPainel">
+  <button class="fb-fechar" id="fbFechar" aria-label="Fechar" type="button">✕</button>
+
+  <div id="fbFormulario">
+    <h3>Achou algo pra ajustar nessa página?</h3>
+    <p class="fb-sub">Conta pra gente — pode ser um erro de digitação, uma informação errada ou uma sugestão.</p>
+
+    <div class="fb-tipos">
+      <label><input type="radio" name="fbTipo" value="typo" checked> Erro de digitação (typo)</label>
+      <label><input type="radio" name="fbTipo" value="erro"> Uma informação está errada</label>
+      <label><input type="radio" name="fbTipo" value="sugestao"> Tenho uma sugestão</label>
+      <label><input type="radio" name="fbTipo" value="outro"> Outro</label>
+    </div>
+
+    <textarea id="fbMensagem" placeholder="Descreve aqui o que você viu..."></textarea>
+
+    <input type="email" id="fbEmail" placeholder="Seu e-mail (opcional, caso a gente precise perguntar algo)">
+    <span class="fb-email-label">Só usamos isso se precisarmos entender melhor o que você mandou.</span>
+
+    <!-- honeypot anti-spam: campo escondido que só um bot preencheria -->
+    <input type="text" id="fbHoneypot" class="fb-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+    <p class="fb-erro" id="fbErro" hidden></p>
+
+    <button class="fb-enviar" id="fbEnviar" type="button">Enviar feedback</button>
+  </div>
+
+  <div id="fbSucesso" class="fb-sucesso" hidden>
+    <div class="check">✓</div>
+    <p>Valeu! Sua mensagem foi enviada.<br>A gente vai dar uma olhada. 🧗</p>
+  </div>
+</div>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  const botao = document.getElementById('fbBotao') as HTMLButtonElement | null;
+  const painel = document.getElementById('fbPainel');
+  const overlay = document.getElementById('fbOverlay');
+  const fechar = document.getElementById('fbFechar');
+  const enviar = document.getElementById('fbEnviar') as HTMLButtonElement | null;
+  const formulario = document.getElementById('fbFormulario');
+  const sucesso = document.getElementById('fbSucesso');
+  const erro = document.getElementById('fbErro');
+  const mensagemInput = document.getElementById('fbMensagem') as HTMLTextAreaElement | null;
+  const emailInput = document.getElementById('fbEmail') as HTMLInputElement | null;
+  const honeypot = document.getElementById('fbHoneypot') as HTMLInputElement | null;
+
+  function abrir() {
+    painel?.classList.add('aberto');
+    overlay?.classList.add('aberto');
+  }
+  function fecharPainel() {
+    painel?.classList.remove('aberto');
+    overlay?.classList.remove('aberto');
+    setTimeout(() => {
+      if (formulario) formulario.hidden = false;
+      if (sucesso) sucesso.hidden = true;
+      if (erro) erro.hidden = true;
+    }, 200);
+  }
+
+  botao?.addEventListener('click', abrir);
+  fechar?.addEventListener('click', fecharPainel);
+  overlay?.addEventListener('click', fecharPainel);
+
+  enviar?.addEventListener('click', async () => {
+    if (!erro) return;
+    erro.hidden = true;
+
+    // honeypot: se veio preenchido, é bot — finge sucesso e não grava nada
+    if (honeypot?.value) {
+      if (formulario) formulario.hidden = true;
+      if (sucesso) sucesso.hidden = false;
+      setTimeout(fecharPainel, 2200);
+      return;
+    }
+
+    const mensagem = mensagemInput?.value.trim() || '';
+    if (!mensagem) {
+      erro.textContent = 'Escreve uma mensagem antes de enviar.';
+      erro.hidden = false;
+      return;
+    }
+
+    const tipo = (document.querySelector('input[name="fbTipo"]:checked') as HTMLInputElement | null)?.value || 'outro';
+    const email = emailInput?.value.trim() || null;
+    const pagina = botao?.dataset.pagina || document.title;
+
+    enviar.disabled = true;
+    enviar.textContent = 'Enviando...';
+
+    const { error } = await supabase.from('feedback_paginas').insert({
+      pagina,
+      pagina_url: window.location.href,
+      tipo,
+      mensagem,
+      email,
+    });
+
+    enviar.disabled = false;
+    enviar.textContent = 'Enviar feedback';
+
+    if (error) {
+      erro.textContent = 'Ops, algo deu errado: ' + error.message;
+      erro.hidden = false;
+      return;
+    }
+
+    if (formulario) formulario.hidden = true;
+    if (sucesso) sucesso.hidden = false;
+    if (mensagemInput) mensagemInput.value = '';
+    if (emailInput) emailInput.value = '';
+    setTimeout(fecharPainel, 2200);
+  });
+</script>
+
+<style>
+  .botao-fb {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 1000;
+    background: var(--laranja);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 14px 20px 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(42, 31, 22, 0.28);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .botao-fb:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(42, 31, 22, 0.34); }
+  .botao-fb svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  @media (max-width: 520px) {
+    .botao-fb span.texto-botao { display: none; }
+    .botao-fb { padding: 14px; border-radius: 50%; }
+  }
+
+  .fb-overlay {
+    position: fixed; inset: 0;
+    background: rgba(42, 31, 22, 0.35);
+    z-index: 1001;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .fb-overlay.aberto { opacity: 1; pointer-events: auto; }
+
+  .fb-painel {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 1002;
+    width: 340px;
+    max-width: calc(100vw - 32px);
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(42, 31, 22, 0.35);
+    padding: 22px;
+    transform: translateY(16px) scale(0.97);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.18s ease, opacity 0.18s ease;
+  }
+  .fb-painel.aberto { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+  .fb-painel h3 {
+    font-family: var(--fonte-display);
+    color: var(--verde-escuro);
+    font-size: 1.05rem;
+    margin: 0 0 4px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .fb-painel .fb-sub { font-size: 0.8rem; color: #6b5d4f; margin: 0 0 16px; }
+  .fb-fechar {
+    position: absolute; top: 14px; right: 14px;
+    background: none; border: none;
+    font-size: 1.1rem; color: #8a7a68; cursor: pointer; line-height: 1;
+  }
+  .fb-tipos { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .fb-tipos label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.88rem;
+    background: var(--creme-claro);
+    border-radius: 8px; padding: 9px 10px; cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.15s ease;
+  }
+  .fb-tipos input { accent-color: var(--laranja); }
+  .fb-tipos label:has(input:checked) { border-color: var(--laranja); background: #fbe9d8; }
+  .fb-painel textarea {
+    width: 100%; border: 1px solid #d8cdbd; border-radius: 8px; padding: 10px;
+    font-family: var(--fonte-corpo); font-size: 0.9rem; resize: vertical;
+    min-height: 70px; margin-bottom: 10px;
+  }
+  .fb-painel input[type="email"] {
+    width: 100%; border: 1px solid #d8cdbd; border-radius: 8px; padding: 9px 10px;
+    font-family: var(--fonte-corpo); font-size: 0.85rem; margin-bottom: 6px;
+  }
+  .fb-email-label { font-size: 0.72rem; color: #8a7a68; display: block; margin-bottom: 12px; }
+  .fb-honeypot {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .fb-erro { font-size: 0.8rem; color: #b3261e; margin: -2px 0 10px; }
+  .fb-enviar {
+    width: 100%;
+    background: var(--laranja);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px;
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .fb-enviar:hover { background: var(--amarelo); }
+  .fb-enviar:disabled { opacity: 0.7; cursor: default; }
+
+  .fb-sucesso { text-align: center; padding: 20px 4px; }
+  .fb-sucesso .check {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--verde);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 1.3rem;
+  }
+  .fb-sucesso p { margin: 0; font-size: 0.92rem; color: var(--verde-escuro); font-weight: 500; }
+</style>
