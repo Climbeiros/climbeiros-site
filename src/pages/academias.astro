@@ -57,8 +57,8 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
             <input
               type="text"
               class="busca-input"
-              placeholder="Buscar por cidade ou CEP..."
-              aria-label="Buscar academias por cidade ou CEP"
+              placeholder="Buscar por nome, cidade ou CEP..."
+              aria-label="Buscar academias por nome, cidade ou CEP"
             />
             <button type="button" class="botao busca-botao">Buscar</button>
             <button type="button" class="botao botao--secundario busca-limpar" hidden>Limpar</button>
@@ -72,7 +72,7 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
           const res = resumo(a.id);
           const comentarios = avaliacoesPorAcademia.get(a.id) ?? [];
           return (
-            <article class="card" data-cidade={(a.cidade || '').toLowerCase()}>
+            <article class="card" data-cidade={(a.cidade || '').toLowerCase()} data-nome={(a.nome || '').toLowerCase()}>
               <div class="card__imagem-wrap">
                 <img class="card__imagem" src={a.imagem_url || '/logo.png'} alt={a.nome} />
                 {a.climbeiros_indica && (
@@ -199,13 +199,14 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
 
     if (!lista || !input) return;
 
-    function filtrar(cidade: string) {
-      const termo = normalizar(cidade);
+    function filtrar(termoBusca: string) {
+      const termo = normalizar(termoBusca);
       let visiveis = 0;
       lista?.querySelectorAll<HTMLElement>('.card').forEach((card) => {
         const cidadeCard = normalizar(card.dataset.cidade || '');
+        const nomeCard = normalizar(card.dataset.nome || '');
         const semCidade = !card.dataset.cidade;
-        const bate = !termo || semCidade || cidadeCard.includes(termo);
+        const bate = !termo || semCidade || cidadeCard.includes(termo) || nomeCard.includes(termo);
         card.hidden = !bate;
         if (bate) visiveis++;
       });
