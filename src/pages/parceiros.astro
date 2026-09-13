@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { Parceiro } from '../lib/supabase';
 const { data: parceiros } = await supabase.from('parceiros').select('*').order('nome_marca') as { data: Parceiro[] | null };
 ---
-<Layout titulo="Parcerias & Cupons" descricao="Marcas parceiras do Climbeiros e cupons de desconto para a comunidade.">
+<Layout titulo="Parcerias & Cupons" descricao="Marcas parceiras dos Climbeiros e cupons de desconto para a comunidade.">
   <section class="secao">
     <div class="container">
       <p class="eyebrow">Marcas que apoiam a comunidade</p>
@@ -157,7 +157,7 @@ const { data: parceiros } = await supabase.from('parceiros').select('*').order('
     }]);
 
     if (error) {
-      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.';
+      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.br';
       btn.removeAttribute('disabled');
       return;
     }
