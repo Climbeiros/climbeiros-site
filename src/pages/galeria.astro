@@ -15,7 +15,8 @@ const listaFotos = fotos ?? [];
 
 // Quantas fotos aparecem de cada vez no mural (o botão "Trocar fotos" sorteia
 // outras dentre todas as aprovadas, quando existem mais do que essa quantidade).
-const QUANTIDADE_MURAL = 8;
+// 14 = 3 fileiras de 4 fotos + 1 fileira de 2 (em telas largas o suficiente).
+const QUANTIDADE_MURAL = 14;
 
 function legendaFoto(foto: { nome: string; instagram?: string | null; local?: string | null }) {
   return [foto.nome, foto.instagram, foto.local].filter(Boolean).join(' · ');
@@ -85,7 +86,9 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
               <button type="button" class="botao-reshuffle" id="btn-reshuffle">🔀 Misturar de novo</button>
             )}
           </div>
-          <div class="mural" id="mural"></div>
+        </div>
+        <div class="mural" id="mural"></div>
+        <div class="container">
           {listaFotos.length > QUANTIDADE_MURAL && (
             <p class="aviso-fotos-restantes">
               Mostrando {QUANTIDADE_MURAL} de {listaFotos.length} fotos aprovadas — clica em "Trocar fotos" pra ver outras.
@@ -269,7 +272,7 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
   const todasAsFotos: Foto[] = dadosFotosEl ? JSON.parse(dadosFotosEl.textContent || '[]') : [];
   const mural = document.getElementById('mural');
   const botaoReshuffle = document.getElementById('btn-reshuffle');
-  const QUANTIDADE_MURAL = 8;
+  const QUANTIDADE_MURAL = 14;
 
   function escapeHtml(texto: string) {
     return texto.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
@@ -428,8 +431,10 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 56px 44px;
-    padding: 30px 10px 20px;
+    gap: 56px 40px;
+    max-width: 1260px;
+    margin: 0 auto;
+    padding: 30px 24px 20px;
     min-height: 240px;
   }
   .aviso-fotos-restantes {
@@ -541,22 +546,22 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
 -->
 <style is:global>
   .polaroid {
-    width: 330px;
+    width: 260px;
     margin: 0;
     background: var(--branco);
-    padding: 20px 20px 68px;
+    padding: 16px 16px 54px;
     box-shadow: var(--sombra);
-    border-radius: 5px;
+    border-radius: 4px;
     cursor: default;
     position: relative;
     opacity: 0;
     transform: scale(0.6) rotate(0deg);
     transition: transform 0.45s cubic-bezier(.2,.9,.3,1.3), box-shadow 0.3s ease, opacity 0.35s ease;
   }
-  @media (max-width: 640px) {
+  @media (max-width: 480px) {
     .polaroid {
-      width: 260px;
-      padding: 16px 16px 54px;
+      width: 210px;
+      padding: 14px 14px 46px;
     }
   }
   .polaroid.mostrar {
@@ -585,22 +590,22 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
   }
   .polaroid figcaption {
     position: absolute;
-    bottom: 16px;
+    bottom: 14px;
     left: 0;
     right: 0;
     text-align: center;
     font-family: var(--fonte-display);
-    font-size: 1rem;
+    font-size: 0.88rem;
     color: var(--marrom);
     opacity: 0.75;
   }
   .polaroid .fita {
     position: absolute;
-    top: -22px;
+    top: -18px;
     left: 50%;
     transform: translateX(-50%) rotate(-3deg);
-    width: 100px;
-    height: 38px;
+    width: 78px;
+    height: 30px;
     background: rgba(224, 147, 28, 0.55);
     border: 1px solid rgba(224, 147, 28, 0.7);
   }
