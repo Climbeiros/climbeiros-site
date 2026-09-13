@@ -56,7 +56,6 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
   {listaFotos.length > 0 && (
     <>
       <section class="secao-esteira">
-        <p class="esteira-titulo">Fotos da comunidade</p>
         <div class="esteira-viewport">
           <div class="esteira-trilho" id="esteira-trilho" data-gira={esteiraGira ? 'true' : 'false'}>
             {listaFotos.map((foto) => (
@@ -341,16 +340,6 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
     background: var(--verde-escuro);
     padding: 34px 0;
   }
-  .esteira-titulo {
-    text-align: center;
-    font-family: var(--fonte-display);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 0.8rem;
-    color: var(--creme-claro);
-    opacity: 0.8;
-    margin: 0 0 16px;
-  }
   .esteira-viewport {
     overflow: hidden;
     -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 90px, #000 calc(100% - 90px), transparent 100%);
@@ -439,7 +428,7 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 40px 30px;
+    gap: 56px 44px;
     padding: 30px 10px 20px;
     min-height: 240px;
   }
@@ -552,17 +541,23 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
 -->
 <style is:global>
   .polaroid {
-    width: 165px;
+    width: 330px;
     margin: 0;
     background: var(--branco);
-    padding: 10px 10px 34px;
+    padding: 20px 20px 68px;
     box-shadow: var(--sombra);
-    border-radius: 3px;
+    border-radius: 5px;
     cursor: default;
     position: relative;
     opacity: 0;
     transform: scale(0.6) rotate(0deg);
     transition: transform 0.45s cubic-bezier(.2,.9,.3,1.3), box-shadow 0.3s ease, opacity 0.35s ease;
+  }
+  @media (max-width: 640px) {
+    .polaroid {
+      width: 260px;
+      padding: 16px 16px 54px;
+    }
   }
   .polaroid.mostrar {
     opacity: 1;
@@ -590,22 +585,22 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
   }
   .polaroid figcaption {
     position: absolute;
-    bottom: 8px;
+    bottom: 16px;
     left: 0;
     right: 0;
     text-align: center;
     font-family: var(--fonte-display);
-    font-size: 0.76rem;
+    font-size: 1rem;
     color: var(--marrom);
     opacity: 0.75;
   }
   .polaroid .fita {
     position: absolute;
-    top: -12px;
+    top: -22px;
     left: 50%;
     transform: translateX(-50%) rotate(-3deg);
-    width: 52px;
-    height: 20px;
+    width: 100px;
+    height: 38px;
     background: rgba(224, 147, 28, 0.55);
     border: 1px solid rgba(224, 147, 28, 0.7);
   }
