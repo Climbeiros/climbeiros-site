@@ -5,6 +5,7 @@
 // fotos + link de vídeo). Site estático: depois de aprovar hospedagem/guia/avaliação
 // no Supabase, é preciso rodar um novo deploy na Vercel pra aparecer aqui.
 import Layout from '../../layouts/Layout.astro';
+import BotaoFeedback from '../../components/BotaoFeedback.astro';
 import { supabase } from '../../lib/supabase';
 import type {
   Setor,
@@ -304,6 +305,8 @@ const rotuloCroqui: Record<string, string> = {
       <a href="/rotas">Voltar para Rotas & Setores</a>
     </div>
   )}
+
+  <BotaoFeedback pagina={setor ? `Setor: ${setor.nome}` : 'Setor não encontrado'} />
 </Layout>
 
 <script>
