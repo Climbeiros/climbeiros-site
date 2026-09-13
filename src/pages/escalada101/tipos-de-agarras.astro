@@ -1,4 +1,3 @@
----
 // src/pages/escalada101/tipos-de-agarras.astro
 //
 // Página interativa com os tipos de agarra e os tipos de inclinação de
@@ -11,10 +10,8 @@
 // Fotos e vídeos ficam em:
 //   public/images/agarras/   (fotos)
 //   public/videos/agarras/   (vídeos)
-
 import Layout from '../../layouts/Layout.astro';
 ---
-
 <Layout title="Tipos de Agarras | Climbeiros">
 <section class="pagina-hero">
   <div class="pagina-hero__contorno" aria-hidden="true"></div>
@@ -28,10 +25,8 @@ import Layout from '../../layouts/Layout.astro';
     </p>
   </div>
 </section>
-
 <div class="container">
   <h2 class="titulo-secao">A parede</h2>
-
   <div class="parede-layout">
     <div>
       <div class="parede" id="parede"></div>
@@ -45,12 +40,10 @@ import Layout from '../../layouts/Layout.astro';
     </div>
     <div class="legenda" id="legenda"></div>
   </div>
-
   <h2 class="titulo-secao" style="margin-top:3rem;">Tipos de inclinação da parede</h2>
   <div class="parede-tipos-grade" id="parede-tipos"></div>
 </div>
 </Layout>
-
 <div class="modal-overlay" id="modal-overlay" hidden>
   <div class="modal-caixa" role="dialog" aria-modal="true">
     <button class="modal-fechar" id="modal-fechar" aria-label="Fechar">✕</button>
@@ -61,18 +54,15 @@ import Layout from '../../layouts/Layout.astro';
     <div id="modal-foto-area"></div>
   </div>
 </div>
-
 <svg width="0" height="0" style="position:absolute">
   <defs>
     <symbol id="f-barra-fina" viewBox="0 0 100 100">
       <rect x="8" y="40" width="84" height="20" rx="8" fill="currentColor" />
     </symbol>
-
     <symbol id="f-bola" viewBox="0 0 100 100">
       <ellipse cx="50" cy="55" rx="40" ry="32" fill="currentColor" />
       <ellipse cx="36" cy="42" rx="14" ry="8" fill="rgba(255,255,255,0.3)" />
     </symbol>
-
     <mask id="m-concha">
       <rect width="100" height="100" fill="white" />
       <circle cx="66" cy="38" r="30" fill="black" />
@@ -80,41 +70,33 @@ import Layout from '../../layouts/Layout.astro';
     <symbol id="f-concha" viewBox="0 0 100 100">
       <circle cx="48" cy="55" r="36" fill="currentColor" mask="url(#m-concha)" />
     </symbol>
-
     <symbol id="f-invertida" viewBox="0 0 100 100">
       <g transform="translate(0,100) scale(1,-1)">
         <circle cx="48" cy="55" r="36" fill="currentColor" mask="url(#m-concha)" />
       </g>
     </symbol>
-
     <symbol id="f-pinca" viewBox="0 0 100 100">
       <rect x="34" y="8" width="32" height="84" rx="15" fill="currentColor" />
     </symbol>
-
     <symbol id="f-furo" viewBox="0 0 100 100">
       <circle cx="50" cy="50" r="28" fill="currentColor" />
       <circle cx="50" cy="50" r="15" fill="rgba(0,0,0,0.4)" />
     </symbol>
-
     <symbol id="f-lateral" viewBox="0 0 100 100">
       <path d="M18,18 Q16,50 18,82 Q65,68 78,50 Q65,32 18,18 Z" fill="currentColor" />
     </symbol>
-
     <symbol id="f-gaston" viewBox="0 0 100 100">
       <path d="M82,18 Q84,50 82,82 Q35,68 22,50 Q35,32 82,18 Z" fill="currentColor" />
     </symbol>
-
     <symbol id="f-volume" viewBox="0 0 100 100">
       <polygon points="50,6 93,36 79,92 21,92 7,36" fill="currentColor" />
     </symbol>
-
     <symbol id="seta" viewBox="0 0 100 100">
       <line x1="50" y1="15" x2="50" y2="70" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
       <polygon points="50,95 30,60 70,60" fill="currentColor" />
     </symbol>
   </defs>
 </svg>
-
 <style is:global>
   h2.titulo-secao {
     font-family: 'Oswald', sans-serif;
@@ -123,9 +105,7 @@ import Layout from '../../layouts/Layout.astro';
     font-size: 1.4rem;
     margin: 0 0 1.25rem;
   }
-
   /* ---------- Parede interativa ---------- */
-
   .parede-layout {
     display: grid;
     grid-template-columns: minmax(260px, 420px) 1fr;
@@ -133,11 +113,9 @@ import Layout from '../../layouts/Layout.astro';
     align-items: start;
     margin-bottom: 1rem;
   }
-
   @media (max-width: 720px) {
     .parede-layout { grid-template-columns: 1fr; }
   }
-
   .parede {
     position: relative;
     width: 100%;
@@ -150,7 +128,6 @@ import Layout from '../../layouts/Layout.astro';
       linear-gradient(160deg, #cfc3a3, #b9ac86 55%, #a89873);
       box-shadow: inset 0 0 40px rgba(0,0,0,0.25), 0 6px 16px rgba(42,31,22,0.2);
   }
-
   .agarra-btn {
     position: absolute;
     transform: translate(-50%, -50%);
@@ -161,27 +138,22 @@ import Layout from '../../layouts/Layout.astro';
     filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35));
     transition: transform 0.15s ease;
   }
-
   .agarra-btn:hover,
   .agarra-btn:focus-visible {
     transform: translate(-50%, -50%) scale(1.15);
   }
-
   .agarra-btn svg { display: block; width: 100%; height: 100%; }
-
   .parede-nota {
     font-size: 0.85rem;
     opacity: 0.7;
     margin: 0.75rem 0 0;
     line-height: 1.4;
   }
-
   .legenda {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
   }
-
   .legenda-item {
     display: flex;
     align-items: center;
@@ -196,26 +168,20 @@ import Layout from '../../layouts/Layout.astro';
     font-size: 0.95rem;
     color: var(--marrom);
   }
-
   .legenda-item:hover { background: var(--creme); }
-
   .legenda-icone {
     width: 32px;
     height: 32px;
     flex-shrink: 0;
   }
-
   .legenda-nome { font-weight: 600; }
-
   /* ---------- Tipos de parede (inclinação) ---------- */
-
   .parede-tipos-grade {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1.25rem;
     margin: 2.5rem 0 3rem;
   }
-
   .parede-tipo-card {
     background: var(--creme-claro);
     border: none;
@@ -229,22 +195,16 @@ import Layout from '../../layouts/Layout.astro';
     font-family: 'Work Sans', sans-serif;
     color: var(--marrom);
   }
-
   .parede-tipo-card:hover { background: var(--creme); }
-
   .parede-tipo-card svg { width: 100%; height: 90px; }
-
   .parede-tipo-card .nome {
     font-family: 'Oswald', sans-serif;
     text-transform: uppercase;
     color: var(--verde-escuro);
     font-size: 1.1rem;
   }
-
   .parede-tipo-card p { margin: 0; font-size: 0.9rem; opacity: 0.85; line-height: 1.4; }
-
   /* ---------- Modal ---------- */
-
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -255,9 +215,7 @@ import Layout from '../../layouts/Layout.astro';
     padding: 1.5rem;
     z-index: 50;
   }
-
   .modal-overlay[hidden] { display: none; }
-
   .modal-caixa {
     background: white;
     border-radius: 16px;
@@ -269,7 +227,6 @@ import Layout from '../../layouts/Layout.astro';
     position: relative;
     box-shadow: 0 12px 30px rgba(0,0,0,0.3);
   }
-
   .modal-fechar {
     position: absolute;
     top: 0.75rem;
@@ -283,15 +240,12 @@ import Layout from '../../layouts/Layout.astro';
     cursor: pointer;
     color: var(--marrom);
   }
-
   .modal-icone-area {
     display: flex;
     justify-content: center;
     margin-bottom: 1rem;
   }
-
   .modal-icone-area svg { width: 140px; height: 140px; }
-
   .modal-caixa h3 {
     font-family: 'Oswald', sans-serif;
     text-transform: uppercase;
@@ -300,9 +254,7 @@ import Layout from '../../layouts/Layout.astro';
     margin: 0 0 0.75rem;
     text-align: center;
   }
-
   .modal-caixa .descricao { margin: 0 0 1rem; line-height: 1.5; }
-
   .modal-caixa .como-usar {
     background: var(--creme-claro);
     border-radius: 10px;
@@ -310,7 +262,6 @@ import Layout from '../../layouts/Layout.astro';
     margin: 0;
     line-height: 1.5;
   }
-
   .modal-caixa .como-usar strong {
     display: block;
     font-family: 'Oswald', sans-serif;
@@ -320,7 +271,6 @@ import Layout from '../../layouts/Layout.astro';
     margin-bottom: 0.35rem;
     letter-spacing: 0.03em;
   }
-
   .modal-foto-legenda {
     display: block;
     font-family: 'Oswald', sans-serif;
@@ -330,7 +280,6 @@ import Layout from '../../layouts/Layout.astro';
     letter-spacing: 0.03em;
     margin: 1rem 0 0.4rem;
   }
-
   .modal-foto-real {
     width: 100%;
     max-height: 55vh;
@@ -339,7 +288,6 @@ import Layout from '../../layouts/Layout.astro';
     border-radius: 10px;
     display: block;
   }
-
   .modal-video-real {
     width: 100%;
     max-height: 320px;
@@ -348,7 +296,6 @@ import Layout from '../../layouts/Layout.astro';
     background: #000;
   }
 </style>
-
 <script>
   const TIPOS_AGARRA = [
     {
@@ -405,13 +352,12 @@ import Layout from '../../layouts/Layout.astro';
       comoUsar: 'Cotovelo pra fora, tipo abrindo uma porta pesada. É um dos movimentos mais cansativos de segurar por muito tempo.',
     },
     {
-      id: 'volume', nome: 'Volume', formato: 'volume', forca: 'baixo', cor: '#a9855a',
+      id: 'volume', nome: 'Módulo (Volume)', formato: 'volume', forca: 'baixo', cor: '#a9855a',
       foto: '/images/agarras/volume.jpg', tamanho: 74,
       descricao: 'Uma peça grande, geralmente lisa e sem pontos definidos — às vezes tem outras agarras menores parafusadas em cima dela.',
       comoUsar: 'Usa-se mais com o corpo inteiro do que com força de mão: apoie a palma ou o pé na superfície larga e jogue o peso a favor, em vez de tentar "agarrar" ela.',
     },
   ];
-
   const TIPOS_PAREDE = [
     { id: 'slab', nome: 'Slab', angulo: -18,
       foto: '/images/agarras/parede-slab.jpg',
@@ -426,7 +372,6 @@ import Layout from '../../layouts/Layout.astro';
       descricao: 'A parede se inclina na sua direção, deixando você praticamente pendurado em alguns trechos.',
       comoUsar: 'Aqui é força de braço e core (abdômen) que seguram o corpo — os pés servem mais pra empurrar do que pra apoiar peso.' },
   ];
-
   // posições em % (x,y) pra espalhar as agarras pela parede
   const POSICOES = [
     [12,10],[34,6],[58,12],[80,8],[22,24],[46,26],[68,22],[88,28],
@@ -434,9 +379,7 @@ import Layout from '../../layouts/Layout.astro';
     [82,62],[24,74],[46,76],[68,74],[86,80],[14,88],[36,90],[58,88],
     [78,90],[50,52],[62,32],
   ];
-
   const CORES_PAREDE = ['#da7326', '#e0931c', '#668062', '#c9a24a', '#b5476b', '#3b6e8f', '#6b4a8a', '#a9855a', '#5b4632'];
-
   function anguloForca(forca) {
     switch (forca) {
       case 'cima': return 0;
@@ -446,7 +389,6 @@ import Layout from '../../layouts/Layout.astro';
       default: return 180;
     }
   }
-
   function montarParede() {
     const parede = document.getElementById('parede');
     POSICOES.forEach(([x, y], i) => {
@@ -465,7 +407,6 @@ import Layout from '../../layouts/Layout.astro';
       parede.appendChild(btn);
     });
   }
-
   function montarLegenda() {
     const legenda = document.getElementById('legenda');
     const emOrdem = [...TIPOS_AGARRA].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
@@ -482,7 +423,6 @@ import Layout from '../../layouts/Layout.astro';
       legenda.appendChild(item);
     });
   }
-
   function montarTiposParede() {
     const wrap = document.getElementById('parede-tipos');
     TIPOS_PAREDE.forEach((tipo) => {
@@ -503,7 +443,6 @@ import Layout from '../../layouts/Layout.astro';
       wrap.appendChild(card);
     });
   }
-
   function iconeComForca(tipo) {
     if (tipo.forca === 'squeeze') {
       return `
@@ -522,13 +461,11 @@ import Layout from '../../layouts/Layout.astro';
         <g transform="rotate(${rot},50,50)"><use href="#seta" width="34" height="34" x="33" y="33" style="color:#3d543999"></use></g>
       </svg>`;
   }
-
   function abrirModalAgarra(tipo) {
     document.getElementById('modal-icone').innerHTML = `<div style="position:relative;width:140px;height:140px;">${iconeComForca(tipo)}</div>`;
     document.getElementById('modal-titulo').textContent = tipo.nome;
     document.getElementById('modal-descricao').textContent = tipo.descricao;
     document.getElementById('modal-como-usar').textContent = tipo.comoUsar;
-
     const fotoArea = document.getElementById('modal-foto-area');
     if (tipo.video) {
       fotoArea.innerHTML = `
@@ -543,10 +480,8 @@ import Layout from '../../layouts/Layout.astro';
     } else {
       fotoArea.innerHTML = `<span class="modal-foto-legenda">Ainda sem foto real desse tipo — manda uma que eu adiciono</span>`;
     }
-
     document.getElementById('modal-overlay').hidden = false;
   }
-
   function abrirModalParede(tipo) {
     document.getElementById('modal-icone').innerHTML = `
       <svg viewBox="0 0 100 60" style="width:180px;height:110px;">
@@ -559,7 +494,6 @@ import Layout from '../../layouts/Layout.astro';
     document.getElementById('modal-titulo').textContent = tipo.nome;
     document.getElementById('modal-descricao').textContent = tipo.descricao;
     document.getElementById('modal-como-usar').textContent = tipo.comoUsar;
-
     const fotoArea = document.getElementById('modal-foto-area');
     if (tipo.video) {
       fotoArea.innerHTML = `
@@ -574,10 +508,8 @@ import Layout from '../../layouts/Layout.astro';
     } else {
       fotoArea.innerHTML = `<span class="modal-foto-legenda">Ainda sem foto ou vídeo real desse tipo — manda um que eu adiciono</span>`;
     }
-
     document.getElementById('modal-overlay').hidden = false;
   }
-
   document.getElementById('modal-fechar').addEventListener('click', () => {
     document.getElementById('modal-overlay').hidden = true;
   });
@@ -587,7 +519,6 @@ import Layout from '../../layouts/Layout.astro';
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') document.getElementById('modal-overlay').hidden = true;
   });
-
   montarParede();
   montarLegenda();
   montarTiposParede();
