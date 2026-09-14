@@ -35,8 +35,23 @@ export type Curso = {
   imagem_url: string | null;
 };
 
+export type Local = {
+  id: string;
+  nome: string;
+  slug: string | null;
+  regiao: string | null;
+  cidade: string | null;
+  estado: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  descricao: string | null;
+  como_chegar: string | null;
+};
+
 export type Setor = {
   id: string;
+  local_id: string | null;
+  lado: string | null;
   nome: string;
   slug: string | null;
   regiao: string | null;

@@ -1,44 +1,56 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
-import type { Setor, Croqui } from '../lib/supabase';
+import type { Local, Setor } from '../lib/supabase';
+
+const { data: locais } = await supabase
+  .from('locais')
+  .select('*')
+  .order('estado')
+  .order('cidade')
+  .order('nome') as { data: Local[] | null };
 
 const { data: setores } = await supabase
   .from('setores')
   .select('*')
-  .order('estado')
-  .order('cidade')
-  .order('nome') as { data: Setor[] | null };
+  .not('local_id', 'is', null) as { data: Setor[] | null };
 
-const { data: croquis } = await supabase.from('croquis').select('*') as { data: Croqui[] | null };
+const locaisComCoordenadas = (locais ?? []).filter((l) => l.latitude && l.longitude);
 
-const setoresComCoordenadas = (setores ?? []).filter((s) => s.latitude && s.longitude);
-
-function croquisDoSetor(setorId: string) {
-  return (croquis ?? []).filter((c) => c.setor_id === setorId);
+function setoresDoLocal(localId: string) {
+  return (setores ?? []).filter((s) => s.local_id === localId);
 }
 
-const rotuloCroqui: Record<string, string> = {
-  link: 'Ver croqui (site)',
-  pdf: 'Abrir croqui (PDF)',
-  foto: 'Ver croqui (foto)',
-};
+// Agrupa os setores de um local por "lado" (quando houver). Setores sem lado
+// ficam soltos; os com lado ficam agrupados sob o nome do lado.
+function ladosDoLocal(localId: string) {
+  const doLocal = setoresDoLocal(localId);
+  const semLado = doLocal.filter((s) => !s.lado);
+  const nomesLados = [...new Set(doLocal.filter((s) => s.lado).map((s) => s.lado as string))];
+  return {
+    semLado,
+    lados: nomesLados.map((lado) => ({
+      lado,
+      setores: doLocal.filter((s) => s.lado === lado),
+    })),
+  };
+}
 ---
-<Layout titulo="Rotas & Setores" descricao="Setores e vias de escalada catalogados pela comunidade Climbeiros.">
+<Layout titulo="Rotas & Setores" descricao="Locais de escalada catalogados pela comunidade Climbeiros.">
   <section class="secao">
     <div class="container">
       <p class="eyebrow">Onde escalar</p>
       <h1>Rotas & Setores</h1>
-      <p>Explore os locais de escalada catalogados pela comunidade, com a orientação de croqui de cada um. Clique num pin do mapa ou busque por cidade/CEP pra filtrar.</p>
+      <p>Explore os locais de escalada catalogados pela comunidade. Cada local pode ter um ou mais setores, cada um com croqui, dicas de acesso, hospedagens, guias e avaliações. Clique num pin do mapa ou busque por cidade/CEP pra filtrar.</p>
 
-      {setores && setores.length > 0 && (
+      {locais && locais.length > 0 && (
         <>
           <div class="busca-local">
             <input
               type="text"
               id="busca-cidade"
               placeholder="Buscar por cidade ou CEP..."
-              aria-label="Buscar setores por cidade ou CEP"
+              aria-label="Buscar locais por cidade ou CEP"
             />
             <button type="button" id="busca-botao" class="botao">Buscar</button>
             <button type="button" id="busca-limpar" class="botao botao--secundario" hidden>Limpar</button>
@@ -48,67 +60,73 @@ const rotuloCroqui: Record<string, string> = {
       )}
     </div>
 
-    {setoresComCoordenadas.length > 0 && (
+    {locaisComCoordenadas.length > 0 && (
       <div class="container">
         <div id="mapa" class="mapa"></div>
       </div>
     )}
 
     <div class="container">
-      {(!setores || setores.length === 0) && (
-        <p>Ainda estamos catalogando os primeiros setores. Volte em breve!</p>
+      {(!locais || locais.length === 0) && (
+        <p>Ainda estamos catalogando os primeiros locais. Volte em breve!</p>
       )}
 
       <div class="lista-setores" id="lista-setores">
-        {setores?.map((setor) => (
-          <article class="setor-card" id={`setor-${setor.id}`} data-cidade={(setor.cidade || '').toLowerCase()}>
-            <div class="setor-card__cabecalho">
-              <div>
-                <h2>
-                  {setor.slug ? (
-                    <a class="setor-card__link" href={`/rotas/${setor.slug}`}>{setor.nome}</a>
-                  ) : (
-                    setor.nome
+        {locais?.map((local) => {
+          const { semLado, lados } = ladosDoLocal(local.id);
+          const totalSetores = semLado.length + lados.reduce((n, l) => n + l.setores.length, 0);
+          return (
+            <article class="setor-card" id={`local-${local.id}`} data-cidade={(local.cidade || '').toLowerCase()}>
+              <div class="setor-card__cabecalho">
+                <div>
+                  <h2>
+                    {local.slug ? (
+                      <a class="setor-card__link" href={`/rotas/${local.slug}`}>{local.nome}</a>
+                    ) : (
+                      local.nome
+                    )}
+                  </h2>
+                  <p class="setor-card__local">{[local.regiao, local.cidade, local.estado].filter(Boolean).join(' · ')}</p>
+                </div>
+              </div>
+              {local.descricao && <p>{local.descricao}</p>}
+
+              {totalSetores > 1 && (
+                <div class="setor-card__setores">
+                  {lados.map((l) => (
+                    <p class="setor-card__lado">
+                      <strong>Lado {l.lado}:</strong> {l.setores.map((s) => s.nome).join(', ')}
+                    </p>
+                  ))}
+                  {semLado.length > 0 && lados.length > 0 && (
+                    <p class="setor-card__lado">{semLado.map((s) => s.nome).join(', ')}</p>
                   )}
-                </h2>
-                <p class="setor-card__local">{[setor.regiao, setor.cidade, setor.estado].filter(Boolean).join(' · ')}</p>
-              </div>
-            </div>
-            {setor.descricao && <p>{setor.descricao}</p>}
+                  {lados.length === 0 && (
+                    <p class="setor-card__lado">Setores: {semLado.map((s) => s.nome).join(', ')}</p>
+                  )}
+                </div>
+              )}
 
-            {croquisDoSetor(setor.id).length > 0 && (
-              <div class="setor-card__croquis">
-                {croquisDoSetor(setor.id).map((c) => (
-                  c.tipo === 'referencia' ? (
-                    <p class="setor-card__croqui-ref">📍 Croqui: {c.texto}</p>
-                  ) : (
-                    <a href={c.url ?? '#'} target="_blank" rel="noopener" class="botao botao--secundario setor-card__croqui-link">
-                      {rotuloCroqui[c.tipo] || 'Ver croqui'}
-                    </a>
-                  )
-                ))}
-              </div>
-            )}
-
-            {setor.slug && (
-              <a href={`/rotas/${setor.slug}`} class="botao botao--pequeno setor-card__detalhes">
-                Ver página do setor →
-              </a>
-            )}
-          </article>
-        ))}
+              {local.slug && (
+                <a href={`/rotas/${local.slug}`} class="botao botao--pequeno setor-card__detalhes">
+                  Ver setores e croquis →
+                </a>
+              )}
+            </article>
+          );
+        })}
       </div>
     </div>
   </section>
 </Layout>
 
-<script type="application/json" id="dados-setores" set:html={JSON.stringify(setoresComCoordenadas)}></script>
+<script type="application/json" id="dados-locais" set:html={JSON.stringify(locaisComCoordenadas)}></script>
 
 <script>
-  const setores = JSON.parse(document.getElementById('dados-setores')?.textContent || '[]');
+  const locais = JSON.parse(document.getElementById('dados-locais')?.textContent || '[]');
   let mapa;
   let L;
-  const marcadores = {}; // setor id -> Leaflet marker
+  const marcadores = {}; // local id -> Leaflet marker
 
   function normalizar(texto) {
     return texto
@@ -136,7 +154,7 @@ const rotuloCroqui: Record<string, string> = {
       card.hidden = !bate;
       if (bate) {
         visiveis++;
-        idsVisiveis.add(card.id.replace('setor-', ''));
+        idsVisiveis.add(card.id.replace('local-', ''));
       }
     });
 
@@ -191,8 +209,8 @@ const rotuloCroqui: Record<string, string> = {
 
     const encontrados = filtrar(cidadeParaFiltrar);
     status.textContent = encontrados > 0
-      ? `${encontrados} setor(es) encontrado(s) em ${cidadeParaFiltrar}.`
-      : `Nenhum setor encontrado em ${cidadeParaFiltrar} ainda.`;
+      ? `${encontrados} local(is) encontrado(s) em ${cidadeParaFiltrar}.`
+      : `Nenhum local encontrado em ${cidadeParaFiltrar} ainda.`;
     botaoLimpar?.removeAttribute('hidden');
   }
 
@@ -207,7 +225,7 @@ const rotuloCroqui: Record<string, string> = {
     botaoLimpar?.setAttribute('hidden', '');
   });
 
-  if (setores.length > 0) {
+  if (locais.length > 0) {
     import('leaflet').then((mod) => {
       L = mod;
 
@@ -223,17 +241,17 @@ const rotuloCroqui: Record<string, string> = {
         shadowSize: [41, 41],
       });
 
-      mapa = L.map('mapa').setView([setores[0].latitude, setores[0].longitude], 6);
+      mapa = L.map('mapa').setView([locais[0].latitude, locais[0].longitude], 6);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
       }).addTo(mapa);
 
       const bounds = [];
-      setores.forEach((s) => {
-        const marker = L.marker([s.latitude, s.longitude], { icon: iconePin }).addTo(mapa);
-        marker.bindPopup(`<strong>${s.nome}</strong><br/><a href="#setor-${s.id}">Ver detalhes</a>`);
-        marcadores[s.id] = marker;
-        bounds.push([s.latitude, s.longitude]);
+      locais.forEach((l) => {
+        const marker = L.marker([l.latitude, l.longitude], { icon: iconePin }).addTo(mapa);
+        marker.bindPopup(`<strong>${l.nome}</strong><br/><a href="#local-${l.id}">Ver detalhes</a>`);
+        marcadores[l.id] = marker;
+        bounds.push([l.latitude, l.longitude]);
       });
       if (bounds.length > 1) mapa.fitBounds(bounds, { padding: [30, 30] });
     });
@@ -294,8 +312,7 @@ const rotuloCroqui: Record<string, string> = {
   .setor-card__local { opacity: 0.7; font-size: 0.9rem; margin-top: -8px; }
   .setor-card__link { color: inherit; text-decoration: none; }
   .setor-card__link:hover { text-decoration: underline; }
-  .setor-card__croqui-ref { font-size: 0.9rem; opacity: 0.8; font-style: italic; }
-  .setor-card__croquis { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
-  .setor-card__croqui-link { margin-top: 0; }
+  .setor-card__setores { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .setor-card__lado { font-size: 0.9rem; opacity: 0.85; }
   .setor-card__detalhes { display: inline-block; margin-top: 14px; }
 </style>

@@ -1,0 +1,142 @@
+---
+// src/pages/rotas/[localSlug]/index.astro
+// Página de um Local (ex: "Pedra da Divisa"): como chegar em geral e a lista
+// de setores, agrupados por lado quando o local tiver mais de um (ex: face
+// paulista / face mineira). Cada setor linka pra sua própria página de detalhe.
+import Layout from '../../../layouts/Layout.astro';
+import { supabase } from '../../../lib/supabase';
+import type { Local, Setor } from '../../../lib/supabase';
+
+export async function getStaticPaths() {
+  const { data: locais } = await supabase
+    .from('locais')
+    .select('slug')
+    .not('slug', 'is', null) as { data: { slug: string }[] | null };
+  return (locais ?? []).map((l) => ({ params: { localSlug: l.slug } }));
+}
+
+const { localSlug } = Astro.params;
+
+const { data: local } = await supabase
+  .from('locais')
+  .select('*')
+  .eq('slug', localSlug)
+  .single() as { data: Local | null };
+
+const { data: setores } = local
+  ? await supabase
+      .from('setores')
+      .select('*')
+      .eq('local_id', local.id)
+      .order('lado')
+      .order('nome') as { data: Setor[] | null }
+  : { data: null };
+
+const semLado = (setores ?? []).filter((s) => !s.lado);
+const nomesLados = [...new Set((setores ?? []).filter((s) => s.lado).map((s) => s.lado as string))];
+const lados = nomesLados.map((lado) => ({
+  lado,
+  setores: (setores ?? []).filter((s) => s.lado === lado),
+}));
+---
+<Layout titulo={local?.nome || 'Local'} descricao={local?.descricao || undefined}>
+  {local ? (
+    <section class="secao">
+      <div class="container local-detalhe">
+        <a href="/rotas" class="voltar">← Rotas & Setores</a>
+
+        <h1>{local.nome}</h1>
+        <p class="local-detalhe__local">{[local.regiao, local.cidade, local.estado].filter(Boolean).join(' · ')}</p>
+
+        {local.descricao && <p class="local-detalhe__descricao">{local.descricao}</p>}
+
+        {local.como_chegar && (
+          <div class="bloco">
+            <h2>Como chegar</h2>
+            <p>{local.como_chegar}</p>
+          </div>
+        )}
+
+        <div class="bloco">
+          <h2>Setores</h2>
+
+          {(!setores || setores.length === 0) && (
+            <p class="vazio">Ainda não temos setores cadastrados aqui.</p>
+          )}
+
+          {lados.length > 0 ? (
+            <>
+              {lados.map((l) => (
+                <div class="lado-grupo">
+                  <h3>Lado {l.lado}</h3>
+                  <ul class="setores-lista">
+                    {l.setores.map((s) => (
+                      <li>
+                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              {semLado.length > 0 && (
+                <div class="lado-grupo">
+                  <ul class="setores-lista">
+                    {semLado.map((s) => (
+                      <li>
+                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            <ul class="setores-lista">
+              {semLado.map((s) => (
+                <li>
+                  <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                  {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </section>
+  ) : (
+    <div class="container secao">
+      <h1>Local não encontrado</h1>
+      <a href="/rotas">Voltar para Rotas & Setores</a>
+    </div>
+  )}
+</Layout>
+
+<style>
+  .voltar { display: inline-block; margin-bottom: 20px; font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.85rem; }
+  .local-detalhe { max-width: 760px; }
+  .local-detalhe__local { opacity: 0.7; font-size: 0.95rem; margin-top: -8px; }
+  .local-detalhe__descricao { margin-top: 12px; }
+
+  .bloco { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(42, 31, 22, 0.12); }
+  .bloco h2 { font-family: var(--fonte-display); text-transform: uppercase; font-size: 1.2rem; color: var(--verde-escuro); margin-bottom: 10px; }
+
+  .vazio { opacity: 0.65; font-style: italic; }
+
+  .lado-grupo { margin-top: 18px; }
+  .lado-grupo:first-child { margin-top: 0; }
+  .lado-grupo h3 {
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.95rem;
+    letter-spacing: 0.03em;
+    color: var(--laranja);
+    margin-bottom: 8px;
+  }
+  .setores-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .setores-lista li { background: var(--creme-claro); border-radius: 8px; padding: 12px 14px; }
+  .setores-lista__link { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.95rem; color: var(--verde-escuro); text-decoration: none; }
+  .setores-lista__link:hover { text-decoration: underline; }
+  .setores-lista__desc { margin: 6px 0 0; font-size: 0.88rem; opacity: 0.85; }
+</style>
