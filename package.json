@@ -10,6 +10,7 @@
   "dependencies": {
     "astro": "^4.16.0",
     "@supabase/supabase-js": "^2.45.4",
+    "@vercel/analytics": "^1.4.1",
     "leaflet": "^1.9.4"
   }
 }
