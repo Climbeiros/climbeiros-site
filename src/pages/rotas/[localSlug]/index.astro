@@ -87,11 +87,36 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
 <Layout titulo={local?.nome || 'Local'} descricao={local?.descricao || undefined}>
   {local ? (
     <section class="secao">
+      {local.imagem_capa_url ? (
+        <div class="container">
+          <img class="local-detalhe__capa" src={local.imagem_capa_url} alt={local.nome} />
+        </div>
+      ) : (
+        <div class="container">
+          <div class="local-detalhe__capa local-detalhe__capa--vazia" aria-hidden="true">🏔️</div>
+        </div>
+      )}
       <div class="container local-detalhe">
         <a href="/rotas" class="voltar">← Rotas & Setores</a>
 
-        <h1>{local.nome}</h1>
+        <div class="local-detalhe__titulo">
+          <h1>{local.nome}</h1>
+          <button
+            type="button"
+            class="botao-compartilhar"
+            data-url={`/rotas/${local.slug}`}
+            data-nome={local.nome}
+            title="Compartilhar"
+            aria-label={`Compartilhar ${local.nome}`}
+          >↗ Compartilhar</button>
+        </div>
         <p class="local-detalhe__local">{[local.regiao, local.cidade, local.estado].filter(Boolean).join(' · ')}</p>
+
+        {local.tipos && local.tipos.length > 0 && (
+          <div class="local-detalhe__tags">
+            {local.tipos.map((t) => <span class="tag-tipo">{t}</span>)}
+          </div>
+        )}
 
         {local.descricao && <p class="local-detalhe__descricao">{local.descricao}</p>}
 
@@ -99,6 +124,16 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
           <div class="bloco">
             <h2>Como chegar</h2>
             <p>{local.como_chegar}</p>
+          </div>
+        )}
+
+        {local.latitude && local.longitude && (
+          <div class="bloco">
+            <h2>Previsão do tempo</h2>
+            <div id="previsao-tempo" class="previsao" data-lat={local.latitude} data-lon={local.longitude}>
+              <p class="previsao__carregando">Carregando previsão...</p>
+            </div>
+            <p class="previsao__fonte">Dados: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>. Na seca (a melhor época pra maioria dos setores) chove menos, mas vale sempre conferir antes de ir.</p>
           </div>
         )}
 
@@ -347,6 +382,75 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
 <script>
   import { supabase } from '../../../lib/supabase';
 
+  // ---- Botão de compartilhar (Web Share API, com fallback pra copiar o link) ----
+  document.querySelectorAll('.botao-compartilhar').forEach((botao) => {
+    botao.addEventListener('click', async () => {
+      const caminho = botao.dataset.url;
+      if (!caminho) return;
+      const url = `${window.location.origin}${caminho}`;
+      const nome = botao.dataset.nome || 'Climbeiros';
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: nome, text: `Confira ${nome} no Climbeiros`, url });
+        } else {
+          await navigator.clipboard.writeText(url);
+          const original = botao.textContent;
+          botao.textContent = '✓ Link copiado';
+          setTimeout(() => { botao.textContent = original; }, 1800);
+        }
+      } catch {
+        // Usuário cancelou o compartilhamento nativo, ou o navegador bloqueou — sem problema.
+      }
+    });
+  });
+
+  // ---- Previsão do tempo (Open-Meteo, API pública e gratuita, sem chave) ----
+  const painelPrevisao = document.getElementById('previsao-tempo');
+  if (painelPrevisao) {
+    const lat = painelPrevisao.dataset.lat;
+    const lon = painelPrevisao.dataset.lon;
+    const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const iconePorCodigo = (codigo) => {
+      if ([0, 1].includes(codigo)) return '☀️';
+      if ([2, 3].includes(codigo)) return '⛅';
+      if ([45, 48].includes(codigo)) return '🌫️';
+      if ([51, 53, 55, 56, 57, 61, 63, 65, 80, 81, 82].includes(codigo)) return '🌧️';
+      if ([71, 73, 75, 77, 85, 86].includes(codigo)) return '🌨️';
+      if ([95, 96, 99].includes(codigo)) return '⛈️';
+      return '🌤️';
+    };
+
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=America%2FSao_Paulo&forecast_days=7`)
+      .then((r) => r.json())
+      .then((dados) => {
+        const dias = dados?.daily?.time ?? [];
+        if (dias.length === 0) throw new Error('sem dados');
+        painelPrevisao.innerHTML = `
+          <div class="previsao__dias">
+            ${dias.map((data, i) => {
+              const dataObj = new Date(data + 'T12:00:00');
+              const nomeDia = i === 0 ? 'Hoje' : diasSemana[dataObj.getDay()];
+              const max = Math.round(dados.daily.temperature_2m_max[i]);
+              const min = Math.round(dados.daily.temperature_2m_min[i]);
+              const chuva = dados.daily.precipitation_probability_max[i];
+              const icone = iconePorCodigo(dados.daily.weathercode[i]);
+              return `
+                <div class="previsao__dia">
+                  <span class="previsao__dia-nome">${nomeDia}</span>
+                  <span class="previsao__dia-icone" aria-hidden="true">${icone}</span>
+                  <span class="previsao__dia-temp">${max}° <span class="previsao__dia-min">${min}°</span></span>
+                  <span class="previsao__dia-chuva">💧 ${chuva}%</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      })
+      .catch(() => {
+        painelPrevisao.innerHTML = '<p class="previsao__erro">Não foi possível carregar a previsão agora. Tente de novo mais tarde.</p>';
+      });
+  }
+
   // ---- Formulário de cadastro de hospedagem ----
   const formHosp = document.getElementById('form-hospedagem') as HTMLFormElement | null;
   const statusHosp = formHosp?.querySelector('.form-status') as HTMLElement | null;
@@ -476,8 +580,76 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
 <style>
   .voltar { display: inline-block; margin-bottom: 20px; font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.85rem; }
   .local-detalhe { max-width: 760px; }
-  .local-detalhe__local { opacity: 0.7; font-size: 0.95rem; margin-top: -8px; }
+  .local-detalhe__capa {
+    display: block;
+    width: 100%;
+    max-width: 760px;
+    height: 260px;
+    object-fit: cover;
+    border-radius: var(--raio);
+    margin: 8px auto 0;
+    box-shadow: var(--sombra);
+  }
+  .local-detalhe__capa--vazia {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.4rem;
+    background: linear-gradient(150deg, var(--verde-escuro), var(--marrom));
+  }
+  .local-detalhe__titulo { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .local-detalhe__titulo h1 { margin: 0; }
+  .local-detalhe__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag-tipo {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 600;
+    background: var(--creme-claro);
+    color: var(--verde-escuro);
+    border: 1px solid rgba(42,31,22,0.12);
+    padding: 3px 9px;
+    border-radius: 30px;
+  }
+  .local-detalhe__local { opacity: 0.7; font-size: 0.95rem; margin-top: 6px; }
   .local-detalhe__descricao { margin-top: 12px; }
+  .botao-compartilhar {
+    flex: 0 0 auto;
+    border-radius: 30px;
+    border: 1px solid rgba(42,31,22,0.15);
+    background: var(--creme-claro);
+    color: var(--verde-escuro);
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: transform 0.15s;
+    white-space: nowrap;
+  }
+  .botao-compartilhar:hover { transform: translateY(-2px); }
+
+  .previsao__carregando, .previsao__erro { opacity: 0.65; font-style: italic; font-size: 0.9rem; }
+  .previsao__dias { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+  .previsao__dia {
+    flex: 0 0 auto;
+    min-width: 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: var(--creme-claro);
+    border-radius: 8px;
+    padding: 10px 8px;
+    font-size: 0.85rem;
+  }
+  .previsao__dia-nome { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.03em; color: var(--verde-escuro); }
+  .previsao__dia-icone { font-size: 1.3rem; }
+  .previsao__dia-temp { font-weight: 600; color: var(--marrom); }
+  .previsao__dia-min { font-weight: 400; opacity: 0.6; }
+  .previsao__dia-chuva { font-size: 0.72rem; opacity: 0.75; }
+  .previsao__fonte { font-size: 0.72rem; opacity: 0.6; margin-top: 8px; }
 
   .bloco { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(42, 31, 22, 0.12); }
   .bloco h2 { font-family: var(--fonte-display); text-transform: uppercase; font-size: 1.2rem; color: var(--verde-escuro); margin-bottom: 10px; }

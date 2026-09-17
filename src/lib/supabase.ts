@@ -46,6 +46,8 @@ export type Local = {
   longitude: number | null;
   descricao: string | null;
   como_chegar: string | null;
+  imagem_capa_url: string | null;
+  tipos: string[] | null;
 };
 
 export type Setor = {

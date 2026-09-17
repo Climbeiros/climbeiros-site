@@ -17,6 +17,10 @@ const { data: setores } = await supabase
 
 const locaisComCoordenadas = (locais ?? []).filter((l) => l.latitude && l.longitude);
 
+// Opções pros filtros: estados e tipos de escalada realmente presentes nos locais cadastrados.
+const estadosDisponiveis = [...new Set((locais ?? []).map((l) => l.estado).filter(Boolean))].sort() as string[];
+const tiposDisponiveis = [...new Set((locais ?? []).flatMap((l) => l.tipos ?? []))].sort();
+
 function setoresDoLocal(localId: string) {
   return (setores ?? []).filter((s) => s.local_id === localId);
 }
@@ -41,7 +45,7 @@ function ladosDoLocal(localId: string) {
     <div class="container">
       <p class="eyebrow">Onde escalar</p>
       <h1>Rotas & Setores</h1>
-      <p>Explore os locais de escalada catalogados pela comunidade. Cada local pode ter um ou mais setores, cada um com croqui, dicas de acesso, hospedagens, guias e avaliações. Clique num pin do mapa ou busque por cidade/CEP pra filtrar.</p>
+      <p>Explore os locais de escalada catalogados pela comunidade. Cada local pode ter um ou mais setores, cada um com croqui e dicas de acesso; hospedagens, guias e avaliações ficam na página do local. Clique num pin do mapa, busque por cidade/CEP, ou filtre por tipo e estado.</p>
 
       {locais && locais.length > 0 && (
         <>
@@ -55,6 +59,28 @@ function ladosDoLocal(localId: string) {
             <button type="button" id="busca-botao" class="botao">Buscar</button>
             <button type="button" id="busca-limpar" class="botao botao--secundario" hidden>Limpar</button>
           </div>
+
+          <div class="filtros">
+            {tiposDisponiveis.length > 0 && (
+              <label class="filtro-campo">
+                Tipo
+                <select id="filtro-tipo">
+                  <option value="">Todos</option>
+                  {tiposDisponiveis.map((t) => <option value={t}>{t}</option>)}
+                </select>
+              </label>
+            )}
+            {estadosDisponiveis.length > 0 && (
+              <label class="filtro-campo">
+                Estado
+                <select id="filtro-estado">
+                  <option value="">Todos</option>
+                  {estadosDisponiveis.map((uf) => <option value={uf}>{uf}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
+
           <p id="busca-status" class="busca-status" role="status"></p>
         </>
       )}
@@ -76,42 +102,68 @@ function ladosDoLocal(localId: string) {
           const { semLado, lados } = ladosDoLocal(local.id);
           const totalSetores = semLado.length + lados.reduce((n, l) => n + l.setores.length, 0);
           return (
-            <article class="setor-card" id={`local-${local.id}`} data-cidade={(local.cidade || '').toLowerCase()}>
-              <div class="setor-card__cabecalho">
-                <div>
-                  <h2>
-                    {local.slug ? (
-                      <a class="setor-card__link" href={`/rotas/${local.slug}`}>{local.nome}</a>
-                    ) : (
-                      local.nome
+            <article
+              class="setor-card"
+              id={`local-${local.id}`}
+              data-cidade={(local.cidade || '').toLowerCase()}
+              data-estado={local.estado || ''}
+              data-tipos={(local.tipos || []).join('|')}
+            >
+              {local.imagem_capa_url ? (
+                <img class="setor-card__capa" src={local.imagem_capa_url} alt={local.nome} loading="lazy" />
+              ) : (
+                <div class="setor-card__capa setor-card__capa--vazia" aria-hidden="true">🏔️</div>
+              )}
+              <div class="setor-card__corpo">
+                <div class="setor-card__cabecalho">
+                  <div>
+                    <h2>
+                      {local.slug ? (
+                        <a class="setor-card__link" href={`/rotas/${local.slug}`}>{local.nome}</a>
+                      ) : (
+                        local.nome
+                      )}
+                    </h2>
+                    <p class="setor-card__local">{[local.regiao, local.cidade, local.estado].filter(Boolean).join(' · ')}</p>
+                  </div>
+                  <button
+                    type="button"
+                    class="botao-compartilhar"
+                    data-url={local.slug ? `/rotas/${local.slug}` : ''}
+                    data-nome={local.nome}
+                    title="Compartilhar"
+                    aria-label={`Compartilhar ${local.nome}`}
+                  >↗</button>
+                </div>
+                {local.tipos && local.tipos.length > 0 && (
+                  <div class="setor-card__tags">
+                    {local.tipos.map((t) => <span class="tag-tipo">{t}</span>)}
+                  </div>
+                )}
+                {local.descricao && <p>{local.descricao}</p>}
+
+                {totalSetores > 1 && (
+                  <div class="setor-card__setores">
+                    {lados.map((l) => (
+                      <p class="setor-card__lado">
+                        <strong>Lado {l.lado}:</strong> {l.setores.map((s) => s.nome).join(', ')}
+                      </p>
+                    ))}
+                    {semLado.length > 0 && lados.length > 0 && (
+                      <p class="setor-card__lado">{semLado.map((s) => s.nome).join(', ')}</p>
                     )}
-                  </h2>
-                  <p class="setor-card__local">{[local.regiao, local.cidade, local.estado].filter(Boolean).join(' · ')}</p>
-                </div>
+                    {lados.length === 0 && (
+                      <p class="setor-card__lado">Setores: {semLado.map((s) => s.nome).join(', ')}</p>
+                    )}
+                  </div>
+                )}
+
+                {local.slug && (
+                  <a href={`/rotas/${local.slug}`} class="botao botao--pequeno setor-card__detalhes">
+                    Ver setores e croquis →
+                  </a>
+                )}
               </div>
-              {local.descricao && <p>{local.descricao}</p>}
-
-              {totalSetores > 1 && (
-                <div class="setor-card__setores">
-                  {lados.map((l) => (
-                    <p class="setor-card__lado">
-                      <strong>Lado {l.lado}:</strong> {l.setores.map((s) => s.nome).join(', ')}
-                    </p>
-                  ))}
-                  {semLado.length > 0 && lados.length > 0 && (
-                    <p class="setor-card__lado">{semLado.map((s) => s.nome).join(', ')}</p>
-                  )}
-                  {lados.length === 0 && (
-                    <p class="setor-card__lado">Setores: {semLado.map((s) => s.nome).join(', ')}</p>
-                  )}
-                </div>
-              )}
-
-              {local.slug && (
-                <a href={`/rotas/${local.slug}`} class="botao botao--pequeno setor-card__detalhes">
-                  Ver setores e croquis →
-                </a>
-              )}
             </article>
           );
         })}
@@ -132,7 +184,7 @@ function ladosDoLocal(localId: string) {
     return texto
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[̀-ͯ]/g, '')
       .trim();
   }
 
@@ -143,14 +195,25 @@ function ladosDoLocal(localId: string) {
     return dados.localidade;
   }
 
-  function filtrar(cidade) {
-    const termo = normalizar(cidade);
+  const filtroTipo = document.getElementById('filtro-tipo');
+  const filtroEstado = document.getElementById('filtro-estado');
+
+  // Aplica busca de cidade + filtros de tipo/estado juntos. Um card só fica
+  // visível se bater com os três critérios (cada um vazio conta como "vale tudo").
+  function aplicarFiltros(termoCidade) {
+    const termo = normalizar(termoCidade || '');
+    const tipoEscolhido = filtroTipo?.value || '';
+    const estadoEscolhido = filtroEstado?.value || '';
     let visiveis = 0;
     const idsVisiveis = new Set();
 
     document.querySelectorAll('#lista-setores .setor-card').forEach((card) => {
       const cidadeCard = normalizar(card.dataset.cidade || '');
-      const bate = !termo || cidadeCard.includes(termo);
+      const bateCidade = !termo || cidadeCard.includes(termo);
+      const bateEstado = !estadoEscolhido || card.dataset.estado === estadoEscolhido;
+      const tiposCard = (card.dataset.tipos || '').split('|').filter(Boolean);
+      const bateTipo = !tipoEscolhido || tiposCard.includes(tipoEscolhido);
+      const bate = bateCidade && bateEstado && bateTipo;
       card.hidden = !bate;
       if (bate) {
         visiveis++;
@@ -188,7 +251,7 @@ function ladosDoLocal(localId: string) {
     if (!input || !status) return;
     const valor = input.value.trim();
     if (!valor) {
-      filtrar('');
+      const encontrados = aplicarFiltros('');
       status.textContent = '';
       botaoLimpar?.setAttribute('hidden', '');
       return;
@@ -207,7 +270,7 @@ function ladosDoLocal(localId: string) {
       cidadeParaFiltrar = cidade;
     }
 
-    const encontrados = filtrar(cidadeParaFiltrar);
+    const encontrados = aplicarFiltros(cidadeParaFiltrar);
     status.textContent = encontrados > 0
       ? `${encontrados} local(is) encontrado(s) em ${cidadeParaFiltrar}.`
       : `Nenhum local encontrado em ${cidadeParaFiltrar} ainda.`;
@@ -220,9 +283,33 @@ function ladosDoLocal(localId: string) {
   });
   botaoLimpar?.addEventListener('click', () => {
     if (input) input.value = '';
-    filtrar('');
+    aplicarFiltros('');
     if (status) status.textContent = '';
     botaoLimpar?.setAttribute('hidden', '');
+  });
+  filtroTipo?.addEventListener('change', () => aplicarFiltros(input?.value || ''));
+  filtroEstado?.addEventListener('change', () => aplicarFiltros(input?.value || ''));
+
+  // ---- Botão de compartilhar (Web Share API, com fallback pra copiar o link) ----
+  document.querySelectorAll('.botao-compartilhar').forEach((botao) => {
+    botao.addEventListener('click', async () => {
+      const caminho = botao.dataset.url;
+      if (!caminho) return;
+      const url = `${window.location.origin}${caminho}`;
+      const nome = botao.dataset.nome || 'Climbeiros';
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: nome, text: `Confira ${nome} no Climbeiros`, url });
+        } else {
+          await navigator.clipboard.writeText(url);
+          const original = botao.textContent;
+          botao.textContent = '✓';
+          setTimeout(() => { botao.textContent = original; }, 1500);
+        }
+      } catch {
+        // Usuário cancelou o compartilhamento nativo, ou o navegador bloqueou — sem problema.
+      }
+    });
   });
 
   if (locais.length > 0) {
@@ -267,7 +354,7 @@ function ladosDoLocal(localId: string) {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
-    margin: 20px 0 8px;
+    margin: 20px 0 12px;
   }
   .busca-local input {
     flex: 1;
@@ -278,6 +365,32 @@ function ladosDoLocal(localId: string) {
     border-radius: 8px;
     border: 1px solid rgba(42,31,22,0.25);
     color: var(--marrom);
+  }
+  .filtros {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .filtro-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    color: var(--verde-escuro);
+  }
+  .filtro-campo select {
+    font-family: var(--fonte-corpo);
+    font-size: 0.9rem;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(42,31,22,0.25);
+    color: var(--marrom);
+    background: var(--branco);
+    min-width: 160px;
   }
   .busca-status {
     font-size: 0.9rem;
@@ -301,8 +414,22 @@ function ladosDoLocal(localId: string) {
     border: 1px solid rgba(42,31,22,0.08);
     border-radius: var(--raio);
     box-shadow: var(--sombra);
-    padding: 24px;
+    overflow: hidden;
   }
+  .setor-card__capa {
+    display: block;
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+  }
+  .setor-card__capa--vazia {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.4rem;
+    background: linear-gradient(150deg, var(--verde-escuro), var(--marrom));
+  }
+  .setor-card__corpo { padding: 24px; }
   .setor-card__cabecalho {
     display: flex;
     justify-content: space-between;
@@ -312,7 +439,32 @@ function ladosDoLocal(localId: string) {
   .setor-card__local { opacity: 0.7; font-size: 0.9rem; margin-top: -8px; }
   .setor-card__link { color: inherit; text-decoration: none; }
   .setor-card__link:hover { text-decoration: underline; }
+  .setor-card__tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+  .tag-tipo {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 600;
+    background: var(--creme-claro);
+    color: var(--verde-escuro);
+    border: 1px solid rgba(42,31,22,0.12);
+    padding: 3px 9px;
+    border-radius: 30px;
+  }
   .setor-card__setores { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
   .setor-card__lado { font-size: 0.9rem; opacity: 0.85; }
   .setor-card__detalhes { display: inline-block; margin-top: 14px; }
+  .botao-compartilhar {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(42,31,22,0.15);
+    background: var(--creme-claro);
+    color: var(--verde-escuro);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .botao-compartilhar:hover { transform: translateY(-2px); }
 </style>
