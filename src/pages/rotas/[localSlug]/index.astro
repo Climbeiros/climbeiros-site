@@ -138,53 +138,6 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
         )}
 
         <div class="bloco">
-          <h2>Setores</h2>
-
-          {(!setores || setores.length === 0) && (
-            <p class="vazio">Ainda não temos setores cadastrados aqui.</p>
-          )}
-
-          {lados.length > 0 ? (
-            <>
-              {lados.map((l) => (
-                <div class="lado-grupo">
-                  <h3>Lado {l.lado}</h3>
-                  <ul class="setores-lista">
-                    {l.setores.map((s) => (
-                      <li>
-                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
-                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-              {semLado.length > 0 && (
-                <div class="lado-grupo">
-                  <ul class="setores-lista">
-                    {semLado.map((s) => (
-                      <li>
-                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
-                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
-          ) : (
-            <ul class="setores-lista">
-              {semLado.map((s) => (
-                <li>
-                  <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
-                  {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div class="bloco">
           <h2>Onde ficar</h2>
           {hospedagensDoLocal.length > 0 ? (
             <ul class="hospedagens-lista">
@@ -286,6 +239,53 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
           <p class="cta-guia">
             Você é guia e atua aqui? <a href="/cursos#seja-guia">Cadastre-se na nossa rede de guias →</a>
           </p>
+        </div>
+
+        <div class="bloco">
+          <h2>Setores</h2>
+
+          {(!setores || setores.length === 0) && (
+            <p class="vazio">Ainda não temos setores cadastrados aqui.</p>
+          )}
+
+          {lados.length > 0 ? (
+            <>
+              {lados.map((l) => (
+                <div class="lado-grupo">
+                  <h3>Lado {l.lado}</h3>
+                  <ul class="setores-lista">
+                    {l.setores.map((s) => (
+                      <li>
+                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              {semLado.length > 0 && (
+                <div class="lado-grupo">
+                  <ul class="setores-lista">
+                    {semLado.map((s) => (
+                      <li>
+                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            <ul class="setores-lista">
+              {semLado.map((s) => (
+                <li>
+                  <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                  {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div class="bloco">
@@ -405,25 +405,37 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
   });
 
   // ---- Previsão do tempo (Open-Meteo, API pública e gratuita, sem chave) ----
+  // Ícones em preto/monocromático (variation selector U+FE0E), pra herdar a cor
+  // da nossa paleta em vez do emoji colorido padrão do sistema.
   const painelPrevisao = document.getElementById('previsao-tempo');
   if (painelPrevisao) {
     const lat = painelPrevisao.dataset.lat;
     const lon = painelPrevisao.dataset.lon;
     const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const iconePorCodigo = (codigo) => {
-      if ([0, 1].includes(codigo)) return '☀️';
-      if ([2, 3].includes(codigo)) return '⛅';
-      if ([45, 48].includes(codigo)) return '🌫️';
-      if ([51, 53, 55, 56, 57, 61, 63, 65, 80, 81, 82].includes(codigo)) return '🌧️';
-      if ([71, 73, 75, 77, 85, 86].includes(codigo)) return '🌨️';
-      if ([95, 96, 99].includes(codigo)) return '⛈️';
-      return '🌤️';
+      if ([0, 1].includes(codigo)) return '☀︎'; // sol
+      if ([2, 3].includes(codigo)) return '☁︎'; // nublado
+      if ([45, 48].includes(codigo)) return '▒'; // neblina
+      if ([51, 53, 55, 56, 57, 61, 63, 65, 80, 81, 82].includes(codigo)) return '☂︎'; // chuva
+      if ([71, 73, 75, 77, 85, 86].includes(codigo)) return '❄︎'; // neve
+      if ([95, 96, 99].includes(codigo)) return '⚡︎'; // tempestade
+      return '☀︎';
     };
 
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=America%2FSao_Paulo&forecast_days=7`)
-      .then((r) => r.json())
+    const controle = new AbortController();
+    const tempoLimite = setTimeout(() => controle.abort(), 10000);
+
+    fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=America%2FSao_Paulo&forecast_days=7`,
+      { signal: controle.signal }
+    )
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((dados) => {
         const dias = dados?.daily?.time ?? [];
+        const codigos = dados?.daily?.weather_code ?? dados?.daily?.weathercode ?? [];
         if (dias.length === 0) throw new Error('sem dados');
         painelPrevisao.innerHTML = `
           <div class="previsao__dias">
@@ -433,22 +445,24 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
               const max = Math.round(dados.daily.temperature_2m_max[i]);
               const min = Math.round(dados.daily.temperature_2m_min[i]);
               const chuva = dados.daily.precipitation_probability_max[i];
-              const icone = iconePorCodigo(dados.daily.weathercode[i]);
+              const icone = iconePorCodigo(codigos[i]);
               return `
                 <div class="previsao__dia">
                   <span class="previsao__dia-nome">${nomeDia}</span>
                   <span class="previsao__dia-icone" aria-hidden="true">${icone}</span>
                   <span class="previsao__dia-temp">${max}° <span class="previsao__dia-min">${min}°</span></span>
-                  <span class="previsao__dia-chuva">💧 ${chuva}%</span>
+                  <span class="previsao__dia-chuva">${chuva}%</span>
                 </div>
               `;
             }).join('')}
           </div>
         `;
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('Previsão do tempo (Open-Meteo):', err);
         painelPrevisao.innerHTML = '<p class="previsao__erro">Não foi possível carregar a previsão agora. Tente de novo mais tarde.</p>';
-      });
+      })
+      .finally(() => clearTimeout(tempoLimite));
   }
 
   // ---- Formulário de cadastro de hospedagem ----
@@ -631,24 +645,38 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
   .botao-compartilhar:hover { transform: translateY(-2px); }
 
   .previsao__carregando, .previsao__erro { opacity: 0.65; font-style: italic; font-size: 0.9rem; }
-  .previsao__dias { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+  .previsao__dias {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 4px 4px 14px;
+    margin: 0 -4px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: var(--laranja) transparent;
+    -webkit-overflow-scrolling: touch;
+  }
+  .previsao__dias::-webkit-scrollbar { height: 5px; }
+  .previsao__dias::-webkit-scrollbar-track { background: transparent; }
+  .previsao__dias::-webkit-scrollbar-thumb { background: var(--laranja); border-radius: 10px; opacity: 0.6; }
   .previsao__dia {
+    scroll-snap-align: start;
     flex: 0 0 auto;
-    min-width: 76px;
+    min-width: 84px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     background: var(--creme-claro);
-    border-radius: 8px;
-    padding: 10px 8px;
+    border-radius: var(--raio, 10px);
+    padding: 12px 10px;
     font-size: 0.85rem;
   }
   .previsao__dia-nome { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.03em; color: var(--verde-escuro); }
-  .previsao__dia-icone { font-size: 1.3rem; }
+  .previsao__dia-icone { font-size: 1.4rem; color: var(--laranja); line-height: 1; }
   .previsao__dia-temp { font-weight: 600; color: var(--marrom); }
   .previsao__dia-min { font-weight: 400; opacity: 0.6; }
-  .previsao__dia-chuva { font-size: 0.72rem; opacity: 0.75; }
+  .previsao__dia-chuva { font-size: 0.72rem; opacity: 0.75; color: var(--verde-escuro); }
   .previsao__fonte { font-size: 0.72rem; opacity: 0.6; margin-top: 8px; }
 
   .bloco { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(42, 31, 22, 0.12); }
