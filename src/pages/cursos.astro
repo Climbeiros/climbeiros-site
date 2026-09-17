@@ -1,6 +1,6 @@
 ---
 // src/pages/cursos.astro
-// Página de Cursos & Guias — lê os dados do Supabase (tabelas "guias" e "cursos").
+// Página de Guias & Cursos — lê os dados do Supabase (tabelas "guias" e "cursos").
 // O formulário "É guia e quer aparecer aqui?" grava na tabela "inscricoes_guias".
 // Site estático: após cadastrar/editar guias no Supabase, faça REDEPLOY na Vercel.
 import Layout from "../layouts/Layout.astro";
@@ -45,11 +45,11 @@ function waLink(num) {
   return only ? `https://wa.me/${only}` : null;
 }
 ---
-<Layout titulo="Cursos & Guias" descricao="Guias de escalada e montanhismo indicados pela comunidade Climbeiros.">
+<Layout titulo="Guias & Cursos" descricao="Guias/instrutores de escalada e montanhismo indicados pela comunidade Climbeiros.">
   <section class="secao">
     <div class="container">
       <p class="eyebrow">Aprenda com quem vive a rocha</p>
-      <h1>Cursos &amp; guias</h1>
+      <h1>Guias &amp; cursos</h1>
       <p>
         Conectamos você a guias que conhecemos e confiamos — cada um com sua
         especialidade. Escolha a modalidade, fale direto com o guia e marque sua
@@ -64,7 +64,7 @@ function waLink(num) {
         <div class="k">Nossa rede de guias</div>
         <h2>Escolha por especialidade</h2>
         <p>
-          Todos os guias abaixo foram indicados ou já escalaram com a gente. O
+          Todos os guias/instrutores abaixo foram indicados ou já escalaram com a gente. O
           contato é direto: você combina data, local e valores com o próprio guia.
         </p>
       </div>
@@ -127,9 +127,9 @@ function waLink(num) {
         ))}
       </div>
       <p class="safety">
-        Os guias são profissionais independentes. O Climbeiros faz a ponte entre
+        Os guias/instrutores são profissionais independentes. Os Climbeiros fazem a ponte entre
         você e eles; a contratação, os valores e a responsabilidade pelo curso são
-        combinados diretamente com cada guia. Recomendamos sempre verificar
+        combinados diretamente com cada profissional. Recomendamos sempre verificar
         certificação e seguro antes de qualquer atividade.
       </p>
     </div>
@@ -150,9 +150,9 @@ function waLink(num) {
   <section class="beguide" id="seja-guia">
     <div class="container">
       <div class="box">
-        <h2>É guia e quer aparecer aqui?</h2>
-        <p>Se você é guia de escalada ou montanhismo e quer fazer parte da nossa
-          rede, preencha abaixo — a gente adora conhecer gente boa da vertical.</p>
+        <h2>É guia/instrutor e quer aparecer aqui?</h2>
+        <p>Se você é guia/instrutor de escalada ou montanhismo e quer fazer parte da nossa
+          rede, preencha abaixo, é gratuito! A gente adora conhecer gente boa da vertical.</p>
         <form class="form-guia" id="form-guia">
           <div class="linha">
             <div class="campo">
