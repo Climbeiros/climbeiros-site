@@ -48,6 +48,8 @@ export type Local = {
   como_chegar: string | null;
   imagem_capa_url: string | null;
   tipos: string[] | null;
+  guia_recomendado: string | null;
+  croqui_referencias: { label: string; url: string }[] | null;
 };
 
 export type Setor = {

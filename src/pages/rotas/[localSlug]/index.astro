@@ -288,6 +288,23 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
           )}
         </div>
 
+        {(local.guia_recomendado || (local.croqui_referencias && local.croqui_referencias.length > 0)) && (
+          <div class="bloco">
+            <h2>Croqui e guia</h2>
+            {local.guia_recomendado && <p class="guia-recomendado">📖 {local.guia_recomendado}</p>}
+            {local.croqui_referencias && local.croqui_referencias.length > 0 && (
+              <ul class="croqui-referencias">
+                {local.croqui_referencias.map((c) => (
+                  <li>
+                    <a href={c.url} target="_blank" rel="noopener">{c.label} ↗</a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p class="croqui-referencias__aviso">Esses links são de terceiros (redirecionamos, não copiamos o conteúdo). Sempre confira a fonte antes de ir.</p>
+          </div>
+        )}
+
         <div class="bloco">
           <h2>Avaliações da comunidade</h2>
           {resumoAvaliacoes ? (
@@ -699,6 +716,12 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
   .setores-lista__link { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.95rem; color: var(--verde-escuro); text-decoration: none; }
   .setores-lista__link:hover { text-decoration: underline; }
   .setores-lista__desc { margin: 6px 0 0; font-size: 0.88rem; opacity: 0.85; }
+
+  .guia-recomendado { background: var(--creme-claro); border-radius: var(--raio, 10px); padding: 12px 14px; font-size: 0.92rem; }
+  .croqui-referencias { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .croqui-referencias a { font-weight: 600; color: var(--laranja); text-decoration: none; }
+  .croqui-referencias a:hover { text-decoration: underline; }
+  .croqui-referencias__aviso { margin-top: 10px; font-size: 0.75rem; opacity: 0.6; }
 
   .hospedagens-lista, .guias-lista, .avaliacao-lista { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
   .hospedagem-item, .guia-item { background: var(--creme-claro); border-radius: 8px; padding: 10px 12px; font-size: 0.92rem; }
