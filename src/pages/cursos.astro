@@ -15,15 +15,15 @@ const { data: cursos } = await supabase
   .select("*")
   .eq("publicado", true)
   .order("ordem", { ascending: true });
-// Setores: usados pra mostrar em quais lugares cada guia atua (setores_ids)
+// Locais: usados pra mostrar em quais lugares cada guia atua (locais_ids)
 // e pra dar a lista de nomes conhecidos no campo do formulário de inscrição.
-const { data: setores } = await supabase
-  .from("setores")
+const { data: locais } = await supabase
+  .from("locais")
   .select("id, nome")
   .order("nome", { ascending: true });
-const setoresPorId = new Map((setores ?? []).map((s) => [s.id, s.nome]));
-function nomesDosSetores(setoresIds) {
-  return (setoresIds ?? []).map((id) => setoresPorId.get(id)).filter(Boolean);
+const locaisPorId = new Map((locais ?? []).map((l) => [l.id, l.nome]));
+function nomesDosLocais(locaisIds) {
+  return (locaisIds ?? []).map((id) => locaisPorId.get(id)).filter(Boolean);
 }
 const cursosPorGuia = new Map();
 for (const c of cursos ?? []) {
@@ -92,11 +92,11 @@ function waLink(num) {
                   </div>
                 </>
               )}
-              {nomesDosSetores(g.setores_ids).length > 0 && (
+              {nomesDosLocais(g.locais_ids).length > 0 && (
                 <>
-                  <div class="lbl">Atua nos setores</div>
+                  <div class="lbl">Atua nos locais</div>
                   <div class="tags">
-                    {nomesDosSetores(g.setores_ids).map((nome) => <span class="tag">{nome}</span>)}
+                    {nomesDosLocais(g.locais_ids).map((nome) => <span class="tag">{nome}</span>)}
                   </div>
                 </>
               )}
@@ -199,14 +199,14 @@ function waLink(num) {
             <input type="text" id="fg-espec" name="especialidades" placeholder="Ex.: escalada esportiva, boulder" />
           </div>
           <div class="campo">
-            <label for="fg-setores">Em quais setores você atua?</label>
+            <label for="fg-locais">Em quais locais você atua?</label>
             <input
               type="text"
-              id="fg-setores"
-              name="setores_interesse"
+              id="fg-locais"
+              name="locais_interesse"
               placeholder="Ex.: Pedra do Baú, Gruta do Baú"
             />
-            <small class="campo-ajuda">Pode listar mais de um, separados por vírgula. Usamos isso pra te mostrar na página de cada setor.</small>
+            <small class="campo-ajuda">Pode listar mais de um, separados por vírgula. Usamos isso pra te mostrar na página de cada local.</small>
           </div>
           <div class="campo">
             <label for="fg-msg">Mensagem</label>
@@ -282,7 +282,7 @@ function waLink(num) {
       contato_pref: prefContato || null,
       cidade_uf: dados.cidade_uf || null,
       especialidades: dados.especialidades || null,
-      setores_interesse: dados.setores_interesse || null,
+      locais_interesse: dados.locais_interesse || null,
       mensagem: dados.mensagem || null,
       tem_cupom: temCupom ? 'Sim' : 'Não',
       cupom_codigo: temCupom ? (dados.cupom_codigo || null) : null,

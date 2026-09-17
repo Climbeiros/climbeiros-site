@@ -135,7 +135,7 @@ export type Guia = {
   instagram: string | null;
   email: string | null;
   certificacao: string | null;
-  setores_ids: string[] | null;
+  locais_ids: string[] | null;
   publicado: boolean;
   ordem: number;
 };
@@ -149,14 +149,14 @@ export type Hospedagem = {
   tem_desconto: boolean;
   desconto_codigo: string | null;
   desconto_desc: string | null;
-  setores_ids: string[] | null;
+  locais_ids: string[] | null;
   publicado: boolean;
   ordem: number;
 };
 
-export type AvaliacaoSetorPublica = {
+export type AvaliacaoLocalPublica = {
   id: string;
-  setor_id: string;
+  local_id: string;
   nome: string;
   nota: number;
   comentario: string | null;
@@ -164,7 +164,7 @@ export type AvaliacaoSetorPublica = {
   enviado_em: string;
 };
 
-export type FotoAvaliacaoSetorPublica = {
+export type FotoAvaliacaoLocalPublica = {
   id: string;
   avaliacao_id: string;
   imagem_url: string;
