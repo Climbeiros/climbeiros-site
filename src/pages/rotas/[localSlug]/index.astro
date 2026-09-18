@@ -436,21 +436,22 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
   });
 
   // ---- Previsão do tempo (Open-Meteo, API pública e gratuita, sem chave) ----
-  // Ícones em preto/monocromático (variation selector U+FE0E), pra herdar a cor
-  // da nossa paleta em vez do emoji colorido padrão do sistema.
+  // Emoji na apresentação colorida padrão do sistema (sem variation selector
+  // U+FE0E): a versão monocromática desses símbolos não tem suporte
+  // confiável em todo navegador/SO (no Windows renderizava tudo errado).
   const painelPrevisao = document.getElementById('previsao-tempo');
   if (painelPrevisao) {
     const lat = painelPrevisao.dataset.lat;
     const lon = painelPrevisao.dataset.lon;
     const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const iconePorCodigo = (codigo) => {
-      if ([0, 1].includes(codigo)) return '☀︎'; // sol
-      if ([2, 3].includes(codigo)) return '☁︎'; // nublado
-      if ([45, 48].includes(codigo)) return '▒'; // neblina
-      if ([51, 53, 55, 56, 57, 61, 63, 65, 80, 81, 82].includes(codigo)) return '☂︎'; // chuva
-      if ([71, 73, 75, 77, 85, 86].includes(codigo)) return '❄︎'; // neve
-      if ([95, 96, 99].includes(codigo)) return '⚡︎'; // tempestade
-      return '☀︎';
+      if ([0, 1].includes(codigo)) return '☀️'; // sol
+      if ([2, 3].includes(codigo)) return '☁️'; // nublado
+      if ([45, 48].includes(codigo)) return '🌫️'; // neblina
+      if ([51, 53, 55, 56, 57, 61, 63, 65, 80, 81, 82].includes(codigo)) return '🌧️'; // chuva
+      if ([71, 73, 75, 77, 85, 86].includes(codigo)) return '❄️'; // neve
+      if ([95, 96, 99].includes(codigo)) return '⛈️'; // tempestade
+      return '☀️';
     };
 
     const controle = new AbortController();
@@ -484,7 +485,7 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
                     <span class="previsao__dia-icone" aria-hidden="true">${icone}</span>
                   </span>
                   <span class="previsao__dia-temp">${max}°<span class="previsao__dia-min">/${min}°</span></span>
-                  <span class="previsao__dia-chuva${chuva > 0 ? '' : ' previsao__dia-chuva--vazia'}">${chuva > 0 ? `☂ ${chuva}%` : '–'}</span>
+                  <span class="previsao__dia-chuva${chuva > 0 ? '' : ' previsao__dia-chuva--vazia'}">${chuva > 0 ? `💧${chuva}%` : '–'}</span>
                 </div>
               `;
             }).join('')}
@@ -679,8 +680,12 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
   }
   .botao-compartilhar:hover { transform: translateY(-2px); }
 
-  .previsao__carregando, .previsao__erro { opacity: 0.65; font-style: italic; font-size: 0.9rem; }
-  .previsao__dias {
+  /* :global() é necessário aqui porque esses elementos são criados por
+     JavaScript (innerHTML) depois que a página carrega — o Astro só aplica
+     o escopo do <style> em elementos presentes no HTML original do
+     componente, então sem :global() essas regras nunca bateriam com nada. */
+  :global(.previsao__carregando), :global(.previsao__erro) { opacity: 0.65; font-style: italic; font-size: 0.9rem; }
+  :global(.previsao__dias) {
     display: flex;
     gap: 6px;
     overflow-x: auto;
@@ -691,10 +696,10 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
     scrollbar-color: var(--laranja) transparent;
     -webkit-overflow-scrolling: touch;
   }
-  .previsao__dias::-webkit-scrollbar { height: 4px; }
-  .previsao__dias::-webkit-scrollbar-track { background: transparent; }
-  .previsao__dias::-webkit-scrollbar-thumb { background: var(--laranja); border-radius: 10px; opacity: 0.6; }
-  .previsao__dia {
+  :global(.previsao__dias)::-webkit-scrollbar { height: 4px; }
+  :global(.previsao__dias)::-webkit-scrollbar-track { background: transparent; }
+  :global(.previsao__dias)::-webkit-scrollbar-thumb { background: var(--laranja); border-radius: 10px; opacity: 0.6; }
+  :global(.previsao__dia) {
     scroll-snap-align: start;
     flex: 1 1 0;
     min-width: 56px;
@@ -707,13 +712,13 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
     padding: 6px 4px;
     font-size: 0.85rem;
   }
-  .previsao__dia-topo { display: flex; align-items: center; gap: 4px; }
-  .previsao__dia-nome { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.6rem; letter-spacing: 0.02em; color: var(--verde-escuro); }
-  .previsao__dia-icone { font-size: 0.95rem; color: var(--laranja); line-height: 1; }
-  .previsao__dia-temp { font-size: 0.78rem; font-weight: 600; color: var(--marrom); }
-  .previsao__dia-min { font-weight: 400; opacity: 0.6; }
-  .previsao__dia-chuva { font-size: 0.6rem; opacity: 0.75; color: var(--verde-escuro); }
-  .previsao__dia-chuva--vazia { opacity: 0.35; }
+  :global(.previsao__dia-topo) { display: flex; align-items: center; gap: 4px; }
+  :global(.previsao__dia-nome) { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.6rem; letter-spacing: 0.02em; color: var(--verde-escuro); }
+  :global(.previsao__dia-icone) { font-size: 0.95rem; line-height: 1; }
+  :global(.previsao__dia-temp) { font-size: 0.78rem; font-weight: 600; color: var(--marrom); }
+  :global(.previsao__dia-min) { font-weight: 400; opacity: 0.6; }
+  :global(.previsao__dia-chuva) { font-size: 0.6rem; opacity: 0.75; color: var(--verde-escuro); }
+  :global(.previsao__dia-chuva--vazia) { opacity: 0.35; }
   .previsao__fonte { font-size: 0.72rem; opacity: 0.6; margin-top: 8px; }
 
   .bloco { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(42, 31, 22, 0.12); }
