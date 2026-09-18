@@ -126,35 +126,36 @@ export type AvaliacaoPublica = {
   enviado_em: string;
 };
 
+// Guia e Hospedagem vêm direto do "inbox" de inscrições (inscricoes_guias /
+// inscricoes_hospedagens): não existe mais tabela curada separada. O que o
+// site lê já é filtrado no banco (RLS) por processado=true e rejeitado=false,
+// então aparecer aqui = aprovado no painel de pendências.
 export type Guia = {
   id: number;
   nome: string;
-  slug: string | null;
   cidade: string | null;
   uf: string | null;
-  especialidades: string[] | null;
+  especialidades_lista: string[] | null;
   bio: string | null;
   foto_url: string | null;
-  whatsapp: string | null;
+  telefone: string | null;
   instagram: string | null;
   email: string | null;
   certificacao: string | null;
   locais_ids: string[] | null;
-  publicado: boolean;
   ordem: number;
 };
 
 export type Hospedagem = {
-  id: string;
+  id: number;
   nome: string;
   contato_reserva: string | null;
   link_reserva: string | null;
   distancia: string | null;
-  tem_desconto: boolean;
+  tem_desconto: string | null;
   desconto_codigo: string | null;
   desconto_desc: string | null;
   locais_ids: string[] | null;
-  publicado: boolean;
   ordem: number;
 };
 

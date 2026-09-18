@@ -1,14 +1,17 @@
 ---
 // src/pages/cursos.astro
-// Página de Guias & Cursos — lê os dados do Supabase (tabelas "guias" e "cursos").
-// O formulário "É guia e quer aparecer aqui?" grava na tabela "inscricoes_guias".
-// Site estático: após cadastrar/editar guias no Supabase, faça REDEPLOY na Vercel.
+// Página de Guias & Cursos — lê os guias direto de "inscricoes_guias" (o
+// próprio formulário de inscrição é a fonte; não existe mais tabela curada
+// separada) e os cursos de "cursos". O formulário "É guia e quer aparecer
+// aqui?" grava em "inscricoes_guias"; aprovar no painel de pendências já
+// deixa a linha visível aqui (RLS filtra processado=true e rejeitado=false).
+// Site estático: depois de aprovar no painel, é preciso um novo deploy na
+// Vercel pra publicar (o painel já dispara isso sozinho).
 import Layout from "../layouts/Layout.astro";
 import { supabase } from "../lib/supabase";
 const { data: guias } = await supabase
-  .from("guias")
+  .from("inscricoes_guias")
   .select("*")
-  .eq("publicado", true)
   .order("ordem", { ascending: true });
 const { data: cursos } = await supabase
   .from("cursos")
@@ -84,14 +87,21 @@ function waLink(num) {
               <div class="base">{[g.cidade, g.uf].filter(Boolean).join(" · ")}</div>
             </div>
             <div class="body">
-              {g.especialidades?.length > 0 && (
+              {g.especialidades_lista?.length > 0 && (
                 <>
                   <div class="lbl">Especialidades</div>
                   <div class="tags">
-                    {g.especialidades.map((e) => <span class="tag">{e}</span>)}
+                    {g.especialidades_lista.map((e) => <span class="tag">{e}</span>)}
                   </div>
                 </>
               )}
+              {(g.cidade || g.certificacao) && (
+                <>
+                  {g.certificacao && <div class="lbl">Certificação</div>}
+                  {g.certificacao && <p class="cert">{g.certificacao}</p>}
+                </>
+              )}
+              {g.bio && <p class="bio">{g.bio}</p>}
               {nomesDosLocais(g.locais_ids).length > 0 && (
                 <>
                   <div class="lbl">Atua nos locais</div>
@@ -114,8 +124,8 @@ function waLink(num) {
                 </>
               )}
               <div class="contact">
-                {waLink(g.whatsapp) && (
-                  <a class="cbtn c-wa" href={waLink(g.whatsapp)} target="_blank" rel="noopener">WhatsApp</a>
+                {waLink(g.telefone) && (
+                  <a class="cbtn c-wa" href={waLink(g.telefone)} target="_blank" rel="noopener">WhatsApp</a>
                 )}
                 {g.instagram && (
                   <a class="cbtn c-ig" href={`https://instagram.com/${g.instagram}`} target="_blank" rel="noopener">@{g.instagram}</a>
@@ -183,34 +193,58 @@ function waLink(num) {
           </div>
           <div class="linha">
             <div class="campo">
-              <label for="fg-cidade">Cidade / UF</label>
-              <input type="text" id="fg-cidade" name="cidade_uf" placeholder="Ex.: São Paulo / SP" />
+              <label for="fg-cidade">Cidade</label>
+              <input type="text" id="fg-cidade" name="cidade" placeholder="Ex.: São Paulo" />
             </div>
             <div class="campo">
-              <span class="campo-label">Melhor contato para divulgarmos</span>
-              <div class="pref-opcoes">
-                <label class="pref-check"><input type="checkbox" name="pref" value="WhatsApp" /> WhatsApp</label>
-                <label class="pref-check"><input type="checkbox" name="pref" value="Instagram" /> Instagram</label>
-              </div>
+              <label for="fg-uf">UF</label>
+              <select id="fg-uf" name="uf" class="form-select">
+                <option value="">Selecione</option>
+                {["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].map((uf) => (
+                  <option value={uf}>{uf}</option>
+                ))}
+              </select>
             </div>
           </div>
           <div class="campo">
-            <label for="fg-espec">Especialidades</label>
-            <input type="text" id="fg-espec" name="especialidades" placeholder="Ex.: escalada esportiva, boulder" />
+            <span class="campo-label">Melhor contato para divulgarmos</span>
+            <div class="pref-opcoes">
+              <label class="pref-check"><input type="checkbox" name="pref" value="WhatsApp" /> WhatsApp</label>
+              <label class="pref-check"><input type="checkbox" name="pref" value="Instagram" /> Instagram</label>
+            </div>
+          </div>
+          <div class="campo">
+            <span class="campo-label">Especialidades</span>
+            <div class="pref-opcoes">
+              {["Escalada esportiva","Escalada tradicional","Boulder","Escalada indoor","Montanhismo","Alpinismo","Escalada em gelo","Trekking","Canionismo"].map((esp) => (
+                <label class="pref-check"><input type="checkbox" name="especialidade" value={esp} /> {esp}</label>
+              ))}
+            </div>
+            <input type="text" id="fg-espec-outra" name="especialidade_outra" placeholder="Outra especialidade (opcional)" />
+          </div>
+          <div class="campo">
+            <label for="fg-certificacao">Certificação (opcional)</label>
+            <input type="text" id="fg-certificacao" name="certificacao" placeholder="Ex.: Guia CANMOD, AGB, instrutor de ginásio..." />
+          </div>
+          <div class="campo">
+            <label for="fg-foto">Foto (opcional)</label>
+            <input type="file" id="fg-foto" name="foto" accept="image/png, image/jpeg, image/webp" />
+            <small class="campo-ajuda">Aparece no seu card na página de guias. Até 5 MB.</small>
           </div>
           <div class="campo">
             <label for="fg-locais">Em quais locais você atua?</label>
-            <input
-              type="text"
-              id="fg-locais"
-              name="locais_interesse"
-              placeholder="Ex.: Pedra do Baú, Gruta do Baú"
-            />
-            <small class="campo-ajuda">Pode listar mais de um, separados por vírgula. Usamos isso pra te mostrar na página de cada local.</small>
+            <select id="fg-locais" name="locais_ids" multiple size="5" class="form-select">
+              {locais?.map((l) => <option value={l.id}>{l.nome}</option>)}
+            </select>
+            <small class="campo-ajuda">Segure Ctrl (ou Cmd no Mac) pra selecionar mais de um local. Usamos isso pra te mostrar na página de cada local.</small>
           </div>
           <div class="campo">
-            <label for="fg-msg">Mensagem</label>
-            <textarea id="fg-msg" name="mensagem" rows="4" placeholder="Conte um pouco sobre você e os cursos que oferece"></textarea>
+            <label for="fg-bio">Sobre você (aparece na sua página pública)</label>
+            <textarea id="fg-bio" name="bio" rows="3" placeholder="Conte um pouco sobre sua experiência e os cursos que oferece"></textarea>
+          </div>
+          <div class="campo">
+            <label for="fg-msg">Mensagem pra equipe Climbeiros (opcional, não aparece no site)</label>
+            <textarea id="fg-msg" name="mensagem" rows="3" placeholder="Algo que só a gente precise saber"></textarea>
           </div>
           <label class="cupom-toggle">
             <input type="checkbox" name="tem_cupom" id="tem-cupom" />
@@ -272,17 +306,48 @@ function waLink(num) {
     const prefContato = Array.from(form.querySelectorAll('input[name="pref"]:checked'))
       .map((el) => el.value)
       .join(', ');
+    // Especialidades marcadas + a de texto livre, se preenchida
+    const especialidades = Array.from(form.querySelectorAll('input[name="especialidade"]:checked'))
+      .map((el) => el.value);
+    const especialidadeOutra = (form.querySelector('#fg-espec-outra')?.value || '').trim();
+    if (especialidadeOutra) especialidades.push(especialidadeOutra);
+    // Locais selecionados no dropdown múltiplo
+    const locaisSelect = form.querySelector('#fg-locais');
+    const locaisIds = locaisSelect ? Array.from(locaisSelect.selectedOptions).map((o) => o.value) : [];
+
     btn.setAttribute('disabled', '');
     status.textContent = 'Enviando...';
+
+    // Foto (opcional): sobe pro bucket público "fotos-guias" antes de gravar a inscrição
+    let fotoUrl = null;
+    const arquivoFoto = form.querySelector('#fg-foto')?.files?.[0];
+    if (arquivoFoto) {
+      if (arquivoFoto.size > 5 * 1024 * 1024) {
+        status.textContent = 'A foto passou de 5 MB — escolha uma menor ou deixe o campo em branco.';
+        btn.removeAttribute('disabled');
+        return;
+      }
+      const extensao = arquivoFoto.name.split('.').pop();
+      const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extensao}`;
+      const { error: erroUpload } = await supabase.storage.from('fotos-guias').upload(nomeArquivo, arquivoFoto);
+      if (!erroUpload) {
+        fotoUrl = supabase.storage.from('fotos-guias').getPublicUrl(nomeArquivo).data.publicUrl;
+      }
+    }
+
     const { error } = await supabase.from('inscricoes_guias').insert([{
       nome: dados.nome,
       email: dados.email,
       telefone: dados.telefone || null,
       instagram: dados.instagram || null,
       contato_pref: prefContato || null,
-      cidade_uf: dados.cidade_uf || null,
-      especialidades: dados.especialidades || null,
-      locais_interesse: dados.locais_interesse || null,
+      cidade: dados.cidade || null,
+      uf: dados.uf || null,
+      especialidades_lista: especialidades,
+      certificacao: dados.certificacao || null,
+      foto_url: fotoUrl,
+      bio: dados.bio || null,
+      locais_ids: locaisIds,
       mensagem: dados.mensagem || null,
       tem_cupom: temCupom ? 'Sim' : 'Não',
       cupom_codigo: temCupom ? (dados.cupom_codigo || null) : null,
@@ -322,6 +387,8 @@ function waLink(num) {
   .lbl { font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: .72rem; color: var(--laranja); margin-bottom: 9px; }
   .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
   .tag { font-weight: 600; text-transform: uppercase; letter-spacing: .03em; font-size: .8rem; background: var(--creme-claro); color: var(--verde-escuro); border: 1px solid #e0d6bd; padding: 4px 11px; border-radius: 30px; }
+  .cert { font-size: .85rem; color: #4a4033; margin: 0 0 14px; }
+  .bio { font-size: .9rem; color: #4a4033; margin: 0 0 18px; line-height: 1.5; }
   .courses { list-style: none; margin-bottom: 22px; display: flex; flex-direction: column; gap: 9px; flex: 1; padding: 0; }
   .courses li { display: flex; gap: 10px; font-size: .95rem; color: #4a4033; align-items: flex-start; }
   .courses li::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 2px; background: var(--amarelo); margin-top: 8px; transform: rotate(45deg); }

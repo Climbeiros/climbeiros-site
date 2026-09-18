@@ -3,9 +3,12 @@
 // Página de um Local (ex: "Pedra da Divisa"): como chegar em geral, a lista de
 // setores (agrupados por lado quando houver), e os blocos que valem para o
 // lugar como um todo: hospedagens próximas, guias que atuam ali, e avaliações
-// da comunidade (nota + comentário + fotos + link de vídeo). Site estático:
-// depois de aprovar hospedagem/guia/avaliação no Supabase, é preciso rodar um
-// novo deploy na Vercel pra aparecer aqui.
+// da comunidade (nota + comentário + fotos + link de vídeo). Hospedagens e
+// guias vêm direto de "inscricoes_hospedagens"/"inscricoes_guias" — não existe
+// mais tabela curada separada; aprovar no painel de pendências já deixa a
+// linha visível aqui (RLS filtra processado=true e rejeitado=false). Site
+// estático: depois de aprovar, é preciso um novo deploy na Vercel pra aparecer
+// aqui (o painel já dispara isso sozinho).
 import Layout from '../../../layouts/Layout.astro';
 import { supabase } from '../../../lib/supabase';
 import type {
@@ -52,14 +55,21 @@ const lados = nomesLados.map((lado) => ({
 // Hospedagens, guias e avaliações são vinculados ao Local (não mais ao setor
 // específico), já que uma hospedagem/guia costuma atender o lugar inteiro.
 const { data: hospedagens } = local
-  ? await supabase.from('hospedagens').select('*').eq('publicado', true).order('ordem') as { data: Hospedagem[] | null }
+  ? await supabase.from('inscricoes_hospedagens').select('*').order('ordem') as { data: Hospedagem[] | null }
   : { data: null };
 const hospedagensDoLocal = (hospedagens ?? []).filter((h) => (h.locais_ids ?? []).includes(local?.id ?? ''));
 
 const { data: guias } = local
-  ? await supabase.from('guias').select('*').eq('publicado', true).order('ordem') as { data: Guia[] | null }
+  ? await supabase.from('inscricoes_guias').select('*').order('ordem') as { data: Guia[] | null }
   : { data: null };
 const guiasDoLocal = (guias ?? []).filter((g) => (g.locais_ids ?? []).includes(local?.id ?? ''));
+
+// Lista completa de locais, pra oferecer no dropdown do formulário de
+// cadastro de hospedagem (já vem pré-selecionado o local desta página).
+const { data: todosLocais } = await supabase
+  .from('locais')
+  .select('id, nome')
+  .order('nome') as { data: { id: string; nome: string }[] | null };
 
 const { data: avaliacoes } = local
   ? await supabase
@@ -145,7 +155,7 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
                 <li class="hospedagem-item">
                   <strong>{h.nome}</strong>
                   {h.distancia && <span class="hospedagem-item__distancia"> · {h.distancia}</span>}
-                  {h.tem_desconto && (
+                  {h.tem_desconto === 'Sim' && (
                     <span class="hospedagem-item__desconto">🎟️ Desconto Climbeiros{h.desconto_desc ? `: ${h.desconto_desc}` : ''}</span>
                   )}
                   <div class="hospedagem-item__contato">
@@ -187,8 +197,12 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
               </div>
               <label>
                 Locais que atende
-                <input type="text" name="locais_interesse" value={local.nome} />
-                <small>Se atender mais de um local, pode listar todos aqui, separados por vírgula.</small>
+                <select name="locais_ids" id="hp-locais" multiple size="5">
+                  {(todosLocais ?? []).map((l) => (
+                    <option value={l.id} selected={l.id === local.id}>{l.nome}</option>
+                  ))}
+                </select>
+                <small>Já vem selecionado este local. Segure Ctrl (ou Cmd no Mac) pra marcar mais de um.</small>
               </label>
               <label class="cupom-toggle">
                 <input type="checkbox" name="tem_desconto" id="hp-tem-desconto" />
@@ -223,11 +237,11 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
               {guiasDoLocal.map((g) => (
                 <li class="guia-item">
                   <strong>{g.nome}</strong>
-                  {g.especialidades && g.especialidades.length > 0 && (
-                    <span class="guia-item__espec"> · {g.especialidades.join(', ')}</span>
+                  {g.especialidades_lista && g.especialidades_lista.length > 0 && (
+                    <span class="guia-item__espec"> · {g.especialidades_lista.join(', ')}</span>
                   )}
                   <div class="guia-item__contato">
-                    {g.whatsapp && <a href={`https://wa.me/${g.whatsapp}`} target="_blank" rel="noopener">WhatsApp</a>}
+                    {g.telefone && <a href={`https://wa.me/${g.telefone}`} target="_blank" rel="noopener">WhatsApp</a>}
                     {g.instagram && <a href={`https://instagram.com/${g.instagram}`} target="_blank" rel="noopener">Instagram</a>}
                   </div>
                 </li>
@@ -508,13 +522,15 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
     statusHosp.textContent = 'Enviando...';
 
     const temDesconto = (dados.get('tem_desconto') as string) === 'on';
+    const selectLocais = formHosp.querySelector('#hp-locais') as HTMLSelectElement | null;
+    const locaisIds = selectLocais ? Array.from(selectLocais.selectedOptions).map((o) => o.value) : [];
 
     const { error } = await supabase.from('inscricoes_hospedagens').insert([{
       nome: dados.get('nome'),
       contato_reserva: dados.get('contato_reserva'),
       link_reserva: dados.get('link_reserva') || null,
       distancia: dados.get('distancia') || null,
-      locais_interesse: dados.get('locais_interesse') || null,
+      locais_ids: locaisIds,
       tem_desconto: temDesconto ? 'Sim' : 'Não',
       desconto_codigo: temDesconto ? (dados.get('desconto_codigo') || null) : null,
       desconto_desc: temDesconto ? (dados.get('desconto_desc') || null) : null,
@@ -773,7 +789,7 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
     color: var(--verde-escuro);
     letter-spacing: 0.03em;
   }
-  .form-hospedagem input, .form-hospedagem textarea,
+  .form-hospedagem input, .form-hospedagem textarea, .form-hospedagem select,
   .form-avaliacao input, .form-avaliacao textarea {
     font-family: var(--fonte-corpo);
     font-size: 0.9rem;
