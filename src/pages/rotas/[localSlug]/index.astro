@@ -479,10 +479,12 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
               const icone = iconePorCodigo(codigos[i]);
               return `
                 <div class="previsao__dia">
-                  <span class="previsao__dia-nome">${nomeDia}</span>
-                  <span class="previsao__dia-icone" aria-hidden="true">${icone}</span>
-                  <span class="previsao__dia-temp">${max}° <span class="previsao__dia-min">${min}°</span></span>
-                  <span class="previsao__dia-chuva">${chuva}%</span>
+                  <span class="previsao__dia-topo">
+                    <span class="previsao__dia-nome">${nomeDia}</span>
+                    <span class="previsao__dia-icone" aria-hidden="true">${icone}</span>
+                  </span>
+                  <span class="previsao__dia-temp">${max}°<span class="previsao__dia-min">/${min}°</span></span>
+                  <span class="previsao__dia-chuva${chuva > 0 ? '' : ' previsao__dia-chuva--vazia'}">${chuva > 0 ? `☂ ${chuva}%` : '–'}</span>
                 </div>
               `;
             }).join('')}
@@ -680,36 +682,38 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
   .previsao__carregando, .previsao__erro { opacity: 0.65; font-style: italic; font-size: 0.9rem; }
   .previsao__dias {
     display: flex;
-    gap: 12px;
+    gap: 6px;
     overflow-x: auto;
-    padding: 4px 4px 14px;
-    margin: 0 -4px;
+    padding: 2px 2px 8px;
+    margin: 0 -2px;
     scroll-snap-type: x proximity;
     scrollbar-width: thin;
     scrollbar-color: var(--laranja) transparent;
     -webkit-overflow-scrolling: touch;
   }
-  .previsao__dias::-webkit-scrollbar { height: 5px; }
+  .previsao__dias::-webkit-scrollbar { height: 4px; }
   .previsao__dias::-webkit-scrollbar-track { background: transparent; }
   .previsao__dias::-webkit-scrollbar-thumb { background: var(--laranja); border-radius: 10px; opacity: 0.6; }
   .previsao__dia {
     scroll-snap-align: start;
-    flex: 0 0 auto;
-    min-width: 84px;
+    flex: 1 1 0;
+    min-width: 56px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 2px;
     background: var(--creme-claro);
-    border-radius: var(--raio, 10px);
-    padding: 12px 10px;
+    border-radius: 8px;
+    padding: 6px 4px;
     font-size: 0.85rem;
   }
-  .previsao__dia-nome { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.03em; color: var(--verde-escuro); }
-  .previsao__dia-icone { font-size: 1.4rem; color: var(--laranja); line-height: 1; }
-  .previsao__dia-temp { font-weight: 600; color: var(--marrom); }
+  .previsao__dia-topo { display: flex; align-items: center; gap: 4px; }
+  .previsao__dia-nome { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.6rem; letter-spacing: 0.02em; color: var(--verde-escuro); }
+  .previsao__dia-icone { font-size: 0.95rem; color: var(--laranja); line-height: 1; }
+  .previsao__dia-temp { font-size: 0.78rem; font-weight: 600; color: var(--marrom); }
   .previsao__dia-min { font-weight: 400; opacity: 0.6; }
-  .previsao__dia-chuva { font-size: 0.72rem; opacity: 0.75; color: var(--verde-escuro); }
+  .previsao__dia-chuva { font-size: 0.6rem; opacity: 0.75; color: var(--verde-escuro); }
+  .previsao__dia-chuva--vazia { opacity: 0.35; }
   .previsao__fonte { font-size: 0.72rem; opacity: 0.6; margin-top: 8px; }
 
   .bloco { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(42, 31, 22, 0.12); }
