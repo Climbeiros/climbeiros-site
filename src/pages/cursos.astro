@@ -22,9 +22,18 @@ const { data: cursos } = await supabase
 // e pra dar a lista de nomes conhecidos no campo do formulário de inscrição.
 const { data: locais } = await supabase
   .from("locais")
-  .select("id, nome")
+  .select("id, nome, cidade, estado")
+  .order("estado", { ascending: true })
   .order("nome", { ascending: true });
 const locaisPorId = new Map((locais ?? []).map((l) => [l.id, l.nome]));
+// Agrupa os locais por estado só pra organizar o <select> do formulário
+// (fica mais fácil de achar o local em vez de uma lista única de 20+ itens).
+const locaisPorEstado = new Map();
+for (const l of locais ?? []) {
+  const estado = l.estado || "Outros";
+  if (!locaisPorEstado.has(estado)) locaisPorEstado.set(estado, []);
+  locaisPorEstado.get(estado).push(l);
+}
 function nomesDosLocais(locaisIds) {
   return (locaisIds ?? []).map((id) => locaisPorId.get(id)).filter(Boolean);
 }
@@ -233,10 +242,19 @@ function waLink(num) {
           </div>
           <div class="campo">
             <label for="fg-locais">Em quais locais você atua?</label>
-            <select id="fg-locais" name="locais_ids" multiple size="5" class="form-select">
-              {locais?.map((l) => <option value={l.id}>{l.nome}</option>)}
+            <select id="fg-locais" name="locais_ids" multiple size="6" class="form-select">
+              {Array.from(locaisPorEstado.entries()).map(([estado, lista]) => (
+                <optgroup label={estado}>
+                  {lista.map((l) => <option value={l.id}>{l.nome}</option>)}
+                </optgroup>
+              ))}
             </select>
             <small class="campo-ajuda">Segure Ctrl (ou Cmd no Mac) pra selecionar mais de um local. Usamos isso pra te mostrar na página de cada local.</small>
+          </div>
+          <div class="campo">
+            <label for="fg-locais-outro">Atua em algum local que não está na lista?</label>
+            <textarea id="fg-locais-outro" name="locais_outro" rows="2" placeholder="Escreva aqui o nome do local, cidade e estado. Ainda estamos cadastrando as rotas do site, então é normal seu local não aparecer ainda."></textarea>
+            <small class="campo-ajuda">Não precisa se preocupar em não achar seu local na lista acima, isso não trava sua inscrição. A gente usa essa informação pra saber quais locais cadastrar em seguida.</small>
           </div>
           <div class="campo">
             <label for="fg-bio">Sobre você (aparece na sua página pública)</label>
@@ -348,6 +366,7 @@ function waLink(num) {
       foto_url: fotoUrl,
       bio: dados.bio || null,
       locais_ids: locaisIds,
+      locais_interesse: dados.locais_outro || null,
       mensagem: dados.mensagem || null,
       tem_cupom: temCupom ? 'Sim' : 'Não',
       cupom_codigo: temCupom ? (dados.cupom_codigo || null) : null,
