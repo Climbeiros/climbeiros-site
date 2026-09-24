@@ -45,7 +45,7 @@ function ladosDoLocal(localId: string) {
     <div class="container">
       <p class="eyebrow">Onde escalar</p>
       <h1>Rotas & Setores</h1>
-      <p>Explore os locais de escalada catalogados pela comunidade. Cada local pode ter um ou mais setores, cada um com croqui e dicas de acesso; hospedagens, guias e avaliações ficam na página do local. Clique num pin do mapa, busque por cidade/CEP, ou filtre por tipo e estado.</p>
+      <p>Explore os locais de escalada catalogados pela comunidade. Cada local pode ter um ou mais setores, cada um com croqui e dicas de acesso; hospedagens, guias e avaliações ficam na página do local. Clique num pin do mapa, busque pelo nome do local, cidade ou CEP, ou filtre por tipo e estado.</p>
 
       {locais && locais.length > 0 && (
         <>
@@ -53,8 +53,8 @@ function ladosDoLocal(localId: string) {
             <input
               type="text"
               id="busca-cidade"
-              placeholder="Buscar por cidade ou CEP..."
-              aria-label="Buscar locais por cidade ou CEP"
+              placeholder="Buscar por nome do local, cidade ou CEP..."
+              aria-label="Buscar locais por nome, cidade ou CEP"
             />
             <button type="button" id="busca-botao" class="botao">Buscar</button>
             <button type="button" id="busca-limpar" class="botao botao--secundario" hidden>Limpar</button>
@@ -106,6 +106,7 @@ function ladosDoLocal(localId: string) {
               class="setor-card"
               id={`local-${local.id}`}
               data-cidade={(local.cidade || '').toLowerCase()}
+              data-nome={(local.nome || '').toLowerCase()}
               data-estado={local.estado || ''}
               data-tipos={(local.tipos || []).join('|')}
             >
@@ -198,10 +199,10 @@ function ladosDoLocal(localId: string) {
   const filtroTipo = document.getElementById('filtro-tipo');
   const filtroEstado = document.getElementById('filtro-estado');
 
-  // Aplica busca de cidade + filtros de tipo/estado juntos. Um card só fica
+  // Aplica busca de nome/cidade + filtros de tipo/estado juntos. Um card só fica
   // visível se bater com os três critérios (cada um vazio conta como "vale tudo").
-  function aplicarFiltros(termoCidade) {
-    const termo = normalizar(termoCidade || '');
+  function aplicarFiltros(termoBusca) {
+    const termo = normalizar(termoBusca || '');
     const tipoEscolhido = filtroTipo?.value || '';
     const estadoEscolhido = filtroEstado?.value || '';
     let visiveis = 0;
@@ -209,11 +210,12 @@ function ladosDoLocal(localId: string) {
 
     document.querySelectorAll('#lista-setores .setor-card').forEach((card) => {
       const cidadeCard = normalizar(card.dataset.cidade || '');
-      const bateCidade = !termo || cidadeCard.includes(termo);
+      const nomeCard = normalizar(card.dataset.nome || '');
+      const bateTexto = !termo || cidadeCard.includes(termo) || nomeCard.includes(termo);
       const bateEstado = !estadoEscolhido || card.dataset.estado === estadoEscolhido;
       const tiposCard = (card.dataset.tipos || '').split('|').filter(Boolean);
       const bateTipo = !tipoEscolhido || tiposCard.includes(tipoEscolhido);
-      const bate = bateCidade && bateEstado && bateTipo;
+      const bate = bateTexto && bateEstado && bateTipo;
       card.hidden = !bate;
       if (bate) {
         visiveis++;
@@ -258,22 +260,22 @@ function ladosDoLocal(localId: string) {
     }
 
     const somenteNumeros = valor.replace(/\D/g, '');
-    let cidadeParaFiltrar = valor;
+    let termoParaFiltrar = valor;
 
     if (somenteNumeros.length === 8) {
       status.textContent = 'Buscando cidade pelo CEP...';
       const cidade = await buscarCidadePorCep(somenteNumeros);
       if (!cidade) {
-        status.textContent = 'CEP não encontrado. Tente digitar o nome da cidade.';
+        status.textContent = 'CEP não encontrado. Tente digitar o nome do local ou da cidade.';
         return;
       }
-      cidadeParaFiltrar = cidade;
+      termoParaFiltrar = cidade;
     }
 
-    const encontrados = aplicarFiltros(cidadeParaFiltrar);
+    const encontrados = aplicarFiltros(termoParaFiltrar);
     status.textContent = encontrados > 0
-      ? `${encontrados} local(is) encontrado(s) em ${cidadeParaFiltrar}.`
-      : `Nenhum local encontrado em ${cidadeParaFiltrar} ainda.`;
+      ? `${encontrados} local(is) encontrado(s) para "${termoParaFiltrar}".`
+      : `Nenhum local encontrado para "${termoParaFiltrar}" ainda.`;
     botaoLimpar?.removeAttribute('hidden');
   }
 
