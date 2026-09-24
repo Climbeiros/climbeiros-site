@@ -1,0 +1,22 @@
+---
+// src/components/AvisoConstrucao.astro
+// Aviso usado nas páginas de Rotas & Setores (lista, local e setor) avisando
+// que o catálogo ainda está em construção, e convidando a comunidade a
+// mandar sugestões pelo botão de feedback (ver BotaoFeedback.astro).
+---
+<p class="aviso-construcao">
+  🚧 Essa página está em construção, estamos catalogando os locais aos poucos. Notou algo errado, faltando ou tem uma sugestão? Fica à vontade pra mandar pra gente pelo botão de feedback, no canto da tela.
+</p>
+
+<style>
+  .aviso-construcao {
+    background: var(--creme-claro);
+    border: 1px dashed rgba(218, 115, 38, 0.5);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    color: var(--marrom);
+    opacity: 0.9;
+    margin: 16px 0;
+  }
+</style>

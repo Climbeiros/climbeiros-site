@@ -8,6 +8,8 @@
 import Layout from '../../../layouts/Layout.astro';
 import { supabase } from '../../../lib/supabase';
 import type { Local, Setor, Croqui } from '../../../lib/supabase';
+import AvisoConstrucao from '../../../components/AvisoConstrucao.astro';
+import BotaoFeedback from '../../../components/BotaoFeedback.astro';
 
 export async function getStaticPaths() {
   const { data: setores } = await supabase
@@ -59,6 +61,8 @@ const encontrado = Boolean(local && setor && setor.local_id === local.id);
           {[setor.regiao, setor.cidade, setor.estado].filter(Boolean).join(' · ')}
         </p>
 
+        <AvisoConstrucao />
+
         {setor.descricao && <p class="setor-detalhe__descricao">{setor.descricao}</p>}
 
         {setor.como_chegar && (
@@ -97,6 +101,7 @@ const encontrado = Boolean(local && setor && setor.local_id === local.id);
       <a href="/rotas">Voltar para Rotas & Setores</a>
     </div>
   )}
+  {encontrado && setor && <BotaoFeedback pagina={`Setor: ${setor.nome}`} />}
 </Layout>
 
 <style>

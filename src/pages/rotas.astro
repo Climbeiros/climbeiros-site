@@ -2,6 +2,8 @@
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 import type { Local, Setor } from '../lib/supabase';
+import AvisoConstrucao from '../components/AvisoConstrucao.astro';
+import BotaoFeedback from '../components/BotaoFeedback.astro';
 
 const { data: locais } = await supabase
   .from('locais')
@@ -46,6 +48,8 @@ function ladosDoLocal(localId: string) {
       <p class="eyebrow">Onde escalar</p>
       <h1>Rotas & Setores</h1>
       <p>Explore os locais de escalada catalogados pela comunidade. Cada local pode ter um ou mais setores, cada um com croqui e dicas de acesso; hospedagens, guias e avaliações ficam na página do local. Clique num pin do mapa, busque pelo nome do local, cidade ou CEP, ou filtre por tipo e estado.</p>
+
+      <AvisoConstrucao />
 
       {locais && locais.length > 0 && (
         <>
@@ -171,6 +175,7 @@ function ladosDoLocal(localId: string) {
       </div>
     </div>
   </section>
+  <BotaoFeedback pagina="Rotas & Setores (lista)" />
 </Layout>
 
 <script type="application/json" id="dados-locais" set:html={JSON.stringify(locaisComCoordenadas)}></script>

@@ -19,6 +19,8 @@ import type {
   AvaliacaoLocalPublica,
   FotoAvaliacaoLocalPublica,
 } from '../../../lib/supabase';
+import AvisoConstrucao from '../../../components/AvisoConstrucao.astro';
+import BotaoFeedback from '../../../components/BotaoFeedback.astro';
 
 export async function getStaticPaths() {
   const { data: locais } = await supabase
@@ -121,6 +123,8 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
           >↗ Compartilhar</button>
         </div>
         <p class="local-detalhe__local">{[local.regiao, local.cidade, local.estado].filter(Boolean).join(' · ')}</p>
+
+        <AvisoConstrucao />
 
         {local.tipos && local.tipos.length > 0 && (
           <div class="local-detalhe__tags">
@@ -408,6 +412,7 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
       <a href="/rotas">Voltar para Rotas & Setores</a>
     </div>
   )}
+  {local && <BotaoFeedback pagina={`Local: ${local.nome}`} />}
 </Layout>
 
 <script>
