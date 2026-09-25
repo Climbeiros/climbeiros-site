@@ -9,6 +9,7 @@
 // Vercel pra publicar (o painel já dispara isso sozinho).
 import Layout from "../layouts/Layout.astro";
 import { supabase } from "../lib/supabase";
+import { linkInstagram, usuarioInstagram, linkWhatsApp } from "../lib/contatos";
 const { data: guias } = await supabase
   .from("inscricoes_guias")
   .select("*")
@@ -52,10 +53,29 @@ function nivelClasse(nivel) {
   if (n.includes("avan")) return "lv-adv";
   return "lv-all";
 }
-function waLink(num) {
-  const only = (num || "").replace(/\D/g, "");
-  return only ? `https://wa.me/${only}` : null;
+// Tira acentos e deixa minúsculo, pra busca achar "sao paulo" em "São Paulo".
+function normalizar(texto) {
+  return (texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
+// Deixa a cidade com a primeira letra de cada palavra maiúscula, pra
+// "teresópolis" e "Teresópolis" virarem uma opção só no filtro.
+function capitalizar(texto) {
+  const minusculas = ["de", "da", "do", "das", "dos", "e"];
+  return (texto || "").trim().toLowerCase().split(/\s+/)
+    .map((p, i) => (i > 0 && minusculas.includes(p)) ? p : p.charAt(0).toUpperCase() + p.slice(1))
+    .join(" ");
+}
+// Opções dos filtros: só o que realmente existe nos guias cadastrados.
+const especialidadesDisponiveis = [...new Set((guias ?? []).flatMap((g) => g.especialidades_lista ?? []).map((e) => e.trim()).filter(Boolean))]
+  .sort((a, b) => a.localeCompare(b, "pt-BR"));
+const estadosDisponiveis = [...new Set((guias ?? []).map((g) => (g.uf || "").trim().toUpperCase()).filter(Boolean))].sort();
+const cidadesMap = new Map();
+for (const g of guias ?? []) {
+  if (!g.cidade) continue;
+  const chave = normalizar(g.cidade) + "|" + (g.uf || "").toUpperCase();
+  if (!cidadesMap.has(chave)) cidadesMap.set(chave, { nome: capitalizar(g.cidade), chave: normalizar(g.cidade), uf: (g.uf || "").toUpperCase() });
+}
+const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 ---
 <Layout titulo="Guias & Cursos" descricao="Guias/instrutores de escalada e montanhismo indicados pela comunidade Climbeiros.">
   <section class="secao">
@@ -83,12 +103,61 @@ function waLink(num) {
       {(!guias || guias.length === 0) && (
         <p class="vazio">Em breve nossa rede de guias estará por aqui. 🧗</p>
       )}
+      {guias && guias.length > 0 && (
+        <div class="busca-guias">
+          <input
+            type="search"
+            id="busca-guia"
+            placeholder="Buscar guia por nome, cidade ou especialidade..."
+            aria-label="Buscar guia por nome, cidade ou especialidade"
+          />
+          <div class="filtros">
+            {especialidadesDisponiveis.length > 0 && (
+              <label class="filtro-campo">
+                Especialidade
+                <select id="filtro-espec">
+                  <option value="">Todas</option>
+                  {especialidadesDisponiveis.map((e) => <option value={normalizar(e)}>{e}</option>)}
+                </select>
+              </label>
+            )}
+            {estadosDisponiveis.length > 0 && (
+              <label class="filtro-campo">
+                Estado
+                <select id="filtro-uf">
+                  <option value="">Todos</option>
+                  {estadosDisponiveis.map((uf) => <option value={uf}>{uf}</option>)}
+                </select>
+              </label>
+            )}
+            {cidadesDisponiveis.length > 0 && (
+              <label class="filtro-campo">
+                Cidade
+                <select id="filtro-cidade">
+                  <option value="">Todas</option>
+                  {cidadesDisponiveis.map((c) => <option value={c.chave} data-uf={c.uf}>{c.nome}{c.uf ? ` (${c.uf})` : ""}</option>)}
+                </select>
+              </label>
+            )}
+            <button type="button" id="filtro-limpar" class="botao botao--secundario" hidden>Limpar</button>
+          </div>
+          <p id="busca-guia-status" class="busca-status" role="status"></p>
+        </div>
+      )}
       <div class="guides">
         {guias?.map((g) => (
-          <article class="guide">
+          <article
+            class="guide"
+            data-busca={normalizar([g.nome, g.cidade, g.uf, ...(g.especialidades_lista ?? []), ...nomesDosLocais(g.locais_ids)].filter(Boolean).join(" "))}
+            data-espec={(g.especialidades_lista ?? []).map((e) => normalizar(e)).join("|")}
+            data-uf={(g.uf || "").trim().toUpperCase()}
+            data-cidade={normalizar(g.cidade)}
+          >
             <div class="head">
               {g.foto_url ? (
-                <img class="photo-img" src={g.foto_url} alt={g.nome} />
+                <button type="button" class="photo-btn" data-foto={g.foto_url} data-nome={g.nome} aria-label={`Ampliar foto de ${g.nome}`}>
+                  <img class="photo-img" src={g.foto_url} alt={g.nome} />
+                </button>
               ) : (
                 <div class="photo">{iniciais(g.nome)}</div>
               )}
@@ -133,11 +202,11 @@ function waLink(num) {
                 </>
               )}
               <div class="contact">
-                {waLink(g.telefone) && (
-                  <a class="cbtn c-wa" href={waLink(g.telefone)} target="_blank" rel="noopener">WhatsApp</a>
+                {linkWhatsApp(g.telefone) && (
+                  <a class="cbtn c-wa" href={linkWhatsApp(g.telefone)} target="_blank" rel="noopener">WhatsApp</a>
                 )}
-                {g.instagram && (
-                  <a class="cbtn c-ig" href={`https://instagram.com/${g.instagram}`} target="_blank" rel="noopener">@{g.instagram}</a>
+                {usuarioInstagram(g.instagram) && (
+                  <a class="cbtn c-ig" href={linkInstagram(g.instagram)} target="_blank" rel="noopener">@{usuarioInstagram(g.instagram)}</a>
                 )}
                 {g.email && <a class="cbtn c-em" href={`mailto:${g.email}`}>E-mail</a>}
               </div>
@@ -145,6 +214,7 @@ function waLink(num) {
           </article>
         ))}
       </div>
+      <p class="vazio" id="sem-resultado" hidden>Nenhum guia encontrado com esses filtros. Tente limpar a busca.</p>
       <p class="safety">
         Os guias/instrutores são profissionais independentes. Os Climbeiros fazem a ponte entre
         você e eles; a contratação, os valores e a responsabilidade pelo curso são
@@ -284,9 +354,16 @@ function waLink(num) {
       </div>
     </div>
   </section>
+  <!-- Foto ampliada do guia (abre ao clicar na foto do card) -->
+  <dialog class="foto-modal" id="foto-modal" aria-label="Foto do guia">
+    <button type="button" class="foto-fechar" id="foto-fechar" aria-label="Fechar">×</button>
+    <img id="foto-modal-img" src="" alt="" />
+    <p id="foto-modal-nome" class="foto-nome"></p>
+  </dialog>
 </Layout>
 <script>
   import { supabase } from '../lib/supabase';
+  import { usuarioInstagram } from '../lib/contatos';
   const form = document.getElementById('form-guia');
   const status = document.getElementById('form-guia-status');
   const btn = document.getElementById('btn-enviar-guia');
@@ -357,7 +434,7 @@ function waLink(num) {
       nome: dados.nome,
       email: dados.email,
       telefone: dados.telefone || null,
-      instagram: dados.instagram || null,
+      instagram: usuarioInstagram(dados.instagram),
       contato_pref: prefContato || null,
       cidade: dados.cidade || null,
       uf: dados.uf || null,
@@ -387,6 +464,88 @@ function waLink(num) {
   chkCupom?.addEventListener('change', () => {
     if (campoCupom) campoCupom.hidden = !chkCupom.checked;
   });
+
+  // ---------- BUSCA E FILTROS DE GUIAS ----------
+  // Tudo acontece no navegador: os cards já estão na página, a gente só
+  // esconde os que não batem com a busca e os filtros escolhidos.
+  const normalizar = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const campoBusca = document.getElementById('busca-guia');
+  const filtroEspec = document.getElementById('filtro-espec');
+  const filtroUf = document.getElementById('filtro-uf');
+  const filtroCidade = document.getElementById('filtro-cidade');
+  const botaoLimpar = document.getElementById('filtro-limpar');
+  const statusBusca = document.getElementById('busca-guia-status');
+  const semResultado = document.getElementById('sem-resultado');
+  const cards = Array.from(document.querySelectorAll('.guides .guide'));
+
+  // Quando escolhe um estado, a lista de cidades mostra só as daquele estado
+  function atualizarCidades() {
+    if (!filtroCidade) return;
+    const uf = filtroUf?.value || '';
+    for (const opt of Array.from(filtroCidade.options)) {
+      if (!opt.value) continue;
+      opt.hidden = !!uf && opt.dataset.uf !== uf;
+    }
+    const escolhida = filtroCidade.selectedOptions[0];
+    if (escolhida && escolhida.hidden) filtroCidade.value = '';
+  }
+
+  function aplicarFiltrosGuias() {
+    const termos = normalizar(campoBusca?.value).split(/\s+/).filter(Boolean);
+    const espec = filtroEspec?.value || '';
+    const uf = filtroUf?.value || '';
+    const cidade = filtroCidade?.value || '';
+    let visiveis = 0;
+    for (const card of cards) {
+      const d = card.dataset;
+      const ok =
+        termos.every((t) => (d.busca || '').includes(t)) &&
+        (!espec || (d.espec || '').split('|').includes(espec)) &&
+        (!uf || d.uf === uf) &&
+        (!cidade || d.cidade === cidade);
+      card.hidden = !ok;
+      if (ok) visiveis++;
+    }
+    const filtrando = termos.length > 0 || espec || uf || cidade;
+    if (botaoLimpar) botaoLimpar.hidden = !filtrando;
+    if (semResultado) semResultado.hidden = visiveis > 0;
+    if (statusBusca) {
+      statusBusca.textContent = filtrando && visiveis > 0
+        ? `${visiveis} ${visiveis === 1 ? 'guia encontrado' : 'guias encontrados'}`
+        : '';
+    }
+  }
+
+  campoBusca?.addEventListener('input', aplicarFiltrosGuias);
+  filtroEspec?.addEventListener('change', aplicarFiltrosGuias);
+  filtroCidade?.addEventListener('change', aplicarFiltrosGuias);
+  filtroUf?.addEventListener('change', () => { atualizarCidades(); aplicarFiltrosGuias(); });
+  botaoLimpar?.addEventListener('click', () => {
+    if (campoBusca) campoBusca.value = '';
+    if (filtroEspec) filtroEspec.value = '';
+    if (filtroUf) filtroUf.value = '';
+    if (filtroCidade) filtroCidade.value = '';
+    atualizarCidades();
+    aplicarFiltrosGuias();
+    campoBusca?.focus();
+  });
+
+  // ---------- FOTO AMPLIADA ----------
+  const modal = document.getElementById('foto-modal');
+  const modalImg = document.getElementById('foto-modal-img');
+  const modalNome = document.getElementById('foto-modal-nome');
+  document.querySelectorAll('.photo-btn').forEach((btnFoto) => {
+    btnFoto.addEventListener('click', () => {
+      if (!modal || !modalImg) return;
+      modalImg.src = btnFoto.dataset.foto || '';
+      modalImg.alt = btnFoto.dataset.nome || '';
+      if (modalNome) modalNome.textContent = btnFoto.dataset.nome || '';
+      modal.showModal();
+    });
+  });
+  document.getElementById('foto-fechar')?.addEventListener('click', () => modal?.close());
+  // Clicar fora da foto (no fundo escuro) também fecha
+  modal?.addEventListener('click', (e) => { if (e.target === modal) modal.close(); });
 </script>
 <style>
   .intro { max-width: 720px; margin: 0 auto 8px; text-align: center; }
@@ -399,6 +558,25 @@ function waLink(num) {
   .guide:hover { transform: translateY(-4px); box-shadow: 0 20px 44px -22px rgba(47,66,48,.5); }
   .guide .head { background: linear-gradient(150deg, var(--verde-escuro), var(--marrom)); padding: 24px; color: var(--creme-claro); }
   .guide .photo { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(150deg, #7d9576, #4f6b4a); border: 2px solid var(--creme); display: grid; place-items: center; font-family: var(--fonte-display); font-weight: 700; font-size: 1.6rem; color: var(--creme); margin-bottom: 14px; }
+  .photo-btn { background: none; border: 0; padding: 0; cursor: zoom-in; display: block; border-radius: 50%; }
+  .photo-btn:focus-visible { outline: 2px solid var(--amarelo); outline-offset: 3px; }
+  .photo-btn:hover .photo-img { transform: scale(1.06); }
+  .guide .photo-img { transition: transform .2s; }
+  .guide[hidden] { display: none; }
+  .busca-guias { margin-top: 40px; }
+  .busca-guias input[type="search"] { width: 100%; font-family: var(--fonte-corpo); font-size: 1rem; padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(42,31,22,.25); color: var(--marrom); background: var(--branco); margin-bottom: 14px; }
+  .busca-guias input[type="search"]:focus { outline: 2px solid var(--laranja); border-color: var(--laranja); }
+  .filtros { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px; }
+  .filtro-campo { display: flex; flex-direction: column; gap: 4px; font-family: var(--fonte-display); text-transform: uppercase; font-size: .72rem; letter-spacing: .03em; color: var(--verde-escuro); flex: 1; min-width: 160px; }
+  .filtro-campo select { font-family: var(--fonte-corpo); font-size: .9rem; padding: 9px 10px; border-radius: 8px; border: 1px solid rgba(42,31,22,.25); color: var(--marrom); background: var(--branco); text-transform: none; cursor: pointer; }
+  .busca-status { font-size: .9rem; opacity: .8; min-height: 1.2em; margin: 6px 0 0; }
+  .busca-guias + .guides { margin-top: 24px; }
+  .foto-modal { border: 0; padding: 0; background: transparent; max-width: min(92vw, 720px); max-height: 92vh; overflow: visible; }
+  .foto-modal::backdrop { background: rgba(20,16,10,.82); }
+  .foto-modal img { display: block; max-width: 100%; max-height: 80vh; border-radius: 10px; object-fit: contain; margin: 0 auto; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .foto-nome { color: #fff; text-align: center; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; margin: 12px 0 0; }
+  .foto-fechar { position: absolute; top: -14px; right: -14px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--creme-claro); color: var(--verde-escuro); font-size: 1.5rem; line-height: 1; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  @media (max-width: 600px) { .foto-fechar { top: 6px; right: 6px; } }
   .guide .photo-img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid var(--creme); margin-bottom: 14px; }
   .guide h3 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; font-size: 1.7rem; line-height: 1; color: #fff; }
   .guide .base { font-size: .86rem; color: var(--creme); opacity: .85; margin-top: 4px; }

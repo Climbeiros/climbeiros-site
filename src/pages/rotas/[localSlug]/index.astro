@@ -9,6 +9,7 @@
 // linha visível aqui (RLS filtra processado=true e rejeitado=false). Site
 // estático: depois de aprovar, é preciso um novo deploy na Vercel pra aparecer
 // aqui (o painel já dispara isso sozinho).
+import { linkInstagram, linkWhatsApp } from "../../../lib/contatos";
 import Layout from '../../../layouts/Layout.astro';
 import { supabase } from '../../../lib/supabase';
 import type {
@@ -245,8 +246,8 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
                     <span class="guia-item__espec"> · {g.especialidades_lista.join(', ')}</span>
                   )}
                   <div class="guia-item__contato">
-                    {g.telefone && <a href={`https://wa.me/${g.telefone}`} target="_blank" rel="noopener">WhatsApp</a>}
-                    {g.instagram && <a href={`https://instagram.com/${g.instagram}`} target="_blank" rel="noopener">Instagram</a>}
+                    {linkWhatsApp(g.telefone) && <a href={linkWhatsApp(g.telefone)} target="_blank" rel="noopener">WhatsApp</a>}
+                    {linkInstagram(g.instagram) && <a href={linkInstagram(g.instagram)} target="_blank" rel="noopener">Instagram</a>}
                   </div>
                 </li>
               ))}
