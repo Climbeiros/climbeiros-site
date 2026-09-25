@@ -2,7 +2,6 @@
 import Layout from '../../layouts/Layout.astro';
 import { supabase } from '../../lib/supabase';
 import type { Artigo } from '../../lib/supabase';
-
 export async function getStaticPaths() {
   const { data: artigos } = await supabase
     .from('artigos')
@@ -10,7 +9,6 @@ export async function getStaticPaths() {
     .eq('categoria', 'escalada101') as { data: { slug: string }[] | null };
   return (artigos ?? []).map((a) => ({ params: { slug: a.slug } }));
 }
-
 const { slug } = Astro.params;
 const { data: artigo } = await supabase
   .from('artigos')
@@ -30,8 +28,14 @@ const { data: artigo } = await supabase
           {artigo.resumo && <p class="lead">{artigo.resumo}</p>}
         </div>
       </section>
-
       <div class="artigo-largo" set:html={artigo.conteudo} />
+      <!-- POP-UP DE VÍDEO: abre ao clicar num card de modalidade com data-video -->
+      <div class="video-lightbox" id="video-lightbox" hidden>
+        <button type="button" class="video-lightbox__fechar" id="video-lightbox-fechar" aria-label="Fechar vídeo">&times;</button>
+        <div class="video-lightbox__caixa">
+          <div class="video-lightbox__moldura" id="video-lightbox-moldura"></div>
+        </div>
+      </div>
     </>
   ) : (
     <div class="container secao">
@@ -40,8 +44,152 @@ const { data: artigo } = await supabase
     </div>
   )}
 </Layout>
+<script>
+  // Clique num card de modalidade (.tipo-card com atributo data-video) abre
+  // o vídeo dessa modalidade num pop-up por cima da página. Os cards vêm do
+  // conteúdo do artigo (Supabase, via set:html), então o clique é ligado
+  // depois que a página carrega, varrendo tudo que tiver [data-video].
+  const lightbox = document.getElementById('video-lightbox');
+  const moldura = document.getElementById('video-lightbox-moldura');
+  const btnFechar = document.getElementById('video-lightbox-fechar');
 
+  function extrairIdYoutube(valor) {
+    if (!valor) return null;
+    const v = valor.trim();
+    if (!v) return null;
+    // Já é só o ID (11 caracteres)
+    if (/^[\w-]{11}$/.test(v)) return v;
+    try {
+      const url = new URL(v);
+      if (url.hostname.includes('youtu.be')) return url.pathname.slice(1);
+      if (url.pathname.startsWith('/embed/')) return url.pathname.split('/embed/')[1];
+      if (url.searchParams.get('v')) return url.searchParams.get('v');
+    } catch (e) {
+      // não é uma URL válida — ignora
+    }
+    return null;
+  }
+
+  function abrirVideo(valor, titulo) {
+    if (!lightbox || !moldura) return;
+    const id = extrairIdYoutube(valor);
+    if (id) {
+      moldura.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" title="${titulo || 'Vídeo'}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    } else {
+      moldura.innerHTML = `<p class="video-lightbox__em-breve">Vídeo dessa modalidade em breve! 🎥</p>`;
+    }
+    lightbox.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function fecharVideo() {
+    if (!lightbox || !moldura) return;
+    lightbox.hidden = true;
+    moldura.innerHTML = ''; // para o vídeo ao fechar
+    document.body.style.overflow = '';
+  }
+
+  document.querySelectorAll('.tipo-card[data-video]').forEach((card) => {
+    card.classList.add('tipo-card--clicavel');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    const titulo = card.querySelector('h3')?.textContent || 'vídeo';
+    card.setAttribute('aria-label', `Ver vídeo de ${titulo}`);
+    const abre = () => abrirVideo(card.getAttribute('data-video'), titulo);
+    card.addEventListener('click', abre);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        abre();
+      }
+    });
+  });
+
+  btnFechar?.addEventListener('click', fecharVideo);
+  lightbox?.addEventListener('click', (e) => {
+    if (e.target === lightbox) fecharVideo();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') fecharVideo();
+  });
+</script>
 <style>
   .artigo-largo :global(section.secao) { padding: 56px 0; }
   .artigo-largo :global(section.secao:first-child) { padding-top: 48px; }
+
+  /* Cards de modalidade clicáveis (abrem vídeo) */
+  .artigo-largo :global(.tipo-card--clicavel) {
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .artigo-largo :global(.tipo-card--clicavel:hover),
+  .artigo-largo :global(.tipo-card--clicavel:focus-visible) {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px -14px rgba(42,31,22,.35);
+    outline: none;
+  }
+  .artigo-largo :global(.tipo-card--clicavel:focus-visible) {
+    outline: 2px solid var(--amarelo);
+    outline-offset: 2px;
+  }
+  .artigo-largo :global(.tipo-card--clicavel .tipo-card__topo h3::after) {
+    content: "▶";
+    display: inline-block;
+    margin-left: 8px;
+    font-size: .7em;
+    color: var(--laranja);
+    vertical-align: middle;
+  }
+
+  /* Pop-up do vídeo */
+  .video-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 15, 10, .88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 999;
+  }
+  .video-lightbox__caixa { width: 100%; max-width: 860px; }
+  .video-lightbox__moldura {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 24px 70px -20px rgba(0,0,0,.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .video-lightbox__moldura iframe {
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+  }
+  .video-lightbox__em-breve {
+    color: var(--creme-claro);
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    text-align: center;
+    padding: 0 24px;
+    margin: 0;
+  }
+  .video-lightbox__fechar {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    background: none;
+    border: none;
+    color: var(--creme-claro);
+    font-size: 2.4rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 8px 12px;
+    z-index: 2;
+  }
+  .video-lightbox__fechar:hover,
+  .video-lightbox__fechar:focus-visible { color: var(--amarelo); }
 </style>
