@@ -49,10 +49,14 @@ const { data: artigo } = await supabase
   // o vídeo dessa modalidade num pop-up por cima da página. Os cards vêm do
   // conteúdo do artigo (Supabase, via set:html), então o clique é ligado
   // depois que a página carrega, varrendo tudo que tiver [data-video].
+  //
+  // O valor de data-video aceita dois formatos:
+  //  - um link/ID do YouTube (toca num player embutido do YouTube)
+  //  - um link direto de arquivo de vídeo, por exemplo um .mp4 hospedado
+  //    no Supabase Storage (toca num player de vídeo comum, com controles)
   const lightbox = document.getElementById('video-lightbox');
   const moldura = document.getElementById('video-lightbox-moldura');
   const btnFechar = document.getElementById('video-lightbox-fechar');
-
   function extrairIdYoutube(valor) {
     if (!valor) return null;
     const v = valor.trim();
@@ -69,26 +73,29 @@ const { data: artigo } = await supabase
     }
     return null;
   }
-
   function abrirVideo(valor, titulo) {
     if (!lightbox || !moldura) return;
-    const id = extrairIdYoutube(valor);
-    if (id) {
-      moldura.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" title="${titulo || 'Vídeo'}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    const v = (valor || '').trim();
+    const idYoutube = extrairIdYoutube(v);
+    if (idYoutube) {
+      // Link do YouTube -> player embutido do YouTube
+      moldura.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${idYoutube}?autoplay=1" title="${titulo || 'Vídeo'}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    } else if (v) {
+      // Não é YouTube, mas tem um link preenchido -> trata como arquivo de
+      // vídeo direto (ex.: .mp4 do Supabase Storage) e toca num player normal
+      moldura.innerHTML = `<video controls autoplay playsinline src="${v}">Seu navegador não consegue reproduzir este vídeo.</video>`;
     } else {
       moldura.innerHTML = `<p class="video-lightbox__em-breve">Vídeo dessa modalidade em breve! 🎥</p>`;
     }
     lightbox.hidden = false;
     document.body.style.overflow = 'hidden';
   }
-
   function fecharVideo() {
     if (!lightbox || !moldura) return;
     lightbox.hidden = true;
     moldura.innerHTML = ''; // para o vídeo ao fechar
     document.body.style.overflow = '';
   }
-
   document.querySelectorAll('.tipo-card[data-video]').forEach((card) => {
     card.classList.add('tipo-card--clicavel');
     card.setAttribute('tabindex', '0');
@@ -104,7 +111,6 @@ const { data: artigo } = await supabase
       }
     });
   });
-
   btnFechar?.addEventListener('click', fecharVideo);
   lightbox?.addEventListener('click', (e) => {
     if (e.target === lightbox) fecharVideo();
@@ -116,7 +122,6 @@ const { data: artigo } = await supabase
 <style>
   .artigo-largo :global(section.secao) { padding: 56px 0; }
   .artigo-largo :global(section.secao:first-child) { padding-top: 48px; }
-
   /* Cards de modalidade clicáveis (abrem vídeo) */
   .artigo-largo :global(.tipo-card--clicavel) {
     cursor: pointer;
@@ -140,7 +145,6 @@ const { data: artigo } = await supabase
     color: var(--laranja);
     vertical-align: middle;
   }
-
   /* Pop-up do vídeo */
   .video-lightbox {
     position: fixed;
@@ -166,8 +170,11 @@ const { data: artigo } = await supabase
     align-items: center;
     justify-content: center;
   }
-  .video-lightbox__moldura iframe {
+  .video-lightbox__moldura iframe,
+  .video-lightbox__moldura video {
     position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+    background: #000;
+    object-fit: contain;
   }
   .video-lightbox__em-breve {
     color: var(--creme-claro);
