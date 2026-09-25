@@ -1,183 +1,535 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import { supabase } from '../../lib/supabase';
-import type { Artigo } from '../../lib/supabase';
-export async function getStaticPaths() {
-  const { data: artigos } = await supabase
-    .from('artigos')
-    .select('slug')
-    .eq('categoria', 'escalada101') as { data: { slug: string }[] | null };
-  return (artigos ?? []).map((a) => ({ params: { slug: a.slug } }));
+// src/pages/cursos.astro
+// Página de Guias & Cursos — lê os guias direto de "inscricoes_guias" (o
+// próprio formulário de inscrição é a fonte; não existe mais tabela curada
+// separada) e os cursos de "cursos". O formulário "É guia e quer aparecer
+// aqui?" grava em "inscricoes_guias"; aprovar no painel de pendências já
+// deixa a linha visível aqui (RLS filtra processado=true e rejeitado=false).
+// Site estático: depois de aprovar no painel, é preciso um novo deploy na
+// Vercel pra publicar (o painel já dispara isso sozinho).
+import Layout from "../layouts/Layout.astro";
+import { supabase } from "../lib/supabase";
+const { data: guias } = await supabase
+  .from("inscricoes_guias")
+  .select("*")
+  .order("ordem", { ascending: true });
+const { data: cursos } = await supabase
+  .from("cursos")
+  .select("*")
+  .eq("publicado", true)
+  .order("ordem", { ascending: true });
+// Locais: usados pra mostrar em quais lugares cada guia atua (locais_ids)
+// e pra dar a lista de nomes conhecidos no campo do formulário de inscrição.
+const { data: locais } = await supabase
+  .from("locais")
+  .select("id, nome, cidade, estado")
+  .order("estado", { ascending: true })
+  .order("nome", { ascending: true });
+const locaisPorId = new Map((locais ?? []).map((l) => [l.id, l.nome]));
+// Agrupa os locais por estado só pra organizar o <select> do formulário
+// (fica mais fácil de achar o local em vez de uma lista única de 20+ itens).
+const locaisPorEstado = new Map();
+for (const l of locais ?? []) {
+  const estado = l.estado || "Outros";
+  if (!locaisPorEstado.has(estado)) locaisPorEstado.set(estado, []);
+  locaisPorEstado.get(estado).push(l);
 }
-const { slug } = Astro.params;
-const { data: artigo } = await supabase
-  .from('artigos')
-  .select('*')
-  .eq('slug', slug)
-  .eq('categoria', 'escalada101')
-  .single() as { data: Artigo | null };
+function nomesDosLocais(locaisIds) {
+  return (locaisIds ?? []).map((id) => locaisPorId.get(id)).filter(Boolean);
+}
+const cursosPorGuia = new Map();
+for (const c of cursos ?? []) {
+  if (!cursosPorGuia.has(c.guia_id)) cursosPorGuia.set(c.guia_id, []);
+  cursosPorGuia.get(c.guia_id).push(c);
+}
+function iniciais(nome) {
+  return (nome || "").split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+}
+function nivelClasse(nivel) {
+  const n = (nivel || "").toLowerCase();
+  if (n.includes("inici")) return "lv-ini";
+  if (n.includes("interm")) return "lv-int";
+  if (n.includes("avan")) return "lv-adv";
+  return "lv-all";
+}
+function waLink(num) {
+  const only = (num || "").replace(/\D/g, "");
+  return only ? `https://wa.me/${only}` : null;
+}
 ---
-<Layout titulo={artigo?.titulo || 'Escalada 101'} descricao={artigo?.resumo || undefined}>
-  {artigo ? (
-    <>
-      <section class="pagina-hero">
-        <div class="pagina-hero__contorno" aria-hidden="true"></div>
-        <div class="container pagina-hero__conteudo">
-          <a href="/escalada101" class="eyebrow">Escalada 101</a>
-          <h1>{artigo.titulo}</h1>
-          {artigo.resumo && <p class="lead">{artigo.resumo}</p>}
-        </div>
-      </section>
-      <div class="artigo-largo" set:html={artigo.conteudo} />
-      <!-- POP-UP DE VÍDEO: abre ao clicar num card de modalidade com data-video -->
-      <div class="video-lightbox" id="video-lightbox" hidden>
-        <button type="button" class="video-lightbox__fechar" id="video-lightbox-fechar" aria-label="Fechar vídeo">&times;</button>
-        <div class="video-lightbox__caixa">
-          <div class="video-lightbox__moldura" id="video-lightbox-moldura"></div>
-        </div>
-      </div>
-    </>
-  ) : (
-    <div class="container secao">
-      <h1>Conteúdo não encontrado</h1>
-      <a href="/escalada101">Voltar para Escalada 101</a>
+<Layout titulo="Guias & Cursos" descricao="Guias/instrutores de escalada e montanhismo indicados pela comunidade Climbeiros.">
+  <section class="secao">
+    <div class="container">
+      <p class="eyebrow">Aprenda com quem vive a rocha</p>
+      <h1>Guias &amp; cursos</h1>
+      <p>
+        Conectamos você a guias que conhecemos e confiamos — cada um com sua
+        especialidade. Escolha a modalidade, fale direto com o guia e marque sua
+        próxima subida com segurança.
+      </p>
     </div>
-  )}
+  </section>
+  <!-- LISTA DE GUIAS -->
+  <section class="secao">
+    <div class="container">
+      <div class="intro">
+        <div class="k">Nossa rede de guias</div>
+        <h2>Escolha por especialidade</h2>
+        <p>
+          Todos os guias/instrutores abaixo foram indicados ou já escalaram com a gente. O
+          contato é direto: você combina data, local e valores com o próprio guia.
+        </p>
+      </div>
+      {(!guias || guias.length === 0) && (
+        <p class="vazio">Em breve nossa rede de guias estará por aqui. 🧗</p>
+      )}
+      <div class="guides">
+        {guias?.map((g) => (
+          <article class="guide">
+            <div class="head">
+              {g.foto_url ? (
+                <img
+                  class="photo-img"
+                  src={g.foto_url}
+                  alt={g.nome}
+                  tabindex="0"
+                  role="button"
+                  aria-label={`Ver foto de ${g.nome} ampliada`}
+                />
+              ) : (
+                <div class="photo">{iniciais(g.nome)}</div>
+              )}
+              <h3>{g.nome}</h3>
+              <div class="base">{[g.cidade, g.uf].filter(Boolean).join(" · ")}</div>
+            </div>
+            <div class="body">
+              {g.especialidades_lista?.length > 0 && (
+                <>
+                  <div class="lbl">Especialidades</div>
+                  <div class="tags">
+                    {g.especialidades_lista.map((e) => <span class="tag">{e}</span>)}
+                  </div>
+                </>
+              )}
+              {(g.cidade || g.certificacao) && (
+                <>
+                  {g.certificacao && <div class="lbl">Certificação</div>}
+                  {g.certificacao && <p class="cert">{g.certificacao}</p>}
+                </>
+              )}
+              {g.bio && <p class="bio">{g.bio}</p>}
+              {nomesDosLocais(g.locais_ids).length > 0 && (
+                <>
+                  <div class="lbl">Atua nos locais</div>
+                  <div class="tags">
+                    {nomesDosLocais(g.locais_ids).map((nome) => <span class="tag">{nome}</span>)}
+                  </div>
+                </>
+              )}
+              {cursosPorGuia.get(g.id)?.length > 0 && (
+                <>
+                  <div class="lbl">Cursos que oferece</div>
+                  <ul class="courses">
+                    {cursosPorGuia.get(g.id).map((c) => (
+                      <li>
+                        {c.titulo}
+                        {c.nivel && <span class={`level ${nivelClasse(c.nivel)}`}>{c.nivel}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              <div class="contact">
+                {waLink(g.telefone) && (
+                  <a class="cbtn c-wa" href={waLink(g.telefone)} target="_blank" rel="noopener">WhatsApp</a>
+                )}
+                {g.instagram && (
+                  <a class="cbtn c-ig" href={`https://instagram.com/${g.instagram}`} target="_blank" rel="noopener">@{g.instagram}</a>
+                )}
+                {g.email && <a class="cbtn c-em" href={`mailto:${g.email}`}>E-mail</a>}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+      <p class="safety">
+        Os guias/instrutores são profissionais independentes. Os Climbeiros fazem a ponte entre
+        você e eles; a contratação, os valores e a responsabilidade pelo curso são
+        combinados diretamente com cada profissional. Recomendamos sempre verificar
+        certificação e seguro antes de qualquer atividade.
+      </p>
+    </div>
+  </section>
+  <!-- COMO FUNCIONA -->
+  <section class="how">
+    <div class="container">
+      <div class="k">Como funciona</div>
+      <h2>Três passos até a rocha</h2>
+      <div class="steps">
+        <div class="step"><div class="n">01</div><h4>Escolha o guia</h4><p>Navegue pelas especialidades e encontre o guia certo para o que você quer aprender.</p></div>
+        <div class="step"><div class="n">02</div><h4>Fale direto</h4><p>Chame no WhatsApp, Instagram ou e-mail. Combine data, local, nível e valores com o guia.</p></div>
+        <div class="step"><div class="n">03</div><h4>Suba com segurança</h4><p>Curta a experiência com quem entende do terreno — check de segurança sempre.</p></div>
+      </div>
+    </div>
+  </section>
+  <!-- SEJA GUIA (com formulário que grava no Supabase) -->
+  <section class="beguide" id="seja-guia">
+    <div class="container">
+      <div class="box">
+        <h2>É guia/instrutor e quer aparecer aqui?</h2>
+        <p>Se você é guia/instrutor de escalada ou montanhismo e quer fazer parte da nossa
+          rede, preencha abaixo, é gratuito! A gente adora conhecer gente boa da vertical.</p>
+        <form class="form-guia" id="form-guia">
+          <div class="linha">
+            <div class="campo">
+              <label for="fg-nome">Nome *</label>
+              <input type="text" id="fg-nome" name="nome" required />
+            </div>
+            <div class="campo">
+              <label for="fg-email">E-mail *</label>
+              <input type="email" id="fg-email" name="email" required />
+            </div>
+          </div>
+          <div class="linha">
+            <div class="campo">
+              <label for="fg-telefone">WhatsApp</label>
+              <input
+                type="tel"
+                id="fg-telefone"
+                name="telefone"
+                placeholder="(11)991721313"
+                maxlength="13"
+                inputmode="numeric"
+              />
+            </div>
+            <div class="campo">
+              <label for="fg-instagram">Instagram</label>
+              <input type="text" id="fg-instagram" name="instagram" placeholder="@seu.perfil" />
+            </div>
+          </div>
+          <div class="linha">
+            <div class="campo">
+              <label for="fg-cidade">Cidade</label>
+              <input type="text" id="fg-cidade" name="cidade" placeholder="Ex.: São Paulo" />
+            </div>
+            <div class="campo">
+              <label for="fg-uf">UF</label>
+              <select id="fg-uf" name="uf" class="form-select">
+                <option value="">Selecione</option>
+                {["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].map((uf) => (
+                  <option value={uf}>{uf}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div class="campo">
+            <span class="campo-label">Melhor contato para divulgarmos</span>
+            <div class="pref-opcoes">
+              <label class="pref-check"><input type="checkbox" name="pref" value="WhatsApp" /> WhatsApp</label>
+              <label class="pref-check"><input type="checkbox" name="pref" value="Instagram" /> Instagram</label>
+            </div>
+          </div>
+          <div class="campo">
+            <span class="campo-label">Especialidades</span>
+            <div class="pref-opcoes">
+              {["Escalada esportiva","Escalada tradicional","Boulder","Escalada indoor","Montanhismo","Alpinismo","Escalada em gelo","Trekking","Canionismo"].map((esp) => (
+                <label class="pref-check"><input type="checkbox" name="especialidade" value={esp} /> {esp}</label>
+              ))}
+            </div>
+            <input type="text" id="fg-espec-outra" name="especialidade_outra" placeholder="Outra especialidade (opcional)" />
+          </div>
+          <div class="campo">
+            <label for="fg-certificacao">Certificação (opcional)</label>
+            <input type="text" id="fg-certificacao" name="certificacao" placeholder="Ex.: Guia CANMOD, AGB, instrutor de ginásio..." />
+          </div>
+          <div class="campo">
+            <label for="fg-foto">Foto (opcional)</label>
+            <input type="file" id="fg-foto" name="foto" accept="image/png, image/jpeg, image/webp" />
+            <small class="campo-ajuda">Aparece no seu card na página de guias. Até 5 MB.</small>
+          </div>
+          <div class="campo">
+            <label for="fg-locais">Em quais locais você atua?</label>
+            <select id="fg-locais" name="locais_ids" multiple size="6" class="form-select">
+              {Array.from(locaisPorEstado.entries()).map(([estado, lista]) => (
+                <optgroup label={estado}>
+                  {lista.map((l) => <option value={l.id}>{l.nome}</option>)}
+                </optgroup>
+              ))}
+            </select>
+            <small class="campo-ajuda">Segure Ctrl (ou Cmd no Mac) pra selecionar mais de um local. Usamos isso pra te mostrar na página de cada local.</small>
+          </div>
+          <div class="campo">
+            <label for="fg-locais-outro">Atua em algum local que não está na lista?</label>
+            <textarea id="fg-locais-outro" name="locais_outro" rows="2" placeholder="Escreva aqui o nome do local, cidade e estado. Ainda estamos cadastrando as rotas do site, então é normal seu local não aparecer ainda."></textarea>
+            <small class="campo-ajuda">Não precisa se preocupar em não achar seu local na lista acima, isso não trava sua inscrição. A gente usa essa informação pra saber quais locais cadastrar em seguida.</small>
+          </div>
+          <div class="campo">
+            <label for="fg-bio">Sobre você (aparece na sua página pública)</label>
+            <textarea id="fg-bio" name="bio" rows="3" placeholder="Conte um pouco sobre sua experiência e os cursos que oferece"></textarea>
+          </div>
+          <div class="campo">
+            <label for="fg-msg">Mensagem pra equipe Climbeiros (opcional, não aparece no site)</label>
+            <textarea id="fg-msg" name="mensagem" rows="3" placeholder="Algo que só a gente precise saber"></textarea>
+          </div>
+          <label class="cupom-toggle">
+            <input type="checkbox" name="tem_cupom" id="tem-cupom" />
+            Quero oferecer um cupom de desconto para a comunidade Climbeiros
+          </label>
+          <div class="cupom-campos" id="cupom-campos" hidden>
+            <div class="campo">
+              <label for="fg-cupom">Código do cupom</label>
+              <input type="text" id="fg-cupom" name="cupom_codigo" placeholder="Ex.: GUIA10" />
+            </div>
+            <div class="campo">
+              <label for="fg-cupomdesc">Como funciona o desconto?</label>
+              <textarea id="fg-cupomdesc" name="cupom_desc" rows="3" placeholder="Ex.: 10% na primeira aula avulsa"></textarea>
+            </div>
+          </div>
+          <button type="submit" class="botao" id="btn-enviar-guia">Enviar inscrição</button>
+          <p class="form-status" id="form-guia-status" role="status"></p>
+        </form>
+      </div>
+    </div>
+  </section>
+  <!-- LIGHTBOX: abre ao clicar na foto de um guia, pra ver ela ampliada -->
+  <div class="lightbox" id="lightbox-foto" hidden>
+    <button type="button" class="lightbox-fechar" id="lightbox-fechar" aria-label="Fechar foto ampliada">&times;</button>
+    <img id="lightbox-img" src="" alt="" />
+  </div>
 </Layout>
 <script>
-  // Clique num card de modalidade (.tipo-card com atributo data-video) abre
-  // o vídeo dessa modalidade num pop-up por cima da página. Os cards vêm do
-  // conteúdo do artigo (Supabase, via set:html), então o clique é ligado
-  // depois que a página carrega, varrendo tudo que tiver [data-video].
-  const lightbox = document.getElementById('video-lightbox');
-  const moldura = document.getElementById('video-lightbox-moldura');
-  const btnFechar = document.getElementById('video-lightbox-fechar');
-
-  function extrairIdYoutube(valor) {
-    if (!valor) return null;
-    const v = valor.trim();
-    if (!v) return null;
-    // Já é só o ID (11 caracteres)
-    if (/^[\w-]{11}$/.test(v)) return v;
-    try {
-      const url = new URL(v);
-      if (url.hostname.includes('youtu.be')) return url.pathname.slice(1);
-      if (url.pathname.startsWith('/embed/')) return url.pathname.split('/embed/')[1];
-      if (url.searchParams.get('v')) return url.searchParams.get('v');
-    } catch (e) {
-      // não é uma URL válida — ignora
+  import { supabase } from '../lib/supabase';
+  const form = document.getElementById('form-guia');
+  const status = document.getElementById('form-guia-status');
+  const btn = document.getElementById('btn-enviar-guia');
+  // Máscara do campo WhatsApp: só deixa dígitos e formata como (11)991721313,
+  // igual ao campo Celular da página de Contato.
+  const campoTelefone = document.getElementById('fg-telefone');
+  campoTelefone?.addEventListener('input', () => {
+    const numeros = campoTelefone.value.replace(/\D/g, '').slice(0, 11);
+    let formatado = '';
+    if (numeros.length > 0) {
+      formatado = '(' + numeros.slice(0, 2);
     }
-    return null;
-  }
-
-  function abrirVideo(valor, titulo) {
-    if (!lightbox || !moldura) return;
-    const id = extrairIdYoutube(valor);
-    if (id) {
-      moldura.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" title="${titulo || 'Vídeo'}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-    } else {
-      moldura.innerHTML = `<p class="video-lightbox__em-breve">Vídeo dessa modalidade em breve! 🎥</p>`;
+    if (numeros.length >= 2) {
+      formatado += ')' + numeros.slice(2);
     }
+    campoTelefone.value = formatado;
+  });
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!status || !btn) return;
+    const dados = Object.fromEntries(new FormData(form).entries());
+    if (!dados.nome || !dados.email) {
+      status.textContent = 'Por favor, preencha ao menos nome e e-mail.';
+      return;
+    }
+    if (dados.telefone && !/^\(\d{2}\)\d{9}$/.test(dados.telefone)) {
+      status.textContent = 'Preencha o WhatsApp no formato (11)991721313, com DDD e 9 números — ou deixe o campo em branco.';
+      campoTelefone?.focus();
+      return;
+    }
+    const temCupom = form.querySelector('#tem-cupom')?.checked;
+    // Junta as preferências de contato marcadas (pode ser uma, as duas, ou nenhuma)
+    const prefContato = Array.from(form.querySelectorAll('input[name="pref"]:checked'))
+      .map((el) => el.value)
+      .join(', ');
+    // Especialidades marcadas + a de texto livre, se preenchida
+    const especialidades = Array.from(form.querySelectorAll('input[name="especialidade"]:checked'))
+      .map((el) => el.value);
+    const especialidadeOutra = (form.querySelector('#fg-espec-outra')?.value || '').trim();
+    if (especialidadeOutra) especialidades.push(especialidadeOutra);
+    // Locais selecionados no dropdown múltiplo
+    const locaisSelect = form.querySelector('#fg-locais');
+    const locaisIds = locaisSelect ? Array.from(locaisSelect.selectedOptions).map((o) => o.value) : [];
+    btn.setAttribute('disabled', '');
+    status.textContent = 'Enviando...';
+    // Foto (opcional): sobe pro bucket público "fotos-guias" antes de gravar a inscrição
+    let fotoUrl = null;
+    const arquivoFoto = form.querySelector('#fg-foto')?.files?.[0];
+    if (arquivoFoto) {
+      if (arquivoFoto.size > 5 * 1024 * 1024) {
+        status.textContent = 'A foto passou de 5 MB — escolha uma menor ou deixe o campo em branco.';
+        btn.removeAttribute('disabled');
+        return;
+      }
+      const extensao = arquivoFoto.name.split('.').pop();
+      const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extensao}`;
+      const { error: erroUpload } = await supabase.storage.from('fotos-guias').upload(nomeArquivo, arquivoFoto);
+      if (!erroUpload) {
+        fotoUrl = supabase.storage.from('fotos-guias').getPublicUrl(nomeArquivo).data.publicUrl;
+      }
+    }
+    const { error } = await supabase.from('inscricoes_guias').insert([{
+      nome: dados.nome,
+      email: dados.email,
+      telefone: dados.telefone || null,
+      instagram: dados.instagram || null,
+      contato_pref: prefContato || null,
+      cidade: dados.cidade || null,
+      uf: dados.uf || null,
+      especialidades_lista: especialidades,
+      certificacao: dados.certificacao || null,
+      foto_url: fotoUrl,
+      bio: dados.bio || null,
+      locais_ids: locaisIds,
+      locais_interesse: dados.locais_outro || null,
+      mensagem: dados.mensagem || null,
+      tem_cupom: temCupom ? 'Sim' : 'Não',
+      cupom_codigo: temCupom ? (dados.cupom_codigo || null) : null,
+      cupom_desc: temCupom ? (dados.cupom_desc || null) : null,
+    }]);
+    if (error) {
+      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.';
+      btn.removeAttribute('disabled');
+      return;
+    }
+    form.reset();
+    status.textContent = 'Recebemos sua inscrição! Em breve a gente entra em contato. 🧗';
+    btn.removeAttribute('disabled');
+  });
+  // Mostra/esconde os campos de cupom conforme o checkbox
+  const chkCupom = document.getElementById('tem-cupom');
+  const campoCupom = document.getElementById('cupom-campos');
+  chkCupom?.addEventListener('change', () => {
+    if (campoCupom) campoCupom.hidden = !chkCupom.checked;
+  });
+  // Lightbox: clique (ou Enter/Espaço, pra quem navega pelo teclado) na foto
+  // de um guia abre ela ampliada por cima da página.
+  const lightbox = document.getElementById('lightbox-foto');
+  const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxFechar = document.getElementById('lightbox-fechar');
+  function abrirLightbox(src, alt) {
+    if (!lightbox || !lightboxImg) return;
+    lightboxImg.setAttribute('src', src);
+    lightboxImg.setAttribute('alt', alt || '');
     lightbox.hidden = false;
     document.body.style.overflow = 'hidden';
   }
-
-  function fecharVideo() {
-    if (!lightbox || !moldura) return;
+  function fecharLightbox() {
+    if (!lightbox) return;
     lightbox.hidden = true;
-    moldura.innerHTML = ''; // para o vídeo ao fechar
+    if (lightboxImg) lightboxImg.setAttribute('src', '');
     document.body.style.overflow = '';
   }
-
-  document.querySelectorAll('.tipo-card[data-video]').forEach((card) => {
-    card.classList.add('tipo-card--clicavel');
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('role', 'button');
-    const titulo = card.querySelector('h3')?.textContent || 'vídeo';
-    card.setAttribute('aria-label', `Ver vídeo de ${titulo}`);
-    const abre = () => abrirVideo(card.getAttribute('data-video'), titulo);
-    card.addEventListener('click', abre);
-    card.addEventListener('keydown', (e) => {
+  document.querySelectorAll('.photo-img').forEach((img) => {
+    img.addEventListener('click', () => abrirLightbox(img.getAttribute('src'), img.getAttribute('alt')));
+    img.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        abre();
+        abrirLightbox(img.getAttribute('src'), img.getAttribute('alt'));
       }
     });
   });
-
-  btnFechar?.addEventListener('click', fecharVideo);
+  lightboxFechar?.addEventListener('click', fecharLightbox);
   lightbox?.addEventListener('click', (e) => {
-    if (e.target === lightbox) fecharVideo();
+    if (e.target === lightbox) fecharLightbox();
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') fecharVideo();
+    if (e.key === 'Escape') fecharLightbox();
   });
 </script>
 <style>
-  .artigo-largo :global(section.secao) { padding: 56px 0; }
-  .artigo-largo :global(section.secao:first-child) { padding-top: 48px; }
-
-  /* Cards de modalidade clicáveis (abrem vídeo) */
-  .artigo-largo :global(.tipo-card--clicavel) {
-    cursor: pointer;
-    transition: transform .15s ease, box-shadow .15s ease;
+  .intro { max-width: 720px; margin: 0 auto 8px; text-align: center; }
+  .intro .k { font-weight: 700; text-transform: uppercase; letter-spacing: .16em; font-size: .8rem; color: var(--laranja); margin-bottom: 10px; }
+  .intro h2 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; line-height: 1; font-size: clamp(2rem, 4.6vw, 3rem); color: var(--verde-escuro); margin-bottom: 16px; }
+  .intro p { color: #5f5344; }
+  .vazio { text-align: center; color: #5f5344; margin: 40px 0; font-size: 1.1rem; }
+  .guides { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 26px; margin-top: 48px; }
+  .guide { background: var(--branco); border: 1px solid #e6ddc4; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .25s; }
+  .guide:hover { transform: translateY(-4px); box-shadow: 0 20px 44px -22px rgba(47,66,48,.5); }
+  .guide .head { background: linear-gradient(150deg, var(--verde-escuro), var(--marrom)); padding: 24px; color: var(--creme-claro); }
+  .guide .photo { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(150deg, #7d9576, #4f6b4a); border: 2px solid var(--creme); display: grid; place-items: center; font-family: var(--fonte-display); font-weight: 700; font-size: 1.6rem; color: var(--creme); margin-bottom: 14px; }
+  .guide .photo-img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid var(--creme); margin-bottom: 14px; cursor: pointer; transition: opacity .15s, transform .15s; }
+  .guide .photo-img:hover, .guide .photo-img:focus-visible { opacity: .85; transform: scale(1.04); }
+  .guide .photo-img:focus-visible { outline: 2px solid var(--amarelo); outline-offset: 2px; }
+  .guide h3 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; font-size: 1.7rem; line-height: 1; color: #fff; }
+  .guide .base { font-size: .86rem; color: var(--creme); opacity: .85; margin-top: 4px; }
+  .guide .body { padding: 22px 24px 24px; display: flex; flex-direction: column; flex: 1; }
+  .lbl { font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: .72rem; color: var(--laranja); margin-bottom: 9px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
+  .tag { font-weight: 600; text-transform: uppercase; letter-spacing: .03em; font-size: .8rem; background: var(--creme-claro); color: var(--verde-escuro); border: 1px solid #e0d6bd; padding: 4px 11px; border-radius: 30px; }
+  .cert { font-size: .85rem; color: #4a4033; margin: 0 0 14px; }
+  .bio { font-size: .9rem; color: #4a4033; margin: 0 0 18px; line-height: 1.5; }
+  .courses { list-style: none; margin-bottom: 22px; display: flex; flex-direction: column; gap: 9px; flex: 1; padding: 0; }
+  .courses li { display: flex; gap: 10px; font-size: .95rem; color: #4a4033; align-items: flex-start; }
+  .courses li::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 2px; background: var(--amarelo); margin-top: 8px; transform: rotate(45deg); }
+  .level { display: inline-block; font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .04em; padding: 2px 9px; border-radius: 3px; margin-left: 8px; }
+  .lv-ini { background: #DBEDDB; color: #2f6b3a; }
+  .lv-int { background: #FDECC8; color: #9F6B00; }
+  .lv-adv { background: #FFE2DD; color: #A13A2E; }
+  .lv-all { background: #D3E5EF; color: #2b5f7a; }
+  .contact { display: flex; gap: 10px; flex-wrap: wrap; border-top: 1px solid #eee4cc; padding-top: 18px; }
+  .cbtn { font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .84rem; padding: 9px 16px; border-radius: 3px; display: inline-flex; align-items: center; gap: 7px; transition: transform .15s; color: #fff; text-decoration: none; }
+  .cbtn:hover { transform: translateY(-2px); }
+  .c-wa { background: #25995a; }
+  .c-ig { background: linear-gradient(120deg, #e0931c, var(--laranja)); }
+  .c-em { background: var(--verde-escuro); color: var(--creme); }
+  .safety { max-width: 760px; margin: 26px auto 0; font-size: .82rem; color: #8a7d68; text-align: center; font-style: italic; }
+  .how { background: var(--verde-escuro); color: var(--creme-claro); text-align: center; }
+  .how .k { font-weight: 700; text-transform: uppercase; letter-spacing: .16em; font-size: .8rem; color: var(--amarelo); margin-bottom: 10px; }
+  .how h2 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; font-size: clamp(1.8rem, 4vw, 2.6rem); color: #fff; margin-bottom: 40px; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .step { background: rgba(255,255,255,.05); border: 1px solid rgba(231,209,142,.2); border-radius: 8px; padding: 28px 22px; text-align: left; }
+  .step .n { font-family: var(--fonte-display); font-weight: 700; font-size: 2.4rem; color: var(--amarelo); line-height: 1; margin-bottom: 10px; }
+  .step h4 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; font-size: 1.25rem; color: #fff; margin-bottom: 8px; }
+  .step p { font-size: .94rem; color: #e2dcc9; }
+  .beguide { text-align: center; }
+  .beguide .box { background: var(--creme-claro); border-radius: 12px; padding: 48px 40px; color: var(--marrom); max-width: 760px; margin: 0 auto; text-align: left; box-shadow: var(--sombra); }
+  .beguide h2 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; color: var(--verde-escuro); font-size: clamp(1.8rem, 4vw, 2.6rem); margin-bottom: 12px; text-align: center; }
+  .beguide > .container > .box > p { max-width: 520px; margin: 0 auto 32px; color: #5f5344; text-align: center; }
+  /* Formulário claro (estilo da página de contato) */
+  .form-guia { display: flex; flex-direction: column; gap: 18px; }
+  .form-guia .linha { display: flex; gap: 18px; flex-wrap: wrap; }
+  .form-guia .linha > * { flex: 1; min-width: 200px; }
+  .form-guia .campo { display: flex; flex-direction: column; gap: 6px; }
+  .form-guia label { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: .8rem; color: var(--verde-escuro); }
+  .campo-ajuda { text-transform: none; letter-spacing: normal; font-size: .72rem; opacity: .65; font-family: var(--fonte-corpo); }
+  .form-guia input, .form-guia textarea, .form-guia .form-select {
+    font-family: var(--fonte-corpo); font-size: 1rem; padding: 12px 14px; border-radius: 8px;
+    border: 1px solid rgba(42,31,22,.18); background: var(--branco); color: var(--marrom); width: 100%;
   }
-  .artigo-largo :global(.tipo-card--clicavel:hover),
-  .artigo-largo :global(.tipo-card--clicavel:focus-visible) {
-    transform: translateY(-3px);
-    box-shadow: 0 14px 30px -14px rgba(42,31,22,.35);
-    outline: none;
-  }
-  .artigo-largo :global(.tipo-card--clicavel:focus-visible) {
-    outline: 2px solid var(--amarelo);
-    outline-offset: 2px;
-  }
-  .artigo-largo :global(.tipo-card--clicavel .tipo-card__topo h3::after) {
-    content: "▶";
-    display: inline-block;
-    margin-left: 8px;
-    font-size: .7em;
-    color: var(--laranja);
-    vertical-align: middle;
-  }
-
-  /* Pop-up do vídeo */
-  .video-lightbox {
+  .form-guia input::placeholder, .form-guia textarea::placeholder { color: rgba(42,31,22,.4); }
+  .form-guia input:focus, .form-guia textarea:focus, .form-guia .form-select:focus { outline: 2px solid var(--laranja); border-color: var(--laranja); }
+  .form-guia textarea { resize: vertical; }
+  .form-select { cursor: pointer; }
+  .form-guia .botao { align-self: flex-start; margin-top: 6px; }
+  .form-guia .botao[disabled] { opacity: .6; cursor: default; }
+  .form-status { font-size: .92rem; color: var(--verde-escuro); min-height: 1.2em; margin: 0; }
+  .campo-label { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: .8rem; color: var(--verde-escuro); }
+  .pref-opcoes { display: flex; gap: 22px; flex-wrap: wrap; padding: 12px 2px; }
+  .pref-check { display: flex; align-items: center; gap: 8px; font-size: 1rem; color: var(--marrom); cursor: pointer; }
+  .pref-check input { width: 18px; height: 18px; accent-color: var(--laranja); cursor: pointer; }
+  .cupom-toggle { display: flex; align-items: flex-start; gap: 10px; font-size: .95rem; color: var(--marrom); cursor: pointer; }
+  .cupom-toggle input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--laranja); flex: 0 0 auto; }
+  .cupom-campos { display: flex; flex-direction: column; gap: 18px; padding: 18px; border: 1px dashed rgba(218,115,38,.5); border-radius: 8px; background: rgba(218,115,38,.06); }
+  .campo-label { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: .8rem; color: var(--verde-escuro); }
+  .pref-opcoes { display: flex; gap: 22px; flex-wrap: wrap; padding: 12px 2px; }
+  .pref-check { display: flex; align-items: center; gap: 8px; font-size: 1rem; color: var(--marrom); cursor: pointer; }
+  .pref-check input { width: 18px; height: 18px; accent-color: var(--laranja); cursor: pointer; }
+  .cupom-toggle { display: flex; align-items: flex-start; gap: 10px; font-size: .95rem; color: var(--creme-claro); cursor: pointer; text-align: left; margin-top: 4px; }
+  .cupom-toggle input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--laranja); flex: 0 0 auto; }
+  .cupom-campos { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px dashed rgba(224,147,28,.5); border-radius: 8px; background: rgba(224,147,28,.06); }
+  /* Lightbox da foto do guia */
+  .lightbox {
     position: fixed;
     inset: 0;
     background: rgba(20, 15, 10, .88);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: 32px;
     z-index: 999;
   }
-  .video-lightbox__caixa { width: 100%; max-width: 860px; }
-  .video-lightbox__moldura {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    background: #000;
+  .lightbox[hidden] { display: none; }
+  .lightbox img {
+    max-width: min(90vw, 560px);
+    max-height: 85vh;
     border-radius: 10px;
-    overflow: hidden;
     box-shadow: 0 24px 70px -20px rgba(0,0,0,.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    object-fit: contain;
   }
-  .video-lightbox__moldura iframe {
-    position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
-  }
-  .video-lightbox__em-breve {
-    color: var(--creme-claro);
-    font-family: var(--fonte-display);
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    text-align: center;
-    padding: 0 24px;
-    margin: 0;
-  }
-  .video-lightbox__fechar {
+  .lightbox-fechar {
     position: absolute;
     top: 18px;
     right: 22px;
@@ -188,8 +540,8 @@ const { data: artigo } = await supabase
     line-height: 1;
     cursor: pointer;
     padding: 8px 12px;
-    z-index: 2;
   }
-  .video-lightbox__fechar:hover,
-  .video-lightbox__fechar:focus-visible { color: var(--amarelo); }
+  .lightbox-fechar:hover, .lightbox-fechar:focus-visible { color: var(--amarelo); }
+  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
