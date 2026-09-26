@@ -295,7 +295,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
           <div class="campo">
             <span class="campo-label">Especialidades</span>
             <div class="pref-opcoes">
-              {["Escalada esportiva","Escalada tradicional","Boulder","Escalada indoor","Montanhismo","Alpinismo","Escalada em gelo","Trekking","Canionismo"].map((esp) => (
+              {["Escalada esportiva","Escalada tradicional","Boulder","Escalada indoor","Montanhismo","Alpinismo","Escalada em gelo","Trekking","Canionismo","Escalada móvel","Escalada em fendas","Escalada artificial","Bigwall","Curso de autoresgate"].map((esp) => (
                 <label class="pref-check"><input type="checkbox" name="especialidade" value={esp} /> {esp}</label>
               ))}
             </div>
@@ -367,7 +367,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   const form = document.getElementById('form-guia');
   const status = document.getElementById('form-guia-status');
   const btn = document.getElementById('btn-enviar-guia');
-
   // Máscara do campo WhatsApp: só deixa dígitos e formata como (11)991721313,
   // igual ao campo Celular da página de Contato.
   const campoTelefone = document.getElementById('fg-telefone');
@@ -382,7 +381,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
     }
     campoTelefone.value = formatado;
   });
-
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!status || !btn) return;
@@ -409,10 +407,8 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
     // Locais selecionados no dropdown múltiplo
     const locaisSelect = form.querySelector('#fg-locais');
     const locaisIds = locaisSelect ? Array.from(locaisSelect.selectedOptions).map((o) => o.value) : [];
-
     btn.setAttribute('disabled', '');
     status.textContent = 'Enviando...';
-
     // Foto (opcional): sobe pro bucket público "fotos-guias" antes de gravar a inscrição
     let fotoUrl = null;
     const arquivoFoto = form.querySelector('#fg-foto')?.files?.[0];
@@ -429,7 +425,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
         fotoUrl = supabase.storage.from('fotos-guias').getPublicUrl(nomeArquivo).data.publicUrl;
       }
     }
-
     const { error } = await supabase.from('inscricoes_guias').insert([{
       nome: dados.nome,
       email: dados.email,
@@ -464,7 +459,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   chkCupom?.addEventListener('change', () => {
     if (campoCupom) campoCupom.hidden = !chkCupom.checked;
   });
-
   // ---------- BUSCA E FILTROS DE GUIAS ----------
   // Tudo acontece no navegador: os cards já estão na página, a gente só
   // esconde os que não batem com a busca e os filtros escolhidos.
@@ -477,7 +471,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   const statusBusca = document.getElementById('busca-guia-status');
   const semResultado = document.getElementById('sem-resultado');
   const cards = Array.from(document.querySelectorAll('.guides .guide'));
-
   // Quando escolhe um estado, a lista de cidades mostra só as daquele estado
   function atualizarCidades() {
     if (!filtroCidade) return;
@@ -489,7 +482,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
     const escolhida = filtroCidade.selectedOptions[0];
     if (escolhida && escolhida.hidden) filtroCidade.value = '';
   }
-
   function aplicarFiltrosGuias() {
     const termos = normalizar(campoBusca?.value).split(/\s+/).filter(Boolean);
     const espec = filtroEspec?.value || '';
@@ -515,7 +507,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
         : '';
     }
   }
-
   campoBusca?.addEventListener('input', aplicarFiltrosGuias);
   filtroEspec?.addEventListener('change', aplicarFiltrosGuias);
   filtroCidade?.addEventListener('change', aplicarFiltrosGuias);
@@ -529,7 +520,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
     aplicarFiltrosGuias();
     campoBusca?.focus();
   });
-
   // ---------- FOTO AMPLIADA ----------
   const modal = document.getElementById('foto-modal');
   const modalImg = document.getElementById('foto-modal-img');
