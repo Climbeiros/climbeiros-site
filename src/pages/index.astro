@@ -160,3 +160,164 @@ const destaques = [
         )}
       </div>
     </section>
+  )}
+
+  <RopeDivider />
+
+  <section class="secao secao--verde">
+    <div class="container secao-cta">
+      <h2>Sua academia ou curso ainda não está aqui?</h2>
+      <p>O Climbeiros é feito pela e para a comunidade. Fale com a gente e vamos incluir.</p>
+      <a href="/contato" class="botao">Entrar em contato</a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 480px;
+    display: flex;
+    align-items: flex-end;
+    color: var(--branco);
+  }
+  .hero__imagem {
+    position: absolute;
+    inset: 0;
+  }
+  .hero__imagem img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 70%;
+  }
+  .hero__sombra {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(42,31,22,0.15) 0%, rgba(42,31,22,0.85) 100%);
+  }
+  .hero__conteudo {
+    position: relative;
+    padding-bottom: 56px;
+    padding-top: 200px;
+  }
+  .hero__eyebrow { color: var(--branco); }
+  .hero__eyebrow::before { background: var(--branco); }
+
+  .hero__titulo {
+    color: var(--branco);
+    max-width: 680px;
+  }
+  .hero__acoes {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+
+  /* Cartões de destaque — fundo branco com borda colorida no topo (uma cor
+     por card, alternando creme/laranja/amarelo), ícone ilustrado, título,
+     descrição e uma setinha discreta. Grade de 3 colunas (três linhas de 3,
+     já que são 9 itens com a Acontece). */
+  .destaques-grade {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 780px) {
+    .destaques-grade { grid-template-columns: repeat(2, 1fr); }
+    .destaque-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  }
+  @media (max-width: 420px) {
+    .destaques-grade { grid-template-columns: 1fr; }
+  }
+
+  .destaque-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--branco);
+    border-radius: var(--raio);
+    border-top: 4px solid var(--cor-destaque, var(--laranja));
+    box-shadow: var(--sombra);
+    padding: 14px 16px;
+    min-height: 128px;
+    transition: transform 0.15s ease;
+  }
+  .destaque-card:hover {
+    transform: translateY(-3px);
+    text-decoration: none;
+  }
+  .destaque-card__topo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .destaque-card__icone {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--creme-claro);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .destaque-card__icone svg {
+    width: 22px;
+    height: 22px;
+    overflow: visible;
+  }
+  .destaque-card h3 {
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    color: var(--verde-escuro);
+    font-size: 0.9rem;
+    line-height: 1.2;
+    margin: 0;
+  }
+  .destaque-card p {
+    color: var(--marrom);
+    opacity: 0.82;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    margin: 8px 0 0;
+  }
+  .destaque-card__seta {
+    margin-top: auto;
+    align-self: flex-end;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--creme-claro);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .destaque-card__seta svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* Bloco "Acabou de chegar" (dados da página Acontece) */
+  .chegou__topo { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+  .chegou__topo h2 { margin: 0; }
+  .chegou__topo a { font-weight: 600; }
+  .chegou__grade { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .chegou__card {
+    display: grid; gap: 4px; align-content: start; background: var(--branco); color: var(--marrom);
+    border-radius: var(--raio); box-shadow: var(--sombra); padding: 16px; border-top: 4px solid var(--verde);
+  }
+  .chegou__card:hover { text-decoration: none; transform: translateY(-2px); }
+  .chegou__card strong { font-size: 1.05rem; }
+  .chegou__card span:last-child { font-size: .9rem; opacity: .8; }
+  .chegou__card--evento { --c: var(--laranja); border-top-color: var(--c); }
+  .chegou__card--academia { --c: var(--verde-escuro); }
+  .chegou__card--comunidade { --c: #8a5a14; }
+  .chegou__tipo { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; color: var(--verde-escuro); }
+  .chegou__card--evento .chegou__tipo { color: var(--c); }
+  .chegou__wpp { margin: 18px 0 0; }
+
+  .secao-cta {
+    text-align: center;
+  }
+  .secao-cta p { max-width: 520px; margin: 0 auto 24px; opacity: 0.9; }
+</style>
