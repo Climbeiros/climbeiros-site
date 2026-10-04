@@ -8,7 +8,6 @@
 // - Link do WhatsApp: Supabase -> tabela `site_config` -> chave `whatsapp_comunidade`.
 // Depois de editar, fazer o Redeploy na Vercel.
 import Layout from '../layouts/Layout.astro';
-import PageHero from '../components/PageHero.astro';
 import { getSiteConfig } from '../lib/supabase';
 import { getAgenda, getNovidades, partesData, dataCurta } from '../lib/acontece';
 
@@ -34,9 +33,16 @@ const corNovidade: Record<string, string> = {
 };
 ---
 <Layout titulo="Acontece" descricao="Agenda de encontros, eventos de academias e da comunidade, e o que acabou de chegar no Climbeiros.">
-  <PageHero eyebrow="O que tá rolando" descricao="Encontros da galera, eventos das academias e da comunidade, e o que acabou de chegar no site.">
-    Acontece
-  </PageHero>
+  <section class="secao">
+    <div class="container">
+      <p class="eyebrow">O que tá rolando</p>
+      <h1>Acontece</h1>
+      <p>
+        Encontros da galera, eventos das academias e da comunidade, e o que
+        acabou de chegar no site.
+      </p>
+    </div>
+  </section>
 
   <!-- AGENDA -->
   <section class="secao secao--creme" id="agenda">
