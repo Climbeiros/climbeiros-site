@@ -1,0 +1,239 @@
+---
+// Página "Acontece": agenda (encontros dos Climbeiros, eventos de academias e
+// da comunidade), novidades do site e o botão pra entrar na comunidade do
+// WhatsApp, onde sai o Beta da quinzena.
+//
+// Como atualizar (sem mexer em código):
+// - Eventos: Supabase -> Table Editor -> tabela `agenda_eventos` -> Insert row.
+// - Link do WhatsApp: Supabase -> tabela `site_config` -> chave `whatsapp_comunidade`.
+// Depois de editar, fazer o Redeploy na Vercel.
+import Layout from '../layouts/Layout.astro';
+import PageHero from '../components/PageHero.astro';
+import { getSiteConfig } from '../lib/supabase';
+import { getAgenda, getNovidades, partesData, dataCurta } from '../lib/acontece';
+
+const [agenda, novidades, config] = await Promise.all([getAgenda(), getNovidades(10), getSiteConfig()]);
+const linkWhatsApp = config.whatsapp_comunidade || '';
+
+const nomeOrganizador: Record<string, string> = {
+  climbeiros: 'Da galera Climbeiros',
+  academia: 'Nas academias',
+  comunidade: 'Na comunidade',
+};
+const tiposPresentes = new Set(agenda.map((e) => e.organizador_tipo));
+---
+<Layout titulo="Acontece" descricao="Agenda de encontros, eventos de academias e da comunidade, e o que acabou de chegar no Climbeiros.">
+  <PageHero eyebrow="O que tá rolando" descricao="Encontros da galera, eventos das academias e da comunidade, e o que acabou de chegar no site.">
+    Acontece
+  </PageHero>
+
+  <!-- AGENDA -->
+  <section class="secao secao--creme" id="agenda">
+    <div class="container">
+      <div class="ac-topo">
+        <h2>Agenda</h2>
+        {tiposPresentes.size > 1 && (
+          <div class="ac-filtros" role="group" aria-label="Filtrar agenda">
+            <button type="button" class="ac-filtro" data-filtro="todos" aria-pressed="true">Todos</button>
+            {['climbeiros', 'academia', 'comunidade'].filter((t) => tiposPresentes.has(t as any)).map((t) => (
+              <button type="button" class={`ac-filtro ac-filtro--${t}`} data-filtro={t} aria-pressed="false"><i></i>{nomeOrganizador[t]}</button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {agenda.length > 0 && (
+        <p class="ac-legenda">A cor mostra quem organiza. Borda tracejada: data ainda a confirmar.</p>
+      )}
+
+      <div class="ac-eventos" id="ac-eventos">
+        {agenda.map((e) => {
+          const d = partesData(e.data);
+          return (
+            <article class={`ac-evento ac-evento--${e.organizador_tipo}`} data-tipo={e.organizador_tipo} data-data={e.data} data-confirmar={e.data_a_confirmar ? '1' : '0'}>
+              <div class:list={['ac-data', { 'ac-data--confirmar': e.data_a_confirmar }]}>
+                {e.data_a_confirmar ? (<><b>{d.mes}</b><span>{d.ano}</span></>) : (<><b>{d.dia}</b><span>{d.mes}</span></>)}
+              </div>
+              <div class="ac-evento__corpo">
+                <span class="ac-org">{e.organizador}</span>
+                <h3>{e.link ? <a href={e.link} target="_blank" rel="noopener">{e.titulo}</a> : e.titulo}</h3>
+                {(e.local || e.descricao) && <p>{[e.local, e.descricao].filter(Boolean).join(' · ')}</p>}
+                <div class="ac-meta">
+                  {e.tipo && <span class="ac-tag">{e.tipo}</span>}
+                  {e.data_a_confirmar && <span class="ac-confirmar">data a confirmar</span>}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <p class="ac-vazio" id="ac-vazio" hidden={agenda.length > 0}>
+        Nenhum evento marcado por enquanto. Quer organizar um encontro? Fala com a gente!
+      </p>
+
+      <div class="ac-divulgar">
+        <p><b>Vai rolar um evento de escalada?</b> Academia, guia ou grupo local: competição, festa, curso, mutirão ou festival. Manda pra gente que a gente divulga aqui e no Beta da quinzena. É grátis.</p>
+        <a href="/contato" class="botao">Divulgar evento</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- NOVIDADES -->
+  {novidades.length > 0 && (
+    <section class="secao">
+      <div class="container">
+        <h2>Novidades no site</h2>
+        <ul class="ac-feed">
+          {novidades.map((n) => (
+            <li class="ac-item">
+              <span class="ac-item__tipo">{n.tipo}</span>
+              <div>
+                <a href={n.href} class="ac-item__titulo">{n.titulo}</a>
+                {n.texto && <p>{n.texto}</p>}
+              </div>
+              <time datetime={n.data}>{dataCurta(n.data)}</time>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )}
+
+  <!-- WHATSAPP -->
+  {linkWhatsApp && (
+    <section class="secao secao--verde" id="whatsapp">
+      <div class="container ac-wpp">
+        <div>
+          <h2>O Beta da quinzena no seu WhatsApp</h2>
+          <p>A cada duas semanas a gente manda na comunidade dos Climbeiros o que chegou no site, os próximos encontros e uma dica de escalada. Só avisos, sem spam, e dá pra sair quando quiser.</p>
+        </div>
+        <div class="ac-wpp__acao">
+          <a href={linkWhatsApp} target="_blank" rel="noopener" class="ac-botao-wpp">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.5-.3Z"/></svg>
+            Entrar na comunidade
+          </a>
+          <span>Você entra no grupo de avisos dos Climbeiros no WhatsApp.</span>
+        </div>
+      </div>
+    </section>
+  )}
+</Layout>
+
+<style>
+  .ac-topo { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .ac-topo h2 { margin: 0; }
+  .ac-filtros { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ac-filtro {
+    font-family: var(--fonte-corpo); font-size: .9rem; font-weight: 600; cursor: pointer;
+    border: 1px solid #cbb983; background: var(--branco); color: var(--verde-escuro);
+    border-radius: 999px; padding: 6px 14px;
+  }
+  .ac-filtro[aria-pressed="true"] { background: var(--verde-escuro); color: #fff; border-color: var(--verde-escuro); }
+  .ac-filtro:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
+  .ac-filtro i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+  .ac-filtro--climbeiros i { background: var(--laranja); }
+  .ac-filtro--academia i { background: var(--verde-escuro); }
+  .ac-filtro--comunidade i { background: #8a5a14; }
+  .ac-filtro[aria-pressed="true"] i { box-shadow: 0 0 0 2px #fff; }
+  .ac-legenda { font-size: .85rem; opacity: .8; margin: 0 0 18px; }
+
+  .ac-eventos { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+
+  /* Cor = quem organiza */
+  .ac-evento { --c: var(--laranja); }
+  .ac-evento--academia { --c: var(--verde-escuro); }
+  .ac-evento--comunidade { --c: #8a5a14; }
+
+  .ac-evento[hidden] { display: none; }
+  .ac-evento {
+    display: grid; grid-template-columns: 68px 1fr; gap: 14px;
+    background: var(--branco); border: 1px solid #eadfbf; border-left: 5px solid var(--c);
+    border-radius: var(--raio); padding: 14px; box-shadow: var(--sombra);
+  }
+  .ac-data {
+    background: var(--c); color: #fff; border-radius: 8px; text-align: center;
+    font-family: var(--fonte-display); line-height: 1.05; padding: 8px 0; align-self: start;
+  }
+  .ac-data b { display: block; font-size: 1.7rem; }
+  .ac-data span { font-size: .8rem; letter-spacing: .1em; }
+  .ac-data--confirmar { background: #fff; color: var(--c); border: 2px dashed var(--c); }
+  .ac-data--confirmar b { font-size: 1.3rem; }
+  .ac-org { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; color: var(--c); }
+  .ac-evento h3 { font-family: var(--fonte-corpo); text-transform: none; letter-spacing: 0; font-size: 1.05rem; font-weight: 600; color: var(--marrom); margin: 2px 0 4px; }
+  .ac-evento h3 a { color: inherit; }
+  .ac-evento p { font-size: .9rem; margin: 0; opacity: .85; }
+  .ac-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .ac-tag { font-size: .75rem; font-weight: 600; background: #f1ebdb; color: #5c4e3e; padding: 2px 9px; border-radius: 999px; }
+  .ac-confirmar { font-size: .75rem; font-style: italic; opacity: .75; }
+  .ac-vazio { margin: 0; }
+
+  .ac-divulgar {
+    margin-top: 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;
+    background: var(--branco); border: 1px dashed #cbb983; border-radius: var(--raio); padding: 16px 20px;
+  }
+  .ac-divulgar p { margin: 0; max-width: 680px; }
+  .ac-divulgar b { color: var(--verde-escuro); }
+
+  .ac-feed { list-style: none; margin: 16px 0 0; padding: 0; border-top: 1px solid #eadfbf; }
+  .ac-item { display: grid; grid-template-columns: 130px 1fr auto; gap: 16px; align-items: start; padding: 14px 0; border-bottom: 1px solid #eadfbf; }
+  .ac-item__tipo {
+    justify-self: start; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .08em;
+    font-size: .72rem; color: var(--verde-escuro); background: var(--creme-claro); padding: 3px 9px; border-radius: 4px;
+  }
+  .ac-item__titulo { font-weight: 600; color: var(--marrom); }
+  .ac-item p { margin: 2px 0 0; font-size: .9rem; opacity: .8; }
+  .ac-item time { font-size: .85rem; opacity: .7; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  .ac-wpp { display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; align-items: center; }
+  .ac-wpp h2 { margin-bottom: .4em; }
+  .ac-wpp p { margin: 0; opacity: .9; }
+  .ac-wpp__acao { display: grid; gap: 8px; justify-items: start; }
+  .ac-wpp__acao span { font-size: .85rem; opacity: .8; }
+  .ac-botao-wpp {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: #25D366; color: #0b3d1f; font-family: var(--fonte-display); text-transform: uppercase;
+    letter-spacing: .04em; padding: 12px 22px; border-radius: var(--raio); font-size: 1rem;
+  }
+  .ac-botao-wpp:hover { background: #1fbe5b; text-decoration: none; }
+  .ac-botao-wpp svg { width: 22px; height: 22px; }
+
+  @media (max-width: 720px) {
+    .ac-item { grid-template-columns: 1fr; gap: 4px; }
+    .ac-item time { order: -1; }
+    .ac-wpp { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+  // 1) Esconde eventos que já passaram (o site é estático, então isso roda no
+  //    navegador de quem visita). Eventos "a confirmar" ficam até o fim do mês.
+  // 2) Filtros por quem organiza.
+  const hoje = new Date();
+  const hojeISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+  const mesAtual = hojeISO.slice(0, 7);
+  const eventos = Array.from(document.querySelectorAll<HTMLElement>('.ac-evento'));
+  eventos.forEach((ev) => {
+    const data = ev.dataset.data || '';
+    const passou = ev.dataset.confirmar === '1' ? data.slice(0, 7) < mesAtual : data < hojeISO;
+    if (passou) ev.dataset.passou = '1';
+  });
+
+  const vazio = document.getElementById('ac-vazio');
+  function aplicar(filtro: string) {
+    let visiveis = 0;
+    eventos.forEach((ev) => {
+      const mostrar = ev.dataset.passou !== '1' && (filtro === 'todos' || ev.dataset.tipo === filtro);
+      ev.hidden = !mostrar;
+      if (mostrar) visiveis++;
+    });
+    if (vazio) vazio.hidden = visiveis > 0;
+  }
+
+  const filtros = Array.from(document.querySelectorAll<HTMLButtonElement>('.ac-filtro'));
+  filtros.forEach((b) => b.addEventListener('click', () => {
+    filtros.forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    aplicar(b.dataset.filtro || 'todos');
+  }));
+  aplicar('todos');
+</script>
