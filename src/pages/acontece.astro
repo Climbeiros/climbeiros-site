@@ -260,4 +260,21 @@ const corNovidade: Record<string, string> = {
     aplicar(b.dataset.filtro || 'todos');
   }));
   aplicar('todos');
+
+  // 3) Novidades: troca a data ("24 set") por tempo relativo ("há 2 dias").
+  //    Roda no navegador, então fica sempre certo, mesmo dias depois do deploy.
+  function relativo(iso: string) {
+    const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    if (isNaN(dias)) return '';
+    if (dias <= 0) return 'hoje';
+    if (dias === 1) return 'ontem';
+    if (dias < 7) return `há ${dias} dias`;
+    if (dias < 30) { const s = Math.floor(dias / 7); return s === 1 ? 'há uma semana' : `há ${s} semanas`; }
+    if (dias < 365) { const m = Math.floor(dias / 30); return m === 1 ? 'há um mês' : `há ${m} meses`; }
+    const a = Math.floor(dias / 365); return a === 1 ? 'há um ano' : `há ${a} anos`;
+  }
+  document.querySelectorAll<HTMLTimeElement>('.ac-item time').forEach((t) => {
+    const txt = relativo(t.dateTime);
+    if (txt) { t.title = t.textContent || ''; t.textContent = txt; }
+  });
 </script>
