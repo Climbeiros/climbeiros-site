@@ -35,6 +35,8 @@ for (const l of locais ?? []) {
   if (!locaisPorEstado.has(estado)) locaisPorEstado.set(estado, []);
   locaisPorEstado.get(estado).push(l);
 }
+// Quantos locais aparecem no card antes do botão "+N locais".
+const MAX_LOCAIS = 6;
 function nomesDosLocais(locaisIds) {
   return (locaisIds ?? []).map((id) => locaisPorId.get(id)).filter(Boolean);
 }
@@ -165,6 +167,15 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
               <div class="base">{[g.cidade, g.uf].filter(Boolean).join(" · ")}</div>
             </div>
             <div class="body">
+              {g.bio && (
+                <>
+                  <div class="lbl">Sobre</div>
+                  <div class="bio-bloco">
+                    <p class="bio">{g.bio.trim()}</p>
+                    <button type="button" class="ler-mais" hidden>Ler mais</button>
+                  </div>
+                </>
+              )}
               {g.especialidades_lista?.length > 0 && (
                 <>
                   <div class="lbl">Especialidades</div>
@@ -173,19 +184,23 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
                   </div>
                 </>
               )}
-              {(g.cidade || g.certificacao) && (
-                <>
-                  {g.certificacao && <div class="lbl">Certificação</div>}
-                  {g.certificacao && <p class="cert">{g.certificacao}</p>}
-                </>
-              )}
-              {g.bio && <p class="bio">{g.bio}</p>}
               {nomesDosLocais(g.locais_ids).length > 0 && (
                 <>
                   <div class="lbl">Atua nos locais</div>
                   <div class="tags">
-                    {nomesDosLocais(g.locais_ids).map((nome) => <span class="tag">{nome}</span>)}
+                    {nomesDosLocais(g.locais_ids).map((nome, i) => (
+                      <span class:list={['tag', { extra: i >= MAX_LOCAIS }]}>{nome}</span>
+                    ))}
+                    {nomesDosLocais(g.locais_ids).length > MAX_LOCAIS && (
+                      <button type="button" class="tag tag-mais">+{nomesDosLocais(g.locais_ids).length - MAX_LOCAIS} locais</button>
+                    )}
                   </div>
+                </>
+              )}
+              {g.certificacao && (
+                <>
+                  <div class="lbl">Certificação</div>
+                  <p class="cert">{g.certificacao}</p>
                 </>
               )}
               {cursosPorGuia.get(g.id)?.length > 0 && (
@@ -362,6 +377,22 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   </dialog>
 </Layout>
 <script>
+  // Cards dos guias: "Ler mais" na apresentação (só aparece se o texto foi
+  // cortado) e "+N locais" pra mostrar a lista completa de locais.
+  document.querySelectorAll<HTMLElement>('.bio-bloco').forEach((b) => {
+    const p = b.querySelector<HTMLElement>('.bio');
+    const btn = b.querySelector<HTMLButtonElement>('.ler-mais');
+    if (!p || !btn) return;
+    if (p.scrollHeight > p.clientHeight + 2) btn.hidden = false;
+    btn.addEventListener('click', () => {
+      const aberto = p.classList.toggle('aberto');
+      btn.textContent = aberto ? 'Ler menos' : 'Ler mais';
+    });
+  });
+  document.querySelectorAll<HTMLButtonElement>('.tag-mais').forEach((b) =>
+    b.addEventListener('click', () => b.parentElement?.classList.add('aberto'))
+  );
+
   import { supabase } from '../lib/supabase';
   import { usuarioInstagram } from '../lib/contatos';
   const form = document.getElementById('form-guia');
@@ -574,9 +605,17 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .lbl { font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: .72rem; color: var(--laranja); margin-bottom: 9px; }
   .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
   .tag { font-weight: 600; text-transform: uppercase; letter-spacing: .03em; font-size: .8rem; background: var(--creme-claro); color: var(--verde-escuro); border: 1px solid #e0d6bd; padding: 4px 11px; border-radius: 30px; }
-  .cert { font-size: .85rem; color: #4a4033; margin: 0 0 14px; }
-  .bio { font-size: .9rem; color: #4a4033; margin: 0 0 18px; line-height: 1.5; }
-  .courses { list-style: none; margin-bottom: 22px; display: flex; flex-direction: column; gap: 9px; flex: 1; padding: 0; }
+  .cert { font-size: .85rem; color: #5f5344; margin: 0 0 18px; line-height: 1.5; }
+  .bio { font-size: .95rem; color: #4a4033; margin: 0; line-height: 1.55; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .bio.aberto { display: block; -webkit-line-clamp: unset; }
+  .bio-bloco { margin-bottom: 18px; }
+  .ler-mais { background: none; border: 0; padding: 0; margin-top: 4px; color: var(--laranja); font: 600 .85rem var(--fonte-corpo); cursor: pointer; }
+  .ler-mais[hidden] { display: none; }
+  .tags .extra { display: none; }
+  .tags.aberto .extra { display: inline-block; }
+  .tags.aberto .tag-mais { display: none; }
+  .tag-mais { cursor: pointer; background: #fff; border-style: dashed; color: var(--laranja); font-family: inherit; }
+  .courses { list-style: none; margin-bottom: 22px; display: flex; flex-direction: column; gap: 9px; padding: 0; }
   .courses li { display: flex; gap: 10px; font-size: .95rem; color: #4a4033; align-items: flex-start; }
   .courses li::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 2px; background: var(--amarelo); margin-top: 8px; transform: rotate(45deg); }
   .level { display: inline-block; font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .04em; padding: 2px 9px; border-radius: 3px; margin-left: 8px; }
@@ -584,8 +623,8 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .lv-int { background: #FDECC8; color: #9F6B00; }
   .lv-adv { background: #FFE2DD; color: #A13A2E; }
   .lv-all { background: #D3E5EF; color: #2b5f7a; }
-  .contact { display: flex; gap: 10px; flex-wrap: wrap; border-top: 1px solid #eee4cc; padding-top: 18px; }
-  .cbtn { font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .84rem; padding: 9px 16px; border-radius: 3px; display: inline-flex; align-items: center; gap: 7px; transition: transform .15s; color: #fff; text-decoration: none; }
+  .contact { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid #eee4cc; padding-top: 18px; margin-top: auto; }
+  .cbtn { font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .78rem; padding: 9px 13px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 3px; display: inline-flex; align-items: center; gap: 7px; transition: transform .15s; color: #fff; text-decoration: none; }
   .cbtn:hover { transform: translateY(-2px); }
   .c-wa { background: #25995a; }
   .c-ig { background: linear-gradient(120deg, #e0931c, var(--laranja)); }
