@@ -21,6 +21,17 @@ const nomeOrganizador: Record<string, string> = {
   comunidade: 'Na comunidade',
 };
 const tiposPresentes = new Set(agenda.map((e) => e.organizador_tipo));
+
+// Cor da etiqueta de cada tipo de novidade
+const corNovidade: Record<string, string> = {
+  'Novo local': 'local',
+  'Novo guia': 'guia',
+  'Academia': 'academia',
+  'Galeria': 'galeria',
+  'Crux': 'artigo',
+  'Escalada 101': 'artigo',
+  'Parceria': 'cupom',
+};
 ---
 <Layout titulo="Acontece" descricao="Agenda de encontros, eventos de academias e da comunidade, e o que acabou de chegar no Climbeiros.">
   <PageHero eyebrow="O que tá rolando" descricao="Encontros da galera, eventos das academias e da comunidade, e o que acabou de chegar no site.">
@@ -87,7 +98,7 @@ const tiposPresentes = new Set(agenda.map((e) => e.organizador_tipo));
         <ul class="ac-feed">
           {novidades.map((n) => (
             <li class="ac-item">
-              <span class="ac-item__tipo">{n.tipo}</span>
+              <span class={`ac-item__tipo ac-item__tipo--${corNovidade[n.tipo] ?? 'local'}`}>{n.tipo}</span>
               <div>
                 <a href={n.href} class="ac-item__titulo">{n.titulo}</a>
                 {n.texto && <p>{n.texto}</p>}
@@ -147,22 +158,22 @@ const tiposPresentes = new Set(agenda.map((e) => e.organizador_tipo));
 
   .ac-evento[hidden] { display: none; }
   .ac-evento {
-    display: grid; grid-template-columns: 68px 1fr; gap: 14px;
+    display: grid; grid-template-columns: 68px 1fr; gap: 16px; align-items: stretch;
     background: var(--branco); border: 1px solid #eadfbf; border-left: 5px solid var(--c);
     border-radius: var(--raio); padding: 14px; box-shadow: var(--sombra);
   }
   .ac-data {
     background: var(--c); color: #fff; border-radius: 8px; text-align: center;
-    font-family: var(--fonte-display); line-height: 1.05; padding: 8px 0; align-self: start;
+    font-family: var(--fonte-display); line-height: 1.05; padding: 10px 0;
   }
   .ac-data b { display: block; font-size: 1.7rem; }
   .ac-data span { font-size: .8rem; letter-spacing: .1em; }
   .ac-data--confirmar { background: #fff; color: var(--c); border: 2px dashed var(--c); }
   .ac-data--confirmar b { font-size: 1.3rem; }
   .ac-org { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; color: var(--c); }
-  .ac-evento h3 { font-family: var(--fonte-corpo); text-transform: none; letter-spacing: 0; font-size: 1.05rem; font-weight: 600; color: var(--marrom); margin: 2px 0 4px; }
+  .ac-evento h3 { font-family: var(--fonte-corpo); text-transform: none; letter-spacing: 0; font-size: 1.1rem; font-weight: 700; color: var(--marrom); margin: 2px 0 4px; }
   .ac-evento h3 a { color: inherit; }
-  .ac-evento p { font-size: .9rem; margin: 0; opacity: .85; }
+  .ac-evento p { font-size: .95rem; line-height: 1.5; margin: 0; color: #5c4e3e; }
   .ac-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
   .ac-tag { font-size: .75rem; font-weight: 600; background: #f1ebdb; color: #5c4e3e; padding: 2px 9px; border-radius: 999px; }
   .ac-confirmar { font-size: .75rem; font-style: italic; opacity: .75; }
@@ -176,13 +187,20 @@ const tiposPresentes = new Set(agenda.map((e) => e.organizador_tipo));
   .ac-divulgar b { color: var(--verde-escuro); }
 
   .ac-feed { list-style: none; margin: 16px 0 0; padding: 0; border-top: 1px solid #eadfbf; }
-  .ac-item { display: grid; grid-template-columns: 130px 1fr auto; gap: 16px; align-items: start; padding: 14px 0; border-bottom: 1px solid #eadfbf; }
+  .ac-item { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: start; padding: 14px 0; border-bottom: 1px solid #eadfbf; }
   .ac-item__tipo {
     justify-self: start; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .08em;
-    font-size: .72rem; color: var(--verde-escuro); background: var(--creme-claro); padding: 3px 9px; border-radius: 4px;
+    font-size: .78rem; color: #fff; background: var(--verde); padding: 4px 10px; border-radius: 4px; white-space: nowrap;
   }
-  .ac-item__titulo { font-weight: 600; color: var(--marrom); }
-  .ac-item p { margin: 2px 0 0; font-size: .9rem; opacity: .8; }
+  .ac-item__tipo--local { background: var(--verde); }
+  .ac-item__tipo--guia { background: var(--laranja); }
+  .ac-item__tipo--academia { background: var(--verde-escuro); }
+  .ac-item__tipo--galeria { background: var(--amarelo); }
+  .ac-item__tipo--artigo { background: #7a6a4f; }
+  .ac-item__tipo--cupom { background: #a1582a; }
+  .ac-item__titulo { font-weight: 700; font-size: 1.05rem; color: var(--marrom); }
+  .ac-item__titulo:hover { color: var(--laranja); text-decoration: none; }
+  .ac-item p { margin: 4px 0 0; font-size: .95rem; color: #5c4e3e; }
   .ac-item time { font-size: .85rem; opacity: .7; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
   .ac-wpp { display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; align-items: center; }
@@ -199,8 +217,8 @@ const tiposPresentes = new Set(agenda.map((e) => e.organizador_tipo));
   .ac-botao-wpp svg { width: 22px; height: 22px; }
 
   @media (max-width: 720px) {
-    .ac-item { grid-template-columns: 1fr; gap: 4px; }
-    .ac-item time { order: -1; }
+    .ac-item { grid-template-columns: 1fr; gap: 6px; }
+    .ac-item__tipo { justify-self: start; }
     .ac-wpp { grid-template-columns: 1fr; }
   }
 </style>
