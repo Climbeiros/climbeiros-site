@@ -1,7 +1,7 @@
 ---
 // Página "Acontece": agenda (encontros dos Climbeiros, eventos de academias e
 // da comunidade), novidades do site e o botão pra entrar na comunidade do
-// WhatsApp, onde sai o Beta da quinzena.
+// WhatsApp, onde a gente avisa das novidades.
 //
 // Como atualizar (sem mexer em código):
 // - Eventos: Supabase -> Table Editor -> tabela `agenda_eventos` -> Insert row.
@@ -90,7 +90,7 @@ const corNovidade: Record<string, string> = {
       </p>
 
       <div class="ac-divulgar">
-        <p><b>Vai rolar um evento de escalada?</b> Academia, guia ou grupo local: competição, festa, curso, mutirão ou festival. Manda pra gente que a gente divulga aqui e no Beta da quinzena. É grátis.</p>
+        <p><b>Vai rolar um evento de escalada?</b> Academia, guia ou grupo local: competição, festa, curso, mutirão ou festival. Manda pra gente que a gente divulga aqui e na comunidade do WhatsApp. É grátis.</p>
         <a href="/contato" class="botao">Divulgar evento</a>
       </div>
     </div>
@@ -122,8 +122,8 @@ const corNovidade: Record<string, string> = {
     <section class="secao secao--verde" id="whatsapp">
       <div class="container ac-wpp">
         <div>
-          <h2>O Beta da quinzena no seu WhatsApp</h2>
-          <p>A cada duas semanas a gente manda na comunidade dos Climbeiros o que chegou no site, os próximos encontros e uma dica de escalada. Só avisos, sem spam, e dá pra sair quando quiser.</p>
+          <h2>Fique sabendo pelo WhatsApp</h2>
+          <p>Quando tem encontro marcado, coisa nova no site ou uma dica boa de escalada, a gente avisa na comunidade dos Climbeiros. Só avisos, sem spam, e dá pra sair quando quiser.</p>
         </div>
         <div class="ac-wpp__acao">
           <a href={linkWhatsApp} target="_blank" rel="noopener" class="ac-botao-wpp">
