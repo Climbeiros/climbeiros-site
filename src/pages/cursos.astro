@@ -36,7 +36,7 @@ for (const l of locais ?? []) {
   locaisPorEstado.get(estado).push(l);
 }
 // Quantos locais aparecem no card antes do botão "+N locais".
-const MAX_LOCAIS = 6;
+const MAX_LOCAIS = 4;
 function nomesDosLocais(locaisIds) {
   return (locaisIds ?? []).map((id) => locaisPorId.get(id)).filter(Boolean);
 }
@@ -163,48 +163,47 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
               ) : (
                 <div class="photo">{iniciais(g.nome)}</div>
               )}
-              <h3>{g.nome}</h3>
-              <div class="base">{[g.cidade, g.uf].filter(Boolean).join(" · ")}</div>
+              <div>
+                <h3>{g.nome}</h3>
+                {(g.cidade || g.uf) && (
+                  <div class="base">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
+                    {[g.cidade?.trim(), g.uf?.trim()].filter(Boolean).join(" · ")}
+                  </div>
+                )}
+              </div>
             </div>
             <div class="body">
               {g.bio && (
-                <>
+                <div class="bloco bio-bloco">
                   <div class="lbl">Sobre</div>
-                  <div class="bio-bloco">
-                    <p class="bio">{g.bio.trim()}</p>
-                    <button type="button" class="ler-mais" hidden>Ler mais</button>
-                  </div>
-                </>
+                  <p class="bio">{g.bio.trim()}</p>
+                  <button type="button" class="ler-mais" hidden>Ler mais</button>
+                </div>
               )}
               {g.especialidades_lista?.length > 0 && (
-                <>
+                <div class="bloco">
                   <div class="lbl">Especialidades</div>
-                  <div class="tags">
-                    {g.especialidades_lista.map((e) => <span class="tag">{e}</span>)}
+                  <div class="chips">
+                    {g.especialidades_lista.map((e) => <span class="chip">{e}</span>)}
                   </div>
-                </>
+                </div>
               )}
               {nomesDosLocais(g.locais_ids).length > 0 && (
-                <>
-                  <div class="lbl">Atua nos locais</div>
-                  <div class="tags">
+                <div class="bloco">
+                  <div class="lbl">Atua em</div>
+                  <p class="locais">
                     {nomesDosLocais(g.locais_ids).map((nome, i) => (
-                      <span class:list={['tag', { extra: i >= MAX_LOCAIS }]}>{nome}</span>
+                      <span class:list={['local', { extra: i >= MAX_LOCAIS }]}>{nome}</span>
                     ))}
                     {nomesDosLocais(g.locais_ids).length > MAX_LOCAIS && (
-                      <button type="button" class="tag tag-mais">+{nomesDosLocais(g.locais_ids).length - MAX_LOCAIS} locais</button>
+                      <button type="button" class="locais-mais" aria-label="Ver todos os locais">+{nomesDosLocais(g.locais_ids).length - MAX_LOCAIS}</button>
                     )}
-                  </div>
-                </>
-              )}
-              {g.certificacao && (
-                <>
-                  <div class="lbl">Certificação</div>
-                  <p class="cert">{g.certificacao}</p>
-                </>
+                  </p>
+                </div>
               )}
               {cursosPorGuia.get(g.id)?.length > 0 && (
-                <>
+                <div class="bloco">
                   <div class="lbl">Cursos que oferece</div>
                   <ul class="courses">
                     {cursosPorGuia.get(g.id).map((c) => (
@@ -214,16 +213,31 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
                       </li>
                     ))}
                   </ul>
-                </>
+                </div>
+              )}
+              {g.certificacao && (
+                <details class="cert">
+                  <summary>Ver certificações</summary>
+                  <p>{g.certificacao}</p>
+                </details>
               )}
               <div class="contact">
                 {linkWhatsApp(g.telefone) && (
-                  <a class="cbtn c-wa" href={linkWhatsApp(g.telefone)} target="_blank" rel="noopener">WhatsApp</a>
+                  <a class="cbtn c-ic c-wa" href={linkWhatsApp(g.telefone)} target="_blank" rel="noopener" title="WhatsApp" aria-label={`WhatsApp de ${g.nome}`}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.5-.3Z"/></svg>
+                  </a>
                 )}
                 {usuarioInstagram(g.instagram) && (
-                  <a class="cbtn c-ig" href={linkInstagram(g.instagram)} target="_blank" rel="noopener">@{usuarioInstagram(g.instagram)}</a>
+                  <a class="cbtn c-ig" href={linkInstagram(g.instagram)} target="_blank" rel="noopener" title="Instagram">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+                    <span>@{usuarioInstagram(g.instagram)}</span>
+                  </a>
                 )}
-                {g.email && <a class="cbtn c-em" href={`mailto:${g.email}`}>E-mail</a>}
+                {g.email && (
+                  <a class="cbtn c-ic c-em" href={`mailto:${g.email}`} title="E-mail" aria-label={`E-mail de ${g.nome}`}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                  </a>
+                )}
               </div>
             </div>
           </article>
@@ -377,21 +391,45 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   </dialog>
 </Layout>
 <script>
-  // Cards dos guias: "Ler mais" na apresentação (só aparece se o texto foi
-  // cortado) e "+N locais" pra mostrar a lista completa de locais.
-  document.querySelectorAll<HTMLElement>('.bio-bloco').forEach((b) => {
-    const p = b.querySelector<HTMLElement>('.bio');
-    const btn = b.querySelector<HTMLButtonElement>('.ler-mais');
-    if (!p || !btn) return;
-    if (p.scrollHeight > p.clientHeight + 2) btn.hidden = false;
-    btn.addEventListener('click', () => {
-      const aberto = p.classList.toggle('aberto');
-      btn.textContent = aberto ? 'Ler menos' : 'Ler mais';
+  // Cards dos guias:
+  // - "Ler mais" na apresentação (só aparece se o texto foi cortado);
+  // - "+N" pra mostrar todos os locais;
+  // - nome do Instagram sempre inteiro: se não couber, a letra diminui um
+  //   pouco, e os 3 botões de contato ficam sempre na mesma linha.
+  function ativarLerMais() {
+    document.querySelectorAll<HTMLElement>('.bio-bloco').forEach((b) => {
+      const p = b.querySelector<HTMLElement>('.bio');
+      const btn = b.querySelector<HTMLButtonElement>('.ler-mais');
+      if (!p || !btn || btn.dataset.pronto) return;
+      if (p.scrollHeight > p.clientHeight + 2) {
+        btn.hidden = false;
+        btn.dataset.pronto = '1';
+      }
     });
-  });
-  document.querySelectorAll<HTMLButtonElement>('.tag-mais').forEach((b) =>
+  }
+  document.querySelectorAll<HTMLButtonElement>('.ler-mais').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      const p = btn.parentElement?.querySelector('.bio');
+      const aberto = p?.classList.toggle('aberto');
+      btn.textContent = aberto ? 'Ler menos' : 'Ler mais';
+    })
+  );
+  document.querySelectorAll<HTMLButtonElement>('.locais-mais').forEach((b) =>
     b.addEventListener('click', () => b.parentElement?.classList.add('aberto'))
   );
+  function ajustarInsta() {
+    document.querySelectorAll<HTMLElement>('.guide .c-ig').forEach((b) => {
+      const t = b.querySelector<HTMLElement>('span');
+      if (!t || b.offsetParent === null) return;
+      let f = 13.6;
+      t.style.fontSize = f + 'px';
+      while (b.scrollWidth > b.clientWidth && f > 10) { f -= 0.4; t.style.fontSize = f + 'px'; }
+    });
+  }
+  ativarLerMais();
+  ajustarInsta();
+  document.fonts?.ready.then(() => { ativarLerMais(); ajustarInsta(); });
+  window.addEventListener('resize', ajustarInsta);
 
   import { supabase } from '../lib/supabase';
   import { usuarioInstagram } from '../lib/contatos';
@@ -577,9 +615,9 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .guides { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 26px; margin-top: 48px; }
   .guide { background: var(--branco); border: 1px solid #e6ddc4; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .25s; }
   .guide:hover { transform: translateY(-4px); box-shadow: 0 20px 44px -22px rgba(47,66,48,.5); }
-  .guide .head { background: linear-gradient(150deg, var(--verde-escuro), var(--marrom)); padding: 24px; color: var(--creme-claro); }
-  .guide .photo { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(150deg, #7d9576, #4f6b4a); border: 2px solid var(--creme); display: grid; place-items: center; font-family: var(--fonte-display); font-weight: 700; font-size: 1.6rem; color: var(--creme); margin-bottom: 14px; }
-  .photo-btn { background: none; border: 0; padding: 0; cursor: zoom-in; display: block; border-radius: 50%; }
+  .guide .head { background: linear-gradient(150deg, var(--verde-escuro), var(--marrom)); padding: 20px; color: var(--creme-claro); display: flex; align-items: center; gap: 14px; }
+  .guide .photo { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(150deg, #7d9576, #4f6b4a); border: 2px solid var(--creme); display: grid; place-items: center; font-family: var(--fonte-display); font-weight: 700; font-size: 1.4rem; color: var(--creme); flex: 0 0 auto; }
+  .photo-btn { background: none; border: 0; padding: 0; cursor: zoom-in; display: block; border-radius: 50%; flex: 0 0 auto; }
   .photo-btn:focus-visible { outline: 2px solid var(--amarelo); outline-offset: 3px; }
   .photo-btn:hover .photo-img { transform: scale(1.06); }
   .guide .photo-img { transition: transform .2s; }
@@ -598,24 +636,30 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .foto-nome { color: #fff; text-align: center; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; margin: 12px 0 0; }
   .foto-fechar { position: absolute; top: -14px; right: -14px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--creme-claro); color: var(--verde-escuro); font-size: 1.5rem; line-height: 1; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
   @media (max-width: 600px) { .foto-fechar { top: 6px; right: 6px; } }
-  .guide .photo-img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid var(--creme); margin-bottom: 14px; }
-  .guide h3 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; font-size: 1.7rem; line-height: 1; color: #fff; }
-  .guide .base { font-size: .86rem; color: var(--creme); opacity: .85; margin-top: 4px; }
-  .guide .body { padding: 22px 24px 24px; display: flex; flex-direction: column; flex: 1; }
-  .lbl { font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: .72rem; color: var(--laranja); margin-bottom: 9px; }
-  .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
-  .tag { font-weight: 600; text-transform: uppercase; letter-spacing: .03em; font-size: .8rem; background: var(--creme-claro); color: var(--verde-escuro); border: 1px solid #e0d6bd; padding: 4px 11px; border-radius: 30px; }
-  .cert { font-size: .85rem; color: #5f5344; margin: 0 0 18px; line-height: 1.5; }
-  .bio { font-size: .95rem; color: #4a4033; margin: 0; line-height: 1.55; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-  .bio.aberto { display: block; -webkit-line-clamp: unset; }
-  .bio-bloco { margin-bottom: 18px; }
+  .guide .photo-img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--creme); display: block; }
+  .guide h3 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; font-size: 1.45rem; line-height: 1.05; color: #fff; margin: 0; }
+  .guide .base { font-size: .86rem; color: var(--creme); opacity: .9; margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+  .guide .base svg { width: 14px; height: 14px; flex: 0 0 auto; }
+  .guide .body { padding: 20px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+  .lbl { font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: .7rem; color: var(--laranja); margin-bottom: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: .78rem; font-weight: 600; background: var(--creme-claro); color: var(--verde-escuro); padding: 3px 10px; border-radius: 999px; }
+  .bio { font-size: .95rem; color: #4a4033; margin: 0; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .bio.aberto { display: block; -webkit-line-clamp: unset; white-space: pre-line; }
   .ler-mais { background: none; border: 0; padding: 0; margin-top: 4px; color: var(--laranja); font: 600 .85rem var(--fonte-corpo); cursor: pointer; }
   .ler-mais[hidden] { display: none; }
-  .tags .extra { display: none; }
-  .tags.aberto .extra { display: inline-block; }
-  .tags.aberto .tag-mais { display: none; }
-  .tag-mais { cursor: pointer; background: #fff; border-style: dashed; color: var(--laranja); font-family: inherit; }
-  .courses { list-style: none; margin-bottom: 22px; display: flex; flex-direction: column; gap: 9px; padding: 0; }
+  .locais { margin: 0; font-size: .9rem; line-height: 1.55; color: #4a4033; }
+  .local + .local::before { content: " · "; }
+  .locais .extra { display: none; }
+  .locais.aberto .extra { display: inline; }
+  .locais.aberto .locais-mais { display: none; }
+  .locais-mais { background: none; border: 0; padding: 0 0 0 4px; color: var(--laranja); font: 600 .9rem var(--fonte-corpo); cursor: pointer; }
+  .cert summary { cursor: pointer; color: var(--verde-escuro); font-weight: 600; font-size: .85rem; list-style: none; display: inline-flex; align-items: center; gap: 6px; }
+  .cert summary::-webkit-details-marker { display: none; }
+  .cert summary::before { content: "+"; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--creme-claro); font-weight: 700; }
+  .cert[open] summary::before { content: "–"; }
+  .cert p { margin: 8px 0 0; font-size: .85rem; line-height: 1.5; color: #7a6c58; }
+  .courses { list-style: none; margin: 0; display: flex; flex-direction: column; gap: 9px; padding: 0; }
   .courses li { display: flex; gap: 10px; font-size: .95rem; color: #4a4033; align-items: flex-start; }
   .courses li::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 2px; background: var(--amarelo); margin-top: 8px; transform: rotate(45deg); }
   .level { display: inline-block; font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .04em; padding: 2px 9px; border-radius: 3px; margin-left: 8px; }
@@ -623,11 +667,16 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .lv-int { background: #FDECC8; color: #9F6B00; }
   .lv-adv { background: #FFE2DD; color: #A13A2E; }
   .lv-all { background: #D3E5EF; color: #2b5f7a; }
-  .contact { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid #eee4cc; padding-top: 18px; margin-top: auto; }
-  .cbtn { font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .78rem; padding: 9px 13px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 3px; display: inline-flex; align-items: center; gap: 7px; transition: transform .15s; color: #fff; text-decoration: none; }
-  .cbtn:hover { transform: translateY(-2px); }
+  .contact { display: flex; flex-wrap: nowrap; gap: 6px; border-top: 1px solid #eee4cc; padding-top: 16px; margin-top: auto; }
+  .cbtn { height: 40px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: #fff; text-decoration: none; transition: transform .15s; }
+  .cbtn:hover { transform: translateY(-2px); text-decoration: none; }
+  .cbtn svg { width: 18px; height: 18px; flex: 0 0 auto; }
+  .c-ic { width: 40px; flex: 0 0 40px; }
+  .c-wa svg { width: 20px; height: 20px; }
+  .c-ig { flex: 1 1 0; min-width: 0; padding: 0 8px; font-weight: 600; font-size: .85rem; background: linear-gradient(120deg, #e0931c, var(--laranja)); }
+  .c-ig svg { width: 15px; height: 15px; }
+  .c-ig span { white-space: nowrap; }
   .c-wa { background: #25995a; }
-  .c-ig { background: linear-gradient(120deg, #e0931c, var(--laranja)); }
   .c-em { background: var(--verde-escuro); color: var(--creme); }
   .safety { max-width: 760px; margin: 26px auto 0; font-size: .82rem; color: #8a7d68; text-align: center; font-style: italic; }
   .how { background: var(--verde-escuro); color: var(--creme-claro); text-align: center; }
