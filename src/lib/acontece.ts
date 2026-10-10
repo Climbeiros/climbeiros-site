@@ -24,6 +24,8 @@ export type EventoAgenda = {
   local: string | null;
   descricao: string | null;
   link: string | null;
+  horario?: string | null;   // ex: "19h às 23h" (opcional)
+  logo?: string | null;      // logo do card: logo_url do evento, ou a foto da academia ligada (academia_id)
 };
 
 export type Novidade = {
@@ -42,17 +44,44 @@ export function partesData(iso: string) {
   return { dia, mes: MESES[Number(mes) - 1] ?? '', ano };
 }
 
+// "2026-10-29" -> "qui"
+const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+export function diaSemana(iso: string) {
+  const [ano, mes, dia] = iso.slice(0, 10).split('-').map(Number);
+  return SEMANA[new Date(ano, mes - 1, dia).getDay()];
+}
+
 // "2026-09-25T13:00:00Z" -> "25 set"
 export function dataCurta(iso: string) {
   const { dia, mes } = partesData(iso);
   return `${Number(dia)} ${mes.toLowerCase()}`;
 }
 
+const CAMPOS_AGENDA = 'id, titulo, organizador, organizador_tipo, tipo, data, data_a_confirmar, local, descricao, link';
+
 export async function getAgenda(): Promise<EventoAgenda[]> {
+  // 1ª tentativa: com horário e logo (colunas horario, logo_url e academia_id).
   try {
     const { data, error } = await supabase
       .from('agenda_eventos')
-      .select('id, titulo, organizador, organizador_tipo, tipo, data, data_a_confirmar, local, descricao, link')
+      .select(`${CAMPOS_AGENDA}, horario, logo_url, academias(imagem_url)`)
+      .eq('publicado', true)
+      .order('data', { ascending: true });
+    if (!error && data) {
+      return (data as any[]).map(({ academias, logo_url, ...e }) => ({
+        ...e,
+        logo: logo_url || academias?.imagem_url || null,
+      })) as EventoAgenda[];
+    }
+  } catch {
+    /* segue pra versão simples */
+  }
+  // 2ª tentativa: se essas colunas ainda não existirem no banco, a agenda
+  // continua aparecendo, só sem logo e horário.
+  try {
+    const { data, error } = await supabase
+      .from('agenda_eventos')
+      .select(CAMPOS_AGENDA)
       .eq('publicado', true)
       .order('data', { ascending: true });
     if (error || !data) return [];
