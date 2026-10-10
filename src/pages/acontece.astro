@@ -228,9 +228,13 @@ const corNovidade: Record<string, string> = {
   .ac-confirmar { font-size: .75rem; font-style: italic; opacity: .75; }
   .ac-ver { color: var(--laranja); font-weight: 600; font-size: .88rem; white-space: nowrap; }
   @media (max-width: 640px) {
-    .ac-evento { grid-template-columns: 62px 1fr; gap: 6px 12px; padding: 14px 16px; }
-    .ac-logo { display: none; }
-    .ac-ver { grid-column: 2; }
+    /* No celular: data, logo menor e texto; "Ver detalhes" embaixo do texto. */
+    .ac-evento { grid-template-columns: 54px 40px 1fr; gap: 6px 12px; padding: 14px 16px; align-items: start; }
+    .ac-data b { font-size: 2rem; }
+    .ac-data span { font-size: .62rem; letter-spacing: .02em; }
+    .ac-logo { width: 40px; height: 40px; margin-top: 4px; }
+    .ac-logo--txt { font-size: .85rem; }
+    .ac-ver { grid-column: 3; }
   }
   .ac-vazio { margin: 0; }
 
