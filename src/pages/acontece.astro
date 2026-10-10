@@ -9,7 +9,7 @@
 // Depois de editar, fazer o Redeploy na Vercel.
 import Layout from '../layouts/Layout.astro';
 import { getSiteConfig } from '../lib/supabase';
-import { getAgenda, getNovidades, partesData, dataCurta } from '../lib/acontece';
+import { getAgenda, getNovidades, partesData, dataCurta, diaSemana } from '../lib/acontece';
 
 const [agenda, novidades, config] = await Promise.all([getAgenda(), getNovidades(10), getSiteConfig()]);
 const linkWhatsApp = config.whatsapp_comunidade || '';
@@ -20,6 +20,24 @@ const nomeOrganizador: Record<string, string> = {
   comunidade: 'Na comunidade',
 };
 const tiposPresentes = new Set(agenda.map((e) => e.organizador_tipo));
+
+// Agenda agrupada por mês ("Outubro", "Dezembro", "Maio 2027"...).
+const NOMES_MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const anoBuild = new Date().getFullYear();
+const meses: { chave: string; nome: string; eventos: typeof agenda }[] = [];
+for (const e of agenda) {
+  const chave = e.data.slice(0, 7);
+  let grupo = meses.find((m) => m.chave === chave);
+  if (!grupo) {
+    const [ano, mes] = chave.split('-').map(Number);
+    grupo = { chave, nome: NOMES_MES[mes - 1] + (ano !== anoBuild ? ` ${ano}` : ''), eventos: [] };
+    meses.push(grupo);
+  }
+  grupo.eventos.push(e);
+}
+// Logo do card: a do evento/academia; pros eventos dos Climbeiros, a logo do site.
+const logoDo = (e: (typeof agenda)[number]) => e.logo || (e.organizador_tipo === 'climbeiros' ? '/logo.png' : null);
+const iniciais = (nome: string) => nome.split(/[\s·-]+/).filter(Boolean).map((p) => p[0]).join('').slice(0, 2).toUpperCase();
 
 // Cor da etiqueta de cada tipo de novidade
 const corNovidade: Record<string, string> = {
@@ -60,29 +78,46 @@ const corNovidade: Record<string, string> = {
       </div>
 
       {agenda.length > 0 && (
-        <p class="ac-legenda">A cor mostra quem organiza. Borda tracejada: data ainda a confirmar.</p>
+        <p class="ac-legenda">A cor mostra quem organiza. Clique em "Ver detalhes" pra ir direto pro post do evento.</p>
       )}
 
-      <div class="ac-eventos" id="ac-eventos">
-        {agenda.map((e) => {
-          const d = partesData(e.data);
-          return (
-            <article class={`ac-evento ac-evento--${e.organizador_tipo}`} data-tipo={e.organizador_tipo} data-data={e.data} data-confirmar={e.data_a_confirmar ? '1' : '0'}>
-              <div class:list={['ac-data', { 'ac-data--confirmar': e.data_a_confirmar }]}>
-                {e.data_a_confirmar ? (<><b>{d.mes}</b><span>{d.ano}</span></>) : (<><b>{d.dia}</b><span>{d.mes}</span></>)}
-              </div>
-              <div class="ac-evento__corpo">
-                <span class="ac-org">{e.organizador}</span>
-                <h3>{e.link ? <a href={e.link} target="_blank" rel="noopener">{e.titulo}</a> : e.titulo}</h3>
-                {(e.local || e.descricao) && <p>{[e.local, e.descricao].filter(Boolean).join(' · ')}</p>}
-                <div class="ac-meta">
-                  {e.tipo && <span class="ac-tag">{e.tipo}</span>}
-                  {e.data_a_confirmar && <span class="ac-confirmar">data a confirmar</span>}
-                </div>
-              </div>
-            </article>
-          );
-        })}
+      <div class="ac-cal" id="ac-eventos">
+        {meses.map((m) => (
+          <div class="ac-mes" data-mes={m.chave}>
+            <div class="ac-mes__topo"><span>{m.nome}</span><span class="ac-mes__qtd"></span></div>
+            {m.eventos.map((e) => {
+              const d = partesData(e.data);
+              const logo = logoDo(e);
+              return (
+                <article class={`ac-evento ac-evento--${e.organizador_tipo}`} data-tipo={e.organizador_tipo} data-data={e.data} data-confirmar={e.data_a_confirmar ? '1' : '0'}>
+                  <div class:list={['ac-data', { 'ac-data--confirmar': e.data_a_confirmar }]}>
+                    {e.data_a_confirmar ? (<><b>?</b><span>em breve</span></>) : (<><b>{d.dia}</b><span>{diaSemana(e.data)}</span></>)}
+                  </div>
+                  {logo ? (
+                    <img class:list={['ac-logo', { 'ac-logo--site': e.organizador_tipo === 'climbeiros' && !e.logo }]} src={logo} alt={e.organizador} loading="lazy" />
+                  ) : (
+                    <span class="ac-logo ac-logo--txt" aria-hidden="true">{iniciais(e.organizador)}</span>
+                  )}
+                  <div class="ac-evento__corpo">
+                    <span class="ac-org">{e.organizador}</span>
+                    <h3>{e.titulo}</h3>
+                    <div class="ac-meta">
+                      {e.tipo && <span class="ac-tag">{e.tipo}</span>}
+                      {e.horario && (
+                        <span class="ac-tag">
+                          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                          {e.horario}
+                        </span>
+                      )}
+                      {e.data_a_confirmar && <span class="ac-confirmar">data a confirmar</span>}
+                    </div>
+                  </div>
+                  {e.link && <a class="ac-ver" href={e.link} target="_blank" rel="noopener">Ver detalhes →</a>}
+                </article>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       <p class="ac-vazio" id="ac-vazio" hidden={agenda.length > 0}>
@@ -155,7 +190,16 @@ const corNovidade: Record<string, string> = {
   .ac-filtro[aria-pressed="true"] i { box-shadow: 0 0 0 2px #fff; }
   .ac-legenda { font-size: .85rem; opacity: .8; margin: 0 0 18px; }
 
-  .ac-eventos { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+  /* Agenda em formato calendário: agrupada por mês, um evento por linha. */
+  .ac-cal { background: var(--branco); border-radius: 14px; box-shadow: var(--sombra); overflow: hidden; }
+  .ac-cal[hidden] { display: none; }
+  .ac-mes[hidden] { display: none; }
+  .ac-mes__topo {
+    display: flex; justify-content: space-between; align-items: baseline;
+    background: var(--verde-escuro); color: #fff; padding: 10px 20px;
+    font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 1.1rem;
+  }
+  .ac-mes__qtd { font-weight: 500; font-size: .85rem; opacity: .75; }
 
   /* Cor = quem organiza */
   .ac-evento { --c: var(--laranja); }
@@ -164,25 +208,30 @@ const corNovidade: Record<string, string> = {
 
   .ac-evento[hidden] { display: none; }
   .ac-evento {
-    display: grid; grid-template-columns: 68px 1fr; gap: 16px; align-items: stretch;
-    background: var(--branco); border: 1px solid #eadfbf; border-left: 5px solid var(--c);
-    border-radius: var(--raio); padding: 14px; box-shadow: var(--sombra);
+    display: grid; grid-template-columns: 78px 52px 1fr auto; gap: 16px; align-items: center;
+    padding: 14px 20px; border-bottom: 1px solid #eadfbf;
   }
-  .ac-data {
-    background: var(--c); color: #fff; border-radius: 8px; text-align: center;
-    font-family: var(--fonte-display); line-height: 1.05; padding: 10px 0;
-  }
-  .ac-data b { display: block; font-size: 1.7rem; }
-  .ac-data span { font-size: .8rem; letter-spacing: .1em; }
-  .ac-data--confirmar { background: #fff; color: var(--c); border: 2px dashed var(--c); }
-  .ac-data--confirmar b { font-size: 1.3rem; }
-  .ac-org { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; color: var(--c); }
-  .ac-evento h3 { font-family: var(--fonte-corpo); text-transform: none; letter-spacing: 0; font-size: 1.1rem; font-weight: 700; color: var(--marrom); margin: 2px 0 4px; }
-  .ac-evento h3 a { color: inherit; }
-  .ac-evento p { font-size: .95rem; line-height: 1.5; margin: 0; color: #5c4e3e; }
-  .ac-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
-  .ac-tag { font-size: .75rem; font-weight: 600; background: #f1ebdb; color: #5c4e3e; padding: 2px 9px; border-radius: 999px; }
+  .ac-mes .ac-evento:last-child { border-bottom: 0; }
+  .ac-data { text-align: center; border-left: 5px solid var(--c); padding-left: 6px; font-family: var(--fonte-display); }
+  .ac-data b { display: block; font-size: 2.3rem; line-height: .95; color: var(--c); }
+  .ac-data span { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: #7a6c58; }
+  .ac-data--confirmar b { font-size: 1.6rem; }
+  .ac-data span { white-space: nowrap; }
+  .ac-logo { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; background: #fff; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(42,31,22,.18); }
+  .ac-logo--site { object-fit: contain; padding: 5px; background: var(--verde-escuro); }
+  .ac-logo--txt { display: grid; place-items: center; background: var(--c); color: #fff; font-family: var(--fonte-display); font-weight: 700; font-size: 1rem; }
+  .ac-org { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; color: var(--c); }
+  .ac-evento h3 { font-family: var(--fonte-corpo); text-transform: none; letter-spacing: 0; font-size: 1.08rem; font-weight: 700; color: var(--marrom); margin: 2px 0 6px; line-height: 1.3; }
+  .ac-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .ac-tag { display: inline-flex; align-items: center; gap: 5px; font-size: .75rem; font-weight: 600; background: #f1ebdb; color: #5c4e3e; padding: 3px 9px; border-radius: 999px; }
+  .ac-tag svg { width: 13px; height: 13px; }
   .ac-confirmar { font-size: .75rem; font-style: italic; opacity: .75; }
+  .ac-ver { color: var(--laranja); font-weight: 600; font-size: .88rem; white-space: nowrap; }
+  @media (max-width: 640px) {
+    .ac-evento { grid-template-columns: 62px 1fr; gap: 6px 12px; padding: 14px 16px; }
+    .ac-logo { display: none; }
+    .ac-ver { grid-column: 2; }
+  }
   .ac-vazio { margin: 0; }
 
   .ac-divulgar {
@@ -252,6 +301,15 @@ const corNovidade: Record<string, string> = {
       if (mostrar) visiveis++;
     });
     if (vazio) vazio.hidden = visiveis > 0;
+    const cal = document.getElementById('ac-eventos');
+    if (cal) cal.hidden = visiveis === 0;
+    // Mês sem nenhum evento visível some; os outros mostram a contagem.
+    document.querySelectorAll<HTMLElement>('.ac-mes').forEach((m) => {
+      const n = m.querySelectorAll('.ac-evento:not([hidden])').length;
+      m.hidden = n === 0;
+      const qtd = m.querySelector('.ac-mes__qtd');
+      if (qtd) qtd.textContent = n === 1 ? '1 evento' : `${n} eventos`;
+    });
   }
 
   const filtros = Array.from(document.querySelectorAll<HTMLButtonElement>('.ac-filtro'));
