@@ -1,0 +1,6 @@
+{
+  "redirects": [
+    { "source": "/guias", "destination": "/cursos/", "permanent": true },
+    { "source": "/guias/", "destination": "/cursos/", "permanent": true }
+  ]
+}
