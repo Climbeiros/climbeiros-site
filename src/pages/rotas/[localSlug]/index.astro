@@ -97,7 +97,11 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
     }
   : null;
 ---
-<Layout titulo={local?.nome || 'Local'} descricao={local?.descricao || undefined}>
+<Layout
+  titulo={local ? `${local.nome} · Escalada${local.cidade ? ` em ${local.cidade}` : ''}` : 'Local'}
+  descricao={local?.descricao || undefined}
+  imagem={local?.imagem_capa_url || undefined}
+>
   {local ? (
     <section class="secao">
       {local.imagem_capa_url ? (

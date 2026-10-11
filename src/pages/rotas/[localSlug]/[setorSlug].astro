@@ -49,7 +49,11 @@ const rotuloCroqui: Record<string, string> = {
 
 const encontrado = Boolean(local && setor && setor.local_id === local.id);
 ---
-<Layout titulo={setor?.nome || 'Setor'} descricao={setor?.descricao || undefined}>
+<Layout
+  titulo={setor && local ? `${setor.nome} · ${local.nome}` : (setor?.nome || 'Setor')}
+  descricao={setor?.descricao || (setor && local ? `Setor ${setor.nome}, em ${local.nome}: croqui, como chegar e informações pra escalar.` : undefined)}
+  imagem={local?.imagem_capa_url || undefined}
+>
   {encontrado && local && setor ? (
     <section class="secao">
       <div class="container setor-detalhe">
