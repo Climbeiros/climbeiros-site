@@ -69,16 +69,22 @@ const trilhas = [
       <p class="eyebrow hero__eyebrow">Comunidade de escalada no Brasil</p>
       <h1 class="hero__titulo">{headline}</h1>
     </div>
+    <!-- Abas das trilhas, presas na base da foto. A aba escolhida "encaixa" no bloco creme logo abaixo. -->
+    <div class="hero__trilhas">
+      <div class="container">
+        <p class="hero__pergunta">Por onde você quer começar?</p>
+        <div class="comecou__abas" role="tablist" aria-label="Escolha sua trilha">
+          {trilhas.map((t, i) => (
+            <button type="button" role="tab" class="comecou__aba" id={`aba-${t.id}`} aria-controls={`trilha-${t.id}`} aria-selected={i === 0 ? 'true' : 'false'}>{t.aba}</button>
+          ))}
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- "Começou agora?": trilhas em 4 passos (iniciante / quem já escala / quem já vai pra rocha). As abas trocam a trilha. -->
   <section class="secao secao--creme comecou">
     <div class="container">
-      <div class="comecou__abas" role="tablist" aria-label="Escolha sua trilha">
-        {trilhas.map((t, i) => (
-          <button type="button" role="tab" class="comecou__aba" id={`aba-${t.id}`} aria-controls={`trilha-${t.id}`} aria-selected={i === 0 ? 'true' : 'false'}>{t.aba}</button>
-        ))}
-      </div>
       {trilhas.map((t, i) => (
         <div class="comecou__painel" id={`trilha-${t.id}`} role="tabpanel" aria-labelledby={`aba-${t.id}`} hidden={i !== 0}>
           <div class="comecou__topo">
@@ -275,8 +281,18 @@ const trilhas = [
   }
   .hero__conteudo {
     position: relative;
-    padding-bottom: 56px;
+    padding-bottom: 150px;
     padding-top: 200px;
+  }
+  .hero__trilhas { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; }
+  .hero__pergunta { margin: 0 0 12px; font-family: 'Oswald', sans-serif; font-weight: 500; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--creme-claro); }
+  .hero__pergunta::before { content: ""; display: inline-block; width: 28px; height: 2px; background: var(--laranja); vertical-align: middle; margin-right: 10px; }
+  @media (max-width: 640px) {
+    /* No celular a foto (vertical) fica mais baixa e mostra a parede, não o céu. */
+    .hero { min-height: 0; }
+    .hero__conteudo { padding-top: 96px; padding-bottom: 128px; }
+    .hero__imagem img { object-position: center 58%; }
+    .hero__pergunta { font-size: 0.88rem; margin-bottom: 10px; }
   }
   .hero__eyebrow { color: var(--branco); }
   .hero__eyebrow::before { background: var(--branco); }
@@ -393,9 +409,12 @@ const trilhas = [
   }
   .secao-cta p { max-width: 520px; margin: 0 auto 24px; opacity: 0.9; }
   /* ---- "Começou agora?" ---- */
-  .comecou__abas { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: rgba(61, 84, 57, 0.1); border-radius: 999px; margin-bottom: 22px; }
-  .comecou__aba { font-family: inherit; font-weight: 600; font-size: 0.95rem; border: 0; background: transparent; color: var(--verde-escuro); padding: 8px 18px; border-radius: 999px; cursor: pointer; }
-  .comecou__aba[aria-selected="true"] { background: var(--verde-escuro); color: var(--creme-claro); }
+  .comecou__abas { display: flex; gap: 6px; }
+  .comecou__aba { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.04em; border: 0; border-radius: 12px 12px 0 0; padding: 14px 24px; background: rgba(42, 31, 22, 0.55); color: var(--creme-claro); cursor: pointer; backdrop-filter: blur(4px); }
+  .comecou__aba:hover { background: rgba(42, 31, 22, 0.75); }
+  .comecou__aba[aria-selected="true"] { background: var(--creme-claro); color: var(--verde-escuro); }
+  .comecou__aba:focus-visible { outline: 3px solid var(--laranja); outline-offset: -3px; }
+  .comecou { padding-top: 48px; }
   .comecou__painel[hidden] { display: none; }
   .comecou__topo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; margin-bottom: 28px; }
   .comecou__topo h2 { margin: 0; }
@@ -417,8 +436,8 @@ const trilhas = [
     .trilha::before { display: none; }
   }
   @media (max-width: 520px) {
-    .comecou__abas { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; border-radius: 14px; }
-    .comecou__aba { padding: 8px 6px; font-size: 0.84rem; line-height: 1.2; border-radius: 10px; text-align: center; }
+    .comecou__abas { gap: 4px; }
+    .comecou__aba { flex: 1; padding: 12px 6px; font-size: 0.82rem; line-height: 1.15; text-align: center; }
     .trilha { grid-template-columns: 1fr; }
     .trilha__passo a { flex-direction: row; flex-wrap: wrap; align-items: center; padding: 14px; }
     .trilha__num { width: 44px; height: 44px; font-size: 1.2rem; border: 0; }
