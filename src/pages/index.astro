@@ -9,10 +9,13 @@ const headline = config.home_headline || 'Amigos que escalam juntos';
 const fotoCapa = config.home_foto_capa || '/hero-capa.jpg';
 
 // Bloco "Acabou de chegar": próximo evento + últimas novidades (página Acontece).
+// O site é estático, então a escolha do "próximo evento" é feita no navegador
+// de quem visita (script no fim da página): aqui só separamos os eventos com
+// data confirmada que ainda não tinham passado no dia do deploy.
 const hojeBuild = new Date().toISOString().slice(0, 10);
 const [agendaHome, novidadesHome] = await Promise.all([getAgenda(), getNovidades(3)]);
-const proximoEvento = agendaHome.find((e) => e.data >= hojeBuild && !e.data_a_confirmar) ?? null;
-const cardsNovidades = novidadesHome.slice(0, proximoEvento ? 2 : 3);
+const eventosFuturos = agendaHome.filter((e) => e.data >= hojeBuild && !e.data_a_confirmar).slice(0, 8);
+const cardsNovidades = novidadesHome.slice(0, 3);
 const linkWhatsAppHome = config.whatsapp_comunidade || '';
 
 const destaques = [
@@ -132,7 +135,7 @@ const destaques = [
     </div>
   </section>
 
-  {(proximoEvento || cardsNovidades.length > 0) && (
+  {(eventosFuturos.length > 0 || cardsNovidades.length > 0) && (
     <section class="secao secao--creme">
       <div class="container">
         <div class="chegou__topo">
@@ -140,15 +143,15 @@ const destaques = [
           <a href="/acontece">Tudo que acontece →</a>
         </div>
         <div class="chegou__grade">
-          {proximoEvento && (() => { const d = partesData(proximoEvento.data); return (
-            <a href="/acontece#agenda" class={`chegou__card chegou__card--evento chegou__card--${proximoEvento.organizador_tipo}`}>
+          {eventosFuturos.map((e) => { const d = partesData(e.data); return (
+            <a href="/acontece#agenda" class={`chegou__card chegou__card--evento chegou__card--${e.organizador_tipo}`} data-data={e.data} hidden>
               <span class="chegou__tipo">Próximo evento</span>
-              <strong>{proximoEvento.titulo}</strong>
-              <span>{Number(d.dia)} {d.mes.toLowerCase()} · {proximoEvento.organizador}</span>
+              <strong>{e.titulo}</strong>
+              <span>{Number(d.dia)} {d.mes.toLowerCase()} · {e.organizador}</span>
             </a>
-          ); })()}
-          {cardsNovidades.map((n) => (
-            <a href={n.href} class="chegou__card">
+          ); })}
+          {cardsNovidades.map((n, i) => (
+            <a href={n.href} class="chegou__card" data-novidade={i}>
               <span class="chegou__tipo">{n.tipo}</span>
               <strong>{n.titulo}</strong>
               <span>{n.texto ?? dataCurta(n.data)}</span>
@@ -307,6 +310,7 @@ const destaques = [
     border-radius: var(--raio); box-shadow: var(--sombra); padding: 16px; border-top: 4px solid var(--verde);
   }
   .chegou__card:hover { text-decoration: none; transform: translateY(-2px); }
+  .chegou__card[hidden] { display: none; }
   .chegou__card strong { font-size: 1.05rem; }
   .chegou__card span:last-child { font-size: .9rem; opacity: .8; }
   .chegou__card--evento { --c: var(--laranja); border-top-color: var(--c); }
@@ -321,3 +325,18 @@ const destaques = [
   }
   .secao-cta p { max-width: 520px; margin: 0 auto 24px; opacity: 0.9; }
 </style>
+
+<script>
+  // "Próximo evento": mostra só o primeiro evento que ainda não passou (pela
+  // data de hoje de quem visita). Se tiver evento, a 3ª novidade sai pra
+  // manter 3 cards; se não tiver, ficam as 3 novidades.
+  const d = new Date();
+  const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const proximo = Array.from(document.querySelectorAll<HTMLElement>('.chegou__card--evento'))
+    .find((c) => (c.dataset.data || '') >= hoje);
+  if (proximo) {
+    proximo.hidden = false;
+    const terceira = document.querySelector<HTMLElement>('.chegou__card[data-novidade="2"]');
+    if (terceira) terceira.hidden = true;
+  }
+</script>
