@@ -48,11 +48,25 @@ const rotuloCroqui: Record<string, string> = {
 };
 
 const encontrado = Boolean(local && setor && setor.local_id === local.id);
+
+// --- Dados estruturados (trilha de navegação) pro Google (ver Layout.astro) ---
+const jsonLdSetor = encontrado && setor && local
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Rotas & Setores', item: new URL('/rotas/', Astro.site).href },
+        { '@type': 'ListItem', position: 2, name: local.nome, item: new URL(`/rotas/${local.slug}/`, Astro.site).href },
+        { '@type': 'ListItem', position: 3, name: setor.nome, item: new URL(`/rotas/${local.slug}/${setor.slug}/`, Astro.site).href },
+      ],
+    }
+  : undefined;
 ---
 <Layout
   titulo={setor && local ? `${setor.nome} · ${local.nome}` : (setor?.nome || 'Setor')}
   descricao={setor?.descricao || (setor && local ? `Setor ${setor.nome}, em ${local.nome}: croqui, como chegar e informações pra escalar.` : undefined)}
   imagem={local?.imagem_capa_url || undefined}
+  jsonLd={jsonLdSetor}
 >
   {encontrado && local && setor ? (
     <section class="secao">

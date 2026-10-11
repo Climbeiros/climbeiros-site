@@ -96,11 +96,63 @@ const resumoAvaliacoes = (avaliacoes ?? []).length > 0
       total: (avaliacoes ?? []).length,
     }
   : null;
+
+// --- Informações pro Google, prévia de link e IAs (ver Layout.astro) ---
+const lugarTexto = [local?.cidade, local?.estado].filter(Boolean).join('/');
+const tiposTexto = (local?.tipos ?? []).join(', ').toLowerCase();
+const descricaoSeo = local
+  ? (local.descricao?.trim() ||
+      `Escalada em ${local.nome}${lugarTexto ? ` (${lugarTexto})` : ''}` +
+      `${tiposTexto ? `, ${tiposTexto}` : ''}: setores, croquis, como chegar, previsão do tempo, onde ficar e guias que atuam no local.`)
+  : undefined;
+const urlLocal = local ? new URL(`/rotas/${local.slug}/`, Astro.site).href : '';
+const jsonLdLocal = local
+  ? [
+      {
+        '@context': 'https://schema.org',
+        '@type': ['TouristAttraction', 'SportsActivityLocation'],
+        name: local.nome,
+        description: descricaoSeo,
+        url: urlLocal,
+        ...(local.imagem_capa_url ? { image: local.imagem_capa_url } : {}),
+        ...(local.tipos?.length ? { keywords: ['escalada', ...local.tipos].join(', ') } : {}),
+        address: {
+          '@type': 'PostalAddress',
+          ...(local.cidade ? { addressLocality: local.cidade } : {}),
+          ...(local.estado ? { addressRegion: local.estado } : {}),
+          addressCountry: 'BR',
+        },
+        ...(local.latitude != null && local.longitude != null
+          ? { geo: { '@type': 'GeoCoordinates', latitude: local.latitude, longitude: local.longitude } }
+          : {}),
+        ...((setores ?? []).some((s) => s.slug)
+          ? {
+              containsPlace: (setores ?? [])
+                .filter((s) => s.slug)
+                .map((s) => ({
+                  '@type': 'Place',
+                  name: s.nome,
+                  url: new URL(`/rotas/${local.slug}/${s.slug}/`, Astro.site).href,
+                })),
+            }
+          : {}),
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Rotas & Setores', item: new URL('/rotas/', Astro.site).href },
+          { '@type': 'ListItem', position: 2, name: local.nome, item: urlLocal },
+        ],
+      },
+    ]
+  : undefined;
 ---
 <Layout
   titulo={local ? `${local.nome} · Escalada${local.cidade ? ` em ${local.cidade}` : ''}` : 'Local'}
-  descricao={local?.descricao || undefined}
+  descricao={descricaoSeo}
   imagem={local?.imagem_capa_url || undefined}
+  jsonLd={jsonLdLocal}
 >
   {local ? (
     <section class="secao">

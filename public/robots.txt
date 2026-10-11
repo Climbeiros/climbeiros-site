@@ -1,4 +1,23 @@
+# Climbeiros: todo o conteúdo público pode ser lido por buscadores e IAs.
+# Só o painel interno de moderação fica de fora.
+
 User-agent: *
+Allow: /
+Disallow: /painel-pendencias.html
+
+# Robôs de busca e de IA citados explicitamente (já estariam liberados pela
+# regra acima, mas deixar claro evita bloqueio por padrão em algumas ferramentas).
+User-agent: Googlebot
+User-agent: Google-Extended
+User-agent: Bingbot
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Applebot
 Allow: /
 Disallow: /painel-pendencias.html
 

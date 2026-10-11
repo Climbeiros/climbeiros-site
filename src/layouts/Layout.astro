@@ -11,12 +11,19 @@ interface Props {
   imagem?: string;
   /** "article" pra artigos; o resto do site é "website". */
   tipo?: 'website' | 'article';
+  /** Título exato da aba/busca, sem o " · Climbeiros" automático (usado na home). */
+  tituloCompleto?: string;
+  /** Dados estruturados (schema.org): bloco invisível que explica pro Google e
+   *  pras IAs o que é a página (um local de escalada, um artigo...). */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 const {
   titulo,
-  descricao = 'Climbeiros — o hub da comunidade de escalada no Brasil: academias, cursos, rotas, guias e parcerias.',
+  descricao = 'Climbeiros, o hub da comunidade de escalada no Brasil: locais e setores de escalada com croquis, academias, guias e cursos, conteúdo para iniciantes e cupons de equipamentos.',
   imagem,
   tipo = 'website',
+  tituloCompleto: tituloPersonalizado,
+  jsonLd,
 } = Astro.props;
 
 // Endereço oficial da página, igual ao do sitemap (https://www.climbeiros.com.br/...,
@@ -27,7 +34,38 @@ const canonical = new URL(caminho, site).href;
 
 // A imagem de compartilhamento precisa de endereço completo (com https://).
 const imagemAbsoluta = new URL(imagem || '/og-climbeiros.jpg', site).href;
-const tituloCompleto = `${titulo} · Climbeiros`;
+const tituloCompleto = tituloPersonalizado ?? `${titulo} · Climbeiros`;
+
+// Dados estruturados do site como um todo: só na home, que é onde o Google
+// procura quem é a organização e qual é o nome do site.
+const blocosSite = caminho === '/'
+  ? [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        '@id': `${site.origin}/#organizacao`,
+        name: 'Climbeiros',
+        url: `${site.origin}/`,
+        logo: `${site.origin}/logo.png`,
+        description: descricao,
+        sameAs: ['https://www.instagram.com/climbeiros/'],
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        '@id': `${site.origin}/#site`,
+        name: 'Climbeiros',
+        url: `${site.origin}/`,
+        inLanguage: 'pt-BR',
+        publisher: { '@id': `${site.origin}/#organizacao` },
+      },
+    ]
+  : [];
+const todosBlocos = [...blocosSite, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [])];
+// Escapa "<" pra nenhum texto vindo do banco conseguir fechar a tag <script>.
+const jsonLdTexto = todosBlocos.length
+  ? JSON.stringify(todosBlocos.length === 1 ? todosBlocos[0] : todosBlocos).replace(/</g, '\\u003c')
+  : null;
 ---
 <!doctype html>
 <html lang="pt-BR">
@@ -47,6 +85,8 @@ const tituloCompleto = `${titulo} · Climbeiros`;
     <meta property="og:description" content={descricao} />
     <meta property="og:image" content={imagemAbsoluta} />
     <meta name="twitter:card" content="summary_large_image" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    {jsonLdTexto && <script type="application/ld+json" set:html={jsonLdTexto} />}
     <meta name="theme-color" content="#3D5439" />
     <Analytics />
   </head>
