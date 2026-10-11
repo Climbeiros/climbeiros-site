@@ -17,7 +17,7 @@ const { data: artigo } = await supabase
   .eq('categoria', 'escalada101')
   .single() as { data: Artigo | null };
 ---
-<Layout titulo={artigo?.titulo || 'Escalada 101'} descricao={artigo?.resumo || undefined}>
+<Layout titulo={artigo?.titulo || 'Escalada 101'} descricao={artigo?.resumo || undefined} imagem={artigo?.imagem_capa_url || undefined} tipo="article">
   {artigo ? (
     <>
       <section class="pagina-hero">
