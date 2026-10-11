@@ -7,23 +7,46 @@ import '../styles/global.css';
 interface Props {
   titulo: string;
   descricao?: string;
+  /** Imagem que aparece quando o link é compartilhado (WhatsApp, Instagram...). */
+  imagem?: string;
+  /** "article" pra artigos; o resto do site é "website". */
+  tipo?: 'website' | 'article';
 }
 const {
   titulo,
   descricao = 'Climbeiros — o hub da comunidade de escalada no Brasil: academias, cursos, rotas, guias e parcerias.',
+  imagem,
+  tipo = 'website',
 } = Astro.props;
+
+// Endereço oficial da página, igual ao do sitemap (https://www.climbeiros.com.br/...,
+// com barra no final), pra o Google não contar /sobre e /sobre/ como páginas diferentes.
+const site = Astro.site ?? new URL('https://www.climbeiros.com.br');
+const caminho = Astro.url.pathname.replace(/\/*$/, '/');
+const canonical = new URL(caminho, site).href;
+
+// A imagem de compartilhamento precisa de endereço completo (com https://).
+const imagemAbsoluta = new URL(imagem || '/og-climbeiros.jpg', site).href;
+const tituloCompleto = `${titulo} · Climbeiros`;
 ---
 <!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <title>{titulo} · Climbeiros</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>{tituloCompleto}</title>
     <meta name="description" content={descricao} />
-    <meta property="og:title" content={`${titulo} · Climbeiros`} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:site_name" content="Climbeiros" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:type" content={tipo} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={tituloCompleto} />
     <meta property="og:description" content={descricao} />
-    <meta property="og:image" content="/logo.png" />
+    <meta property="og:image" content={imagemAbsoluta} />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#3D5439" />
     <Analytics />
   </head>
