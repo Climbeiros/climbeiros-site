@@ -19,7 +19,7 @@ const { data: artigo } = await supabase
   .eq('categoria', 'crux')
   .single() as { data: Artigo | null };
 ---
-<Layout titulo={artigo?.titulo || 'Artigo'} descricao={artigo?.resumo || undefined}>
+<Layout titulo={artigo?.titulo || 'Artigo'} descricao={artigo?.resumo || undefined} imagem={artigo?.imagem_capa_url || undefined} tipo="article">
   {artigo ? (
     <article class="secao">
       <div class="container artigo">
