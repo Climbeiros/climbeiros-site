@@ -1,0 +1,25 @@
+# Redeploy diário do site na Vercel.
+# Todo dia, por volta das 6h (horário de Brasília), pede pra Vercel publicar o
+# site de novo. Assim a agenda e as novidades se atualizam sozinhas, sem
+# ninguém precisar clicar em "Redeploy".
+#
+# Precisa de um "secret" no GitHub chamado VERCEL_DEPLOY_HOOK com o link do
+# Deploy Hook da Vercel (Settings > Secrets and variables > Actions).
+# Pra testar na hora: aba Actions > "Redeploy diário" > Run workflow.
+name: Redeploy diário
+
+on:
+  schedule:
+    - cron: '7 9 * * *' # 09:07 UTC = 06:07 em Brasília
+  workflow_dispatch:
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar o Deploy Hook da Vercel
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "Falta o secret VERCEL_DEPLOY_HOOK"; exit 1; fi
+          curl -fsS -X POST "$HOOK"
