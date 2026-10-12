@@ -26,9 +26,9 @@ const mosaico = [
 ];
 
 const bastidores = [
-  { src: FOTOS + 'geovanna.jpg', alt: 'Geovanna', posicao: '50% 50%' },
-  { src: FOTOS + 'emilie.jpg', alt: 'Emilie', posicao: '70% 60%' },
-  { src: FOTOS + 'larissa.jpg', alt: 'Larissa', posicao: '50% 40%' },
+  { src: FOTOS + 'geovanna.jpg', grande: FOTOS + 'geovanna-grande.jpg', alt: 'Geovanna', posicao: '50% 50%' },
+  { src: FOTOS + 'emilie.jpg', grande: FOTOS + 'emilie-grande.jpg', alt: 'Emilie', posicao: '70% 60%' },
+  { src: FOTOS + 'larissa.jpg', grande: FOTOS + 'larissa-grande.jpg', alt: 'Larissa', posicao: '50% 40%' },
 ];
 
 const valores = [
@@ -110,7 +110,9 @@ const valores = [
       <div class="bastidores">
         <div class="bastidores__rostos">
           {bastidores.map((p) => (
-            <img src={p.src} alt={p.alt} style={`object-position: ${p.posicao}`} loading="lazy" />
+            <button type="button" class="bastidores__foto" data-grande={p.grande} data-nome={p.alt} aria-label={`Ver foto da ${p.alt} maior`}>
+              <img src={p.src} alt={p.alt} style={`object-position: ${p.posicao}`} loading="lazy" />
+            </button>
           ))}
         </div>
         <p>
@@ -120,6 +122,15 @@ const valores = [
       </div>
     </div>
   </section>
+
+  <!-- Foto ampliada (abre ao clicar numa das fotinhas dos bastidores) -->
+  <dialog class="ampliada" id="foto-ampliada" aria-label="Foto ampliada">
+    <button type="button" class="ampliada__fechar" aria-label="Fechar">×</button>
+    <figure>
+      <img class="ampliada__img" src="" alt="" />
+      <figcaption class="ampliada__nome"></figcaption>
+    </figure>
+  </dialog>
 
   <!-- VALORES -->
   <section class="secao">
@@ -139,6 +150,24 @@ const valores = [
     </div>
   </section>
 </Layout>
+<script>
+  // Clicar numa fotinha dos bastidores abre a foto maior; fecha no X, com Esc ou clicando fora.
+  const janela = document.getElementById('foto-ampliada') as HTMLDialogElement | null;
+  if (janela) {
+    const img = janela.querySelector<HTMLImageElement>('.ampliada__img')!;
+    const nome = janela.querySelector<HTMLElement>('.ampliada__nome')!;
+    document.querySelectorAll<HTMLButtonElement>('.bastidores__foto').forEach((botao) => {
+      botao.addEventListener('click', () => {
+        img.src = botao.dataset.grande || '';
+        img.alt = botao.dataset.nome || '';
+        nome.textContent = botao.dataset.nome || '';
+        janela.showModal();
+      });
+    });
+    janela.querySelector('.ampliada__fechar')!.addEventListener('click', () => janela.close());
+    janela.addEventListener('click', (e) => { if (e.target === janela) janela.close(); });
+  }
+</script>
 <style>
   .sobre {
     display: grid;
@@ -236,15 +265,66 @@ const valores = [
     gap: 12px 18px;
   }
   .bastidores__rostos { display: flex; }
-  .bastidores__rostos img {
+  .bastidores__foto {
+    padding: 0;
+    border: 3px solid var(--creme-claro);
+    border-radius: 50%;
+    background: none;
+    margin-left: -12px;
+    cursor: zoom-in;
+    transition: transform 0.15s;
+  }
+  .bastidores__foto:first-child { margin-left: 0; }
+  .bastidores__foto:hover { transform: scale(1.08); position: relative; z-index: 1; }
+  .bastidores__foto:focus-visible { outline: 2px solid var(--laranja); outline-offset: 2px; }
+  .bastidores__foto img {
+    display: block;
     width: 52px;
     height: 52px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid var(--creme-claro);
-    margin-left: -12px;
   }
-  .bastidores__rostos img:first-child { margin-left: 0; }
+
+  .ampliada {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    max-width: min(92vw, 520px);
+    overflow: visible;
+  }
+  .ampliada::backdrop { background: rgba(42, 31, 22, 0.8); }
+  .ampliada figure { margin: 0; }
+  .ampliada__img {
+    display: block;
+    width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: var(--raio);
+    background: var(--marrom);
+  }
+  .ampliada__nome {
+    margin-top: 10px;
+    text-align: center;
+    color: var(--creme);
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 1.1rem;
+  }
+  .ampliada__fechar {
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--laranja);
+    color: #fff;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+  }
   .bastidores p { margin: 0; flex: 1 1 280px; min-width: 0; }
   .bastidores a { color: var(--laranja); font-weight: 600; text-decoration: none; }
   .bastidores a:hover { text-decoration: underline; }
