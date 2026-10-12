@@ -102,6 +102,19 @@ async function buscar<T>(consulta: PromiseLike<{ data: unknown; error: unknown }
   }
 }
 
+// Páginas novas feitas em código (não vêm do Supabase), que também devem
+// aparecer nas Novidades. Ao publicar uma página nova desse tipo, adicione
+// uma linha aqui com a data de publicação.
+const PAGINAS_NOVAS: Novidade[] = [
+  {
+    tipo: 'Crux',
+    titulo: 'Seu primeiro outdoor',
+    texto: 'Checklist do que levar e o que muda da academia pra rocha.',
+    href: '/crux/primeiro-outdoor',
+    data: '2026-10-12T21:13:45+00:00',
+  },
+];
+
 export async function getNovidades(limite = 10): Promise<Novidade[]> {
   const [locais, academias, guias, fotos, artigos, parceiros] = await Promise.all([
     buscar<{ nome: string; slug: string | null; cidade: string | null; estado: string | null; criado_em: string }>(
@@ -151,6 +164,7 @@ export async function getNovidades(limite = 10): Promise<Novidade[]> {
     ...parceiros.filter((p) => p.criado_em).map((p) => ({
       tipo: 'Parceria', titulo: p.nome_marca, texto: p.descricao, href: '/parceiros', data: p.criado_em,
     })),
+    ...PAGINAS_NOVAS,
   ];
 
   return itens
