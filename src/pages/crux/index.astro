@@ -26,6 +26,14 @@ const itemOutdoor = {
   icone: 'outdoor',
 };
 
+// Como ler um croqui: página de código própria (croqui interativo).
+const itemCroqui = {
+  titulo: 'Como ler um croqui',
+  resumo: 'Um croqui de exemplo pra clicar em cada símbolo: chapeleta, parada, enfiada, grau, altura e descida.',
+  href: '/crux/como-ler-croqui',
+  icone: 'croqui',
+};
+
 // Artigos futuros vindos do Supabase usam o ícone padrão (bandeirinha),
 // já que o título deles não é conhecido de antemão.
 const listaArtigos = (artigos ?? []).map((artigo) => ({
@@ -35,7 +43,7 @@ const listaArtigos = (artigos ?? []).map((artigo) => ({
   icone: 'padrao',
 }));
 
-const todosItens = [itemTecnicas, itemOutdoor, ...listaArtigos];
+const todosItens = [itemTecnicas, itemOutdoor, itemCroqui, ...listaArtigos];
 ---
 <Layout titulo="Crux" descricao="Conteúdo pra quem já escala e quer ir além do básico. Guias, dicas e novidades da comunidade Climbeiros.">
   <section class="secao">
@@ -66,6 +74,15 @@ const todosItens = [itemTecnicas, itemOutdoor, ...listaArtigos];
                   <circle class="sol-outdoor" cx="29" cy="11" r="4" fill="#e0931c" />
                   <polygon points="3,33 16,13 24,24 28,19 37,33" fill="#668062" />
                   <polygon points="16,13 19.5,18.5 16,17 12.5,19" fill="#f0e2b2" />
+                </svg>
+              )}
+              {item.icone === 'croqui' && (
+                <svg class="icone-croqui" viewBox="0 0 40 40">
+                  <path d="M14,36 C15,28 12,22 15,15 C17,10 16,7 18,4" fill="none" stroke="#3d5439" stroke-width="2.5" stroke-linecap="round" />
+                  <path class="x-croqui" d="M11,26 l4,4 m0,-4 l-4,4 M13,15 l4,4 m0,-4 l-4,4" stroke="#da7326" stroke-width="2.2" stroke-linecap="round" />
+                  <circle cx="16" cy="5" r="2.5" fill="none" stroke="#2a1f16" stroke-width="1.8" />
+                  <circle cx="22" cy="5" r="2.5" fill="none" stroke="#2a1f16" stroke-width="1.8" />
+                  <path d="M27,30 L33,30 M27,24 L33,24" stroke="#668062" stroke-width="2" stroke-linecap="round" />
                 </svg>
               )}
               {item.icone === 'padrao' && (
@@ -140,6 +157,15 @@ const todosItens = [itemTecnicas, itemOutdoor, ...listaArtigos];
   @keyframes sol-subir {
     0%, 100% { transform: translateY(2px); }
     50% { transform: translateY(-2px); }
+  }
+
+  /* ---- Como ler um croqui: as chapeletas piscam de leve ---- */
+  .icone-croqui .x-croqui {
+    animation: x-piscar 2.4s ease-in-out infinite;
+  }
+  @keyframes x-piscar {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
   }
 
   .crux-nota {
