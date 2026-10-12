@@ -102,9 +102,6 @@ const todosItens = [itemTecnicas, itemOutdoor, itemCroqui, ...listaArtigos];
         ))}
       </div>
 
-      {(!artigos || artigos.length === 0) && (
-        <p class="crux-nota">Os outros artigos de Crux ainda estão sendo escritos. Volte em breve!</p>
-      )}
     </div>
   </section>
 </Layout>
@@ -166,11 +163,5 @@ const todosItens = [itemTecnicas, itemOutdoor, itemCroqui, ...listaArtigos];
   @keyframes x-piscar {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.35; }
-  }
-
-  .crux-nota {
-    max-width: 820px;
-    margin: 24px auto 0;
-    opacity: 0.75;
   }
 </style>
