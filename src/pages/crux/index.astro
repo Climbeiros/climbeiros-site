@@ -18,6 +18,14 @@ const itemTecnicas = {
   icone: 'tecnicas',
 };
 
+// Guia do primeiro outdoor: também é página de código própria (checklist interativo).
+const itemOutdoor = {
+  titulo: 'Seu primeiro outdoor',
+  resumo: 'Da academia pra rocha: o checklist do que levar, como escolher o setor, o que muda e a ética de acesso.',
+  href: '/crux/primeiro-outdoor',
+  icone: 'outdoor',
+};
+
 // Artigos futuros vindos do Supabase usam o ícone padrão (bandeirinha),
 // já que o título deles não é conhecido de antemão.
 const listaArtigos = (artigos ?? []).map((artigo) => ({
@@ -27,7 +35,7 @@ const listaArtigos = (artigos ?? []).map((artigo) => ({
   icone: 'padrao',
 }));
 
-const todosItens = [itemTecnicas, ...listaArtigos];
+const todosItens = [itemTecnicas, itemOutdoor, ...listaArtigos];
 ---
 <Layout titulo="Crux" descricao="Conteúdo pra quem já escala e quer ir além do básico. Guias, dicas e novidades da comunidade Climbeiros.">
   <section class="secao">
@@ -51,6 +59,13 @@ const todosItens = [itemTecnicas, ...listaArtigos];
                   <path d="M50,40 L42,80" stroke="#3d5439" stroke-width="6" fill="none" stroke-linecap="round" />
                   <path class="perna-bandeira" d="M50,40 L80,64" stroke="#3d5439" stroke-width="6" fill="none" stroke-linecap="round" />
                   <circle cx="50" cy="30" r="7" fill="#3d5439" />
+                </svg>
+              )}
+              {item.icone === 'outdoor' && (
+                <svg class="icone-outdoor" viewBox="0 0 40 40">
+                  <circle class="sol-outdoor" cx="29" cy="11" r="4" fill="#e0931c" />
+                  <polygon points="3,33 16,13 24,24 28,19 37,33" fill="#668062" />
+                  <polygon points="16,13 19.5,18.5 16,17 12.5,19" fill="#f0e2b2" />
                 </svg>
               )}
               {item.icone === 'padrao' && (
@@ -116,6 +131,15 @@ const todosItens = [itemTecnicas, ...listaArtigos];
   @keyframes bandeira-padrao-ondular {
     0%, 100% { transform: skewY(0deg); }
     50% { transform: skewY(6deg); }
+  }
+
+  /* ---- Primeiro outdoor: sol nascendo atrás da montanha ---- */
+  .icone-outdoor .sol-outdoor {
+    animation: sol-subir 3s ease-in-out infinite;
+  }
+  @keyframes sol-subir {
+    0%, 100% { transform: translateY(2px); }
+    50% { transform: translateY(-2px); }
   }
 
   .crux-nota {

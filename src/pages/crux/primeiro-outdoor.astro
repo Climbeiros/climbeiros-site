@@ -1,0 +1,308 @@
+---
+// src/pages/crux/primeiro-outdoor.astro
+//
+// Guia pra quem vai escalar na rocha pela primeira vez: como se preparar,
+// checklist interativo do que levar, o que muda da academia pra rocha e
+// ética de acesso. Conteúdo fixo no código (não vem do Supabase): pra
+// mudar um item do checklist, mexa direto no array CHECKLIST aqui embaixo.
+import Layout from '../../layouts/Layout.astro';
+
+const ANTES = [
+  {
+    titulo: 'Vá com quem conhece',
+    texto: 'Na primeira vez, escale com amigos que já vão pra rocha ou com um guia. É com eles que você aprende a montar a descida e a ler o lugar.',
+  },
+  {
+    titulo: 'Escolha um setor tranquilo',
+    texto: 'Vias bem protegidas, acesso curto e graus abaixo do que você faz na academia. Na rocha, o mesmo número costuma parecer mais difícil.',
+  },
+  {
+    titulo: 'Leia o croqui e o acesso',
+    texto: 'Onde estacionar, se é propriedade particular, se tem taxa ou horário. A página de cada local no Climbeiros tem o croqui e as dicas.',
+  },
+  {
+    titulo: 'Olhe a previsão',
+    texto: 'Rocha molhada escorrega e pode quebrar agarras frágeis. Se choveu muito, espere secar. A previsão do tempo está na página do local.',
+  },
+];
+
+const CHECKLIST = [
+  {
+    grupo: 'Equipamento de escalada',
+    nota: 'Pra escalada esportiva. Vai de boulder? Troque corda e costuras por crash pad e escovinha.',
+    itens: [
+      'Sapatilha',
+      'Cadeirinha',
+      'Capacete (pra quem escala e pra quem dá segurança)',
+      'Freio e mosquetão de rosca',
+      'Corda com o tamanho que o croqui pede',
+      'Costuras: o número de chapeletas da via, mais duas',
+      'Solteira (longe) pra se prender na parada',
+      'Magnésio',
+    ],
+  },
+  {
+    grupo: 'Na mochila',
+    nota: '',
+    itens: [
+      'Água, mais do que você acha que precisa',
+      'Lanche',
+      'Protetor solar e repelente',
+      'Casaco leve (a montanha esfria rápido)',
+      'Lanterna de cabeça',
+      'Kit de primeiros socorros',
+      'Saquinho pra trazer todo o lixo de volta',
+    ],
+  },
+  {
+    grupo: 'Antes de sair de casa',
+    nota: '',
+    itens: [
+      'Avisar alguém onde você vai e a hora de voltar',
+      'Baixar o mapa e o croqui (o sinal costuma ser fraco)',
+      'Dinheiro pra taxa de acesso ou estacionamento',
+      'Celular carregado',
+    ],
+  },
+];
+
+const TOTAL_ITENS = CHECKLIST.reduce((soma, g) => soma + g.itens.length, 0);
+
+const DIFERENCAS = [
+  {
+    rotulo: 'Graus',
+    titulo: 'O mesmo número, outra sensação',
+    texto: 'A rocha não tem agarra colorida dizendo por onde ir, e o pé é muito mais difícil de achar. Comece um ou dois graus abaixo do seu da academia.',
+  },
+  {
+    rotulo: 'Proteção',
+    titulo: 'Chapeletas mais espaçadas',
+    texto: 'A distância entre as proteções costuma ser maior, então a queda também é. Atenção redobrada pra não deixar o pé atrás da corda.',
+  },
+  {
+    rotulo: 'Topo da via',
+    titulo: 'Você precisa descer sozinho',
+    texto: 'Na academia é só pedir pra descer. Na rocha, muitas vezes você monta a descida na parada. Aprenda isso no chão, com alguém experiente, antes de fazer lá em cima.',
+  },
+  {
+    rotulo: 'Ambiente',
+    titulo: 'Sol, vento e pedra solta',
+    texto: 'Pode cair pedra, o tempo muda e o calor cansa. Por isso o capacete vale pra todo mundo, inclusive pra quem fica no chão dando segurança.',
+  },
+];
+
+const ETICA = [
+  'Muitos setores ficam em propriedade particular. Deixe a porteira como encontrou, pague a taxa quando houver e estacione sem fechar ninguém.',
+  'Tudo o que você levou volta com você: lixo, resto de comida e papel higiênico.',
+  'Ande pela trilha que já existe. Atalho novo vira erosão.',
+  'Som baixo e conversa tranquila. A rocha é de todo mundo, e às vezes tem casa por perto.',
+  'No fim do dia, escove as marcas de magnésio que você deixou nas agarras.',
+  'Não mude a rocha: nada de lascar agarra ou colocar proteção nova sem conversar com quem cuida do lugar.',
+  'Respeite os fechamentos combinados com proprietários e associações locais, como a ASSEM no Baú.',
+  'Divida as vias com quem chegou depois e combine a vez com a galera.',
+];
+---
+<Layout titulo="Seu primeiro outdoor" descricao="Checklist do que levar, como escolher o setor, o que muda da academia pra rocha e a ética de acesso pra quem vai escalar na rocha pela primeira vez.">
+  <section class="pagina-hero">
+    <div class="pagina-hero__contorno" aria-hidden="true"></div>
+    <div class="container pagina-hero__conteudo">
+      <span class="eyebrow">Crux</span>
+      <h1>Seu primeiro outdoor</h1>
+      <p class="lead">Da academia pra rocha: como se preparar, o que levar na mochila e os combinados que fazem a galera continuar sendo bem-vinda nos picos.</p>
+      <nav class="sumario" aria-label="Nesta página">
+        <a href="#antes">Antes de ir</a>
+        <a href="#checklist">O checklist</a>
+        <a href="#diferencas">Academia x rocha</a>
+        <a href="#etica">Ética de acesso</a>
+      </nav>
+    </div>
+  </section>
+
+  <section class="secao" id="antes">
+    <div class="container">
+      <div class="grupo-cabecalho">
+        <span class="numero">01</span>
+        <h2>Antes de ir</h2>
+      </div>
+      <div class="comeco-grid">
+        {ANTES.map((passo) => (
+          <div class="comeco-item">
+            <h4>{passo.titulo}</h4>
+            <p>{passo.texto}</p>
+          </div>
+        ))}
+      </div>
+      <p class="outdoor-links">
+        <a href="/rotas/">Ver locais e setores →</a>
+        <a href="/cursos/">Achar um guia →</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="secao secao--creme" id="checklist">
+    <div class="container">
+      <div class="grupo-cabecalho">
+        <span class="numero">02</span>
+        <h2>O checklist</h2>
+      </div>
+      <p class="checklist-intro">Vai marcando o que já está na mochila.</p>
+
+      <div class="checklist-progresso" aria-live="polite">
+        <div class="checklist-progresso__barra"><span id="checklist-barra"></span></div>
+        <p><strong id="checklist-contagem">0</strong> de {TOTAL_ITENS} na mochila <button type="button" id="checklist-limpar" class="checklist-limpar">Recomeçar</button></p>
+      </div>
+
+      <div class="checklist-grade">
+        {CHECKLIST.map((grupo) => (
+          <div class="checklist-grupo">
+            <h3>{grupo.grupo}</h3>
+            {grupo.nota && <p class="checklist-nota">{grupo.nota}</p>}
+            <ul>
+              {grupo.itens.map((item) => (
+                <li>
+                  <label>
+                    <input type="checkbox" class="checklist-item" />
+                    <span>{item}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <p class="checklist-pronto" id="checklist-pronto" hidden>Mochila pronta. Boa escalada! 🧗</p>
+    </div>
+  </section>
+
+  <section class="secao" id="diferencas">
+    <div class="container">
+      <div class="grupo-cabecalho">
+        <span class="numero">03</span>
+        <h2>O que muda da academia pra rocha</h2>
+      </div>
+      <div class="definicao-grid">
+        {DIFERENCAS.map((d) => (
+          <div class="definicao-card">
+            <span class="rotulo">{d.rotulo}</span>
+            <h3>{d.titulo}</h3>
+            <p>{d.texto}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="caixa-atencao outdoor-check">
+        <h3>Check de parceiro, sempre</h3>
+        <p>Antes de sair do chão, um confere o outro, toda vez, mesmo entre amigos experientes:</p>
+        <ul>
+          <li>Nó de oito completo e com arremate</li>
+          <li>Cadeirinha afivelada e ajustada</li>
+          <li>Freio montado do jeito certo e mosquetão travado</li>
+          <li>Nó na ponta da corda, pra ela não escapar do freio</li>
+          <li>Capacete nos dois</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao secao--creme" id="etica">
+    <div class="container">
+      <div class="grupo-cabecalho">
+        <span class="numero">04</span>
+        <h2>Ética de acesso</h2>
+      </div>
+      <p class="grupo-intro">Muitos picos só continuam abertos porque a galera que vai lá cuida do lugar e se dá bem com quem mora por perto. Os combinados de sempre:</p>
+      <div class="dicas-lista etica-lista">
+        {ETICA.map((dica) => (
+          <div class="dica"><p>{dica}</p></div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="secao">
+    <div class="container cta-final">
+      <h2>Bora pra rocha?</h2>
+      <p>Escolha um setor, chame a galera e manda uma foto pra galeria depois.</p>
+      <div class="botoes">
+        <a class="botao" href="/rotas/">Ver locais e setores</a>
+        <a class="botao botao--secundario" href="/cursos/">Escalar com um guia</a>
+      </div>
+      <p class="outdoor-voltar"><a href="/crux/">← Voltar pro Crux</a></p>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  // Checklist: conta quantos itens já foram marcados e mostra a barra de progresso.
+  const caixas = Array.from(document.querySelectorAll<HTMLInputElement>('.checklist-item'));
+  const contagem = document.getElementById('checklist-contagem');
+  const barra = document.getElementById('checklist-barra');
+  const pronto = document.getElementById('checklist-pronto');
+  const limpar = document.getElementById('checklist-limpar');
+
+  function atualizar() {
+    const marcados = caixas.filter((c) => c.checked).length;
+    if (contagem) contagem.textContent = String(marcados);
+    if (barra) barra.style.width = `${(marcados / caixas.length) * 100}%`;
+    if (pronto) pronto.hidden = marcados !== caixas.length;
+  }
+
+  caixas.forEach((c) => c.addEventListener('change', atualizar));
+  limpar?.addEventListener('click', () => {
+    caixas.forEach((c) => (c.checked = false));
+    atualizar();
+  });
+  atualizar();
+</script>
+
+<style>
+  .grupo-cabecalho { margin-bottom: 20px; }
+
+  .outdoor-links { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 28px; font-weight: 600; }
+
+  .checklist-intro { margin-top: -8px; }
+
+  .checklist-progresso { max-width: 520px; margin: 8px 0 24px; }
+  .checklist-progresso__barra { height: 10px; border-radius: 999px; background: rgba(61, 84, 57, 0.15); overflow: hidden; }
+  .checklist-progresso__barra span { display: block; height: 100%; width: 0; background: var(--verde); transition: width 0.25s ease; }
+  .checklist-progresso p { margin: 8px 0 0; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .checklist-progresso strong { font-family: var(--fonte-display); color: var(--verde-escuro); font-size: 1.1rem; }
+  .checklist-limpar {
+    margin-left: auto; background: none; border: 0; color: var(--laranja); font: inherit; font-weight: 600;
+    cursor: pointer; padding: 4px 0;
+  }
+
+  .checklist-grade { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .checklist-grupo {
+    background: var(--branco); border-radius: var(--raio); box-shadow: var(--sombra);
+    border: 1px solid rgba(42, 31, 22, 0.08); padding: 22px 24px;
+  }
+  .checklist-grupo h3 { margin: 0 0 6px; color: var(--verde-escuro); }
+  .checklist-nota { font-size: 0.85rem; opacity: 0.75; margin: 0 0 10px; }
+  .checklist-grupo ul { list-style: none; margin: 0; padding: 0; }
+  .checklist-grupo li { border-top: 1px solid rgba(42, 31, 22, 0.07); }
+  .checklist-grupo li:first-child { border-top: 0; }
+  .checklist-grupo label { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; cursor: pointer; font-size: 0.95rem; }
+  .checklist-grupo input {
+    appearance: none; flex-shrink: 0; width: 22px; height: 22px; margin: 0; border-radius: 6px;
+    border: 2px solid var(--verde); background: var(--branco); cursor: pointer; display: grid; place-items: center;
+  }
+  .checklist-grupo input:checked { background: var(--verde); }
+  .checklist-grupo input:checked::after { content: '✓'; color: var(--branco); font-size: 0.85rem; font-weight: 700; line-height: 1; }
+  .checklist-grupo input:focus-visible { outline: 2px solid var(--laranja); outline-offset: 2px; }
+  .checklist-grupo input:checked + span { text-decoration: line-through; opacity: 0.55; }
+
+  .checklist-pronto {
+    margin-top: 20px; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--verde-escuro); font-size: 1.1rem;
+  }
+
+  .outdoor-check { margin-top: 32px; }
+  .outdoor-check ul { margin: 8px 0 0; padding-left: 20px; }
+  .outdoor-check li { margin-bottom: 4px; }
+
+  .etica-lista { max-width: 760px; }
+  .grupo-intro { margin-left: 0; }
+
+  .outdoor-voltar { margin-top: 28px; }
+</style>
