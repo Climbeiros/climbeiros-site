@@ -4,7 +4,32 @@ import { getSiteConfig } from '../lib/supabase';
 const config = await getSiteConfig();
 const texto = config.sobre_texto ||
   'Os Climbeiros nasceu da vontade de um grupo de amigos de reunir, num só lugar, tudo que a comunidade de escalada no Brasil precisa: onde treinar, onde aprender, quais vias vale a pena pegar e quem são as marcas que realmente apoiam quem escala.';
-const fotoGrupo = config.sobre_foto_grupo || '/logo.png';
+
+// Fotos da página ficam no Supabase Storage, bucket "fotos", com nomes começando por "sobre-"
+// (versões menores das fotos da galeria). Pra trocar uma foto, suba outra com o mesmo nome
+// no bucket (substituindo a antiga) ou troque o nome aqui.
+const FOTOS = 'https://ctbetvnlojkpiwrruvie.supabase.co/storage/v1/object/public/fotos/sobre-';
+const colagem = [
+  { src: FOTOS + 'colagem-goat.jpg', alt: 'A galera escalando junto na Goat', classe: 'colagem__a' },
+  { src: FOTOS + 'colagem-poses.jpg', alt: 'Testando poses na Casa de Pedra', classe: 'colagem__b' },
+  { src: FOTOS + 'colagem-perdizes.jpg', alt: 'Gui, Bia, Rods e Thi na Casa de Pedra Perdizes', classe: 'colagem__c' },
+  { src: FOTOS + 'colagem-moema.jpg', alt: 'Gui, Emi, Marcos e Ric na Casa de Pedra Moema', classe: 'colagem__d' },
+];
+
+const mosaico = [
+  { src: FOTOS + 'grupo-goat.jpg', alt: 'Climbeiros na Goat', grande: true },
+  { src: FOTOS + 'de-boa-na-pedra.jpg', alt: 'De boa na pedra' },
+  { src: FOTOS + 'climbeiras-rochelas.jpg', alt: 'Climbeiras em Rochelas, Serra do Cipó' },
+  { src: FOTOS + 'geo-e-dea.jpg', alt: 'Geo e Dea na Pedreira do Garcia' },
+  { src: FOTOS + 'treelab.jpg', alt: 'A galera na TreeLab' },
+  { src: FOTOS + 'pose-climbeiras.jpg', alt: 'Pose das Climbeiras' },
+];
+
+const bastidores = [
+  { src: FOTOS + 'geovanna.jpg', alt: 'Geovanna', posicao: '50% 50%' },
+  { src: FOTOS + 'emilie.jpg', alt: 'Emilie', posicao: '70% 60%' },
+  { src: FOTOS + 'larissa.jpg', alt: 'Larissa', posicao: '50% 40%' },
+];
 
 const valores = [
   {
@@ -29,7 +54,7 @@ const valores = [
   },
 ];
 ---
-<Layout titulo="Sobre" descricao="Conheça a história e o time por trás dos Climbeiros, uma comunidade de amigos que escalam juntos e criaram um hub de escalada para o Brasil.">
+<Layout titulo="Sobre" descricao="Conheça a história e o time por trás dos Climbeiros, uma comunidade de amigos que escalam juntos e criaram um hub de escalada para o Brasil." imagem={FOTOS + 'colagem-goat.jpg'}>
   <section class="secao">
     <div class="container sobre">
       <div class="sobre__texto">
@@ -38,8 +63,10 @@ const valores = [
         <p>{texto}</p>
         <a href="/contato" class="botao">Fale com a gente</a>
       </div>
-      <div class="sobre__foto">
-        <img src={fotoGrupo} alt="Time Climbeiros" />
+      <div class="colagem">
+        {colagem.map((f) => (
+          <img src={f.src} alt={f.alt} class={f.classe} loading="eager" />
+        ))}
       </div>
     </div>
   </section>
@@ -55,6 +82,42 @@ const valores = [
         a pena pegar e quais marcas realmente apoiam quem escala, para que mais
         gente escale com segurança, informação e boa companhia.
       </p>
+    </div>
+  </section>
+
+  <!-- COMO A GENTE SE JUNTOU -->
+  <section class="secao secao--creme">
+    <div class="container">
+      <div class="historia">
+        <div class="historia__texto">
+          <p class="eyebrow">Como a gente se juntou</p>
+          <h2>De amigo em amigo</h2>
+          <p>Os Climbeiros não começaram como projeto. Começaram na escalada, com cada um chamando alguém que conhecia pra ir junto.</p>
+          <ul class="corda" aria-label="Como o grupo cresceu">
+            <li>Alguém levou um amigo pra escalar.</li>
+            <li>Esse amigo puxou outro, que puxou mais um.</li>
+            <li>A galera foi se conhecendo na parede, a vibe bateu, e virou um grupo só.</li>
+          </ul>
+          <p>É por isso que a gente acredita que a escalada é melhor em grupo: foi ela que juntou a gente.</p>
+        </div>
+        <div class="mosaico">
+          {mosaico.map((f) => (
+            <img src={f.src} alt={f.alt} class={f.grande ? 'mosaico__grande' : undefined} loading="lazy" />
+          ))}
+        </div>
+      </div>
+
+      <div class="bastidores">
+        <div class="bastidores__rostos">
+          {bastidores.map((p) => (
+            <img src={p.src} alt={p.alt} style={`object-position: ${p.posicao}`} loading="lazy" />
+          ))}
+        </div>
+        <p>
+          Nos bastidores, quem cuida do site são a Geovanna, a Emilie e a Larissa.
+          Quer falar com a gente? <a href="/contato">Manda uma mensagem →</a>
+        </p>
+      </div>
     </div>
   </section>
 
@@ -83,18 +146,113 @@ const valores = [
     gap: 48px;
     align-items: center;
   }
-  .sobre__foto img {
+  .sobre__texto { min-width: 0; }
+
+  /* Colagem do topo: 4 fotos de grupo */
+  .colagem {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 150px 150px 170px;
+    grid-template-areas: "a b" "a c" "d d";
+    gap: 8px;
+    min-width: 0;
+  }
+  .colagem img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     border-radius: var(--raio);
     box-shadow: var(--sombra);
   }
+  .colagem__a { grid-area: a; }
+  .colagem__b { grid-area: b; }
+  .colagem__c { grid-area: c; object-position: 50% 35%; }
+  .colagem__d { grid-area: d; object-position: 50% 60%; }
+
   @media (max-width: 760px) {
     .sobre { grid-template-columns: 1fr; }
-    .sobre__foto { order: -1; }
+    .colagem { order: -1; grid-template-rows: 120px 120px 140px; }
   }
 
   /* Missão */
   .missao h2 { color: var(--verde-escuro); margin-bottom: 16px; }
   .missao p:not(.eyebrow) { font-size: 1.15rem; color: var(--marrom); opacity: 0.9; margin: 0; max-width: 760px; }
+
+  /* Como a gente se juntou */
+  .historia {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    gap: 44px;
+    align-items: center;
+  }
+  .historia__texto { min-width: 0; max-width: 34rem; }
+  .historia__texto h2 { color: var(--verde-escuro); margin-bottom: 14px; }
+  .historia__texto p:not(.eyebrow) { font-size: 1.05rem; }
+  .corda { list-style: none; margin: 6px 0 18px; padding: 0; }
+  .corda li {
+    position: relative;
+    padding: 0 0 14px 34px;
+  }
+  .corda li::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 6px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--laranja);
+  }
+  .corda li:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    top: 22px;
+    bottom: 0;
+    border-left: 2px dashed var(--verde);
+  }
+  .mosaico {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 150px;
+    gap: 8px;
+    min-width: 0;
+  }
+  .mosaico img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--raio);
+  }
+  .mosaico__grande { grid-column: span 2; grid-row: span 2; }
+
+  .bastidores {
+    margin-top: 44px;
+    padding-top: 22px;
+    border-top: 1px solid rgba(61, 84, 57, 0.25);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 18px;
+  }
+  .bastidores__rostos { display: flex; }
+  .bastidores__rostos img {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--creme-claro);
+    margin-left: -12px;
+  }
+  .bastidores__rostos img:first-child { margin-left: 0; }
+  .bastidores p { margin: 0; flex: 1 1 280px; min-width: 0; }
+  .bastidores a { color: var(--laranja); font-weight: 600; text-decoration: none; }
+  .bastidores a:hover { text-decoration: underline; }
+
+  @media (max-width: 760px) {
+    .historia { grid-template-columns: 1fr; }
+    .mosaico { grid-auto-rows: 110px; }
+  }
 
   /* Valores — blocos de cor cheia, colados, formando um quadrado 2x2 */
   .valores--grade {
