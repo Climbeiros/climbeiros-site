@@ -113,6 +113,13 @@ const PAGINAS_NOVAS: Novidade[] = [
     href: '/crux/primeiro-outdoor',
     data: '2026-10-12T21:13:45+00:00',
   },
+  {
+    tipo: 'Crux',
+    titulo: 'Como ler um croqui',
+    texto: 'Croqui interativo: chapeleta, parada, enfiada, exposição e proteção.',
+    href: '/crux/como-ler-croqui',
+    data: '2026-10-12T22:50:00+00:00',
+  },
 ];
 
 export async function getNovidades(limite = 10): Promise<Novidade[]> {
