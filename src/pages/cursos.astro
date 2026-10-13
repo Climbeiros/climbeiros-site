@@ -40,6 +40,11 @@ const MAX_LOCAIS = 4;
 function nomesDosLocais(locaisIds) {
   return (locaisIds ?? []).map((id) => locaisPorId.get(id)).filter(Boolean);
 }
+// Texto livre do formulário ("Atua em algum local que não está na lista?").
+// Junta as quebras de linha e espaços extras numa linha só.
+function textoLocais(texto) {
+  return (texto || "").split(/\n+/).map((t) => t.trim()).filter(Boolean).join(" · ").replace(/\s{2,}/g, " ");
+}
 const cursosPorGuia = new Map();
 for (const c of cursos ?? []) {
   if (!cursosPorGuia.has(c.guia_id)) cursosPorGuia.set(c.guia_id, []);
@@ -144,7 +149,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
         {guias?.map((g) => (
           <article
             class="guide"
-            data-busca={normalizar([g.nome, g.cidade, g.uf, ...(g.especialidades_lista ?? []), ...nomesDosLocais(g.locais_ids)].filter(Boolean).join(" "))}
+            data-busca={normalizar([g.nome, g.cidade, g.uf, ...(g.especialidades_lista ?? []), ...nomesDosLocais(g.locais_ids), g.locais_interesse].filter(Boolean).join(" "))}
             data-espec={(g.especialidades_lista ?? []).map((e) => normalizar(e)).join("|")}
             data-uf={(g.uf || "").trim().toUpperCase()}
             data-cidade={normalizar(g.cidade)}
@@ -183,9 +188,10 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
                   </div>
                 </div>
               )}
-              {nomesDosLocais(g.locais_ids).length > 0 && (
+              {(nomesDosLocais(g.locais_ids).length > 0 || textoLocais(g.locais_interesse)) && (
                 <div class="bloco">
                   <div class="lbl">Atua em</div>
+                  {nomesDosLocais(g.locais_ids).length > 0 && (
                   <p class="locais">
                     {nomesDosLocais(g.locais_ids).map((nome, i) => (
                       <span class:list={['local', { extra: i >= MAX_LOCAIS }]}>{nome}</span>
@@ -194,6 +200,13 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
                       <button type="button" class="locais-mais" aria-label="Ver todos os locais">+{nomesDosLocais(g.locais_ids).length - MAX_LOCAIS}</button>
                     )}
                   </p>
+                  )}
+                  {textoLocais(g.locais_interesse) && (
+                    <p class="locais-texto">
+                      {nomesDosLocais(g.locais_ids).length > 0 && <strong>Também: </strong>}
+                      {textoLocais(g.locais_interesse)}
+                    </p>
+                  )}
                 </div>
               )}
               {cursosPorGuia.get(g.id)?.length > 0 && (
@@ -673,6 +686,8 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .ler-mais[hidden] { display: none; }
   .locais { margin: 0; font-size: .9rem; line-height: 1.55; color: #4a4033; }
   .local + .local::before { content: " · "; }
+  .locais-texto { margin: 6px 0 0; font-size: .88rem; line-height: 1.5; color: #4a4033; }
+  .locais-texto strong { font-weight: 600; color: var(--verde-escuro); }
   .locais .extra { display: none; }
   .locais.aberto .extra { display: inline; }
   .locais.aberto .locais-mais { display: none; }
