@@ -640,7 +640,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
 </script>
 <style>
   .vazio { text-align: center; color: #5f5344; margin: 40px 0; font-size: 1.1rem; }
-  .guides { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 26px; margin-top: 48px; }
+  .guides { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: 26px; margin-top: 48px; }
   .guide { background: var(--branco); border: 1px solid #e6ddc4; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .25s; }
   .guide:hover { transform: translateY(-4px); box-shadow: 0 20px 44px -22px rgba(47,66,48,.5); }
   .guide .head { background: linear-gradient(150deg, var(--verde-escuro), var(--marrom)); padding: 20px; color: var(--creme-claro); display: flex; align-items: center; gap: 14px; }
@@ -651,6 +651,8 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .guide .photo-img { transition: transform .2s; }
   .guide[hidden] { display: none; }
   .topo-grade { display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
+  /* min-width: 0 evita que uma opção longa nos filtros alargue a página no celular */
+  .topo-grade > * { min-width: 0; }
   .topo-texto h1 { margin-bottom: 16px; }
   .topo-lead { font-size: 1.08rem; line-height: 1.6; color: #4a4033; margin: 0 0 14px; max-width: 600px; }
   .topo-link { color: var(--laranja); font-weight: 600; }
@@ -664,7 +666,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .busca-guias input[type="search"]:focus { outline: 2px solid var(--laranja); border-color: var(--laranja); }
   .filtros { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px; }
   .filtro-campo { display: flex; flex-direction: column; gap: 4px; font-family: var(--fonte-display); text-transform: uppercase; font-size: .72rem; letter-spacing: .03em; color: var(--verde-escuro); flex: 1; min-width: 160px; }
-  .filtro-campo select { font-family: var(--fonte-corpo); font-size: .9rem; padding: 9px 10px; border-radius: 8px; border: 1px solid rgba(42,31,22,.25); color: var(--marrom); background: var(--branco); text-transform: none; cursor: pointer; }
+  .filtro-campo select { font-family: var(--fonte-corpo); font-size: .9rem; padding: 9px 10px; border-radius: 8px; border: 1px solid rgba(42,31,22,.25); color: var(--marrom); background: var(--branco); text-transform: none; cursor: pointer; width: 100%; min-width: 0; max-width: 100%; text-overflow: ellipsis; }
   .busca-status { font-size: .9rem; opacity: .8; min-height: 1.2em; margin: 6px 0 0; }
   .foto-modal { border: 0; padding: 0; background: transparent; max-width: min(92vw, 720px); max-height: 92vh; overflow: visible; }
   .foto-modal::backdrop { background: rgba(20,16,10,.82); }
