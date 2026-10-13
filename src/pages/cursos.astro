@@ -215,6 +215,18 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
                   <p>{g.certificacao}</p>
                 </details>
               )}
+              {g.cupom_codigo?.trim() && (
+                <div class="cupom-guia">
+                  <div class="cupom-guia__topo">
+                    <span class="cupom-guia__lbl">Cupom Climbeiros</span>
+                    <button type="button" class="cupom-guia__codigo" data-codigo={g.cupom_codigo.trim()} title="Copiar código">
+                      <span class="cupom-guia__texto">{g.cupom_codigo.trim()}</span>
+                      <span class="cupom-guia__acao">Copiar</span>
+                    </button>
+                  </div>
+                  {g.cupom_desc?.trim() && <p class="cupom-guia__desc">{g.cupom_desc.trim()}</p>}
+                </div>
+              )}
               <div class="contact">
                 {linkWhatsApp(g.telefone) && (
                   <a class="cbtn c-ic c-wa" href={linkWhatsApp(g.telefone)} target="_blank" rel="noopener" title="WhatsApp" aria-label={`WhatsApp de ${g.nome}`}>
@@ -583,6 +595,19 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
     aplicarFiltrosGuias();
     campoBusca?.focus();
   });
+  // ---------- CUPOM: copiar o código ao clicar ----------
+  document.querySelectorAll('.cupom-guia__codigo').forEach((botao) => {
+    botao.addEventListener('click', async () => {
+      const acao = botao.querySelector('.cupom-guia__acao');
+      try {
+        await navigator.clipboard.writeText(botao.dataset.codigo || '');
+        if (acao) acao.textContent = 'Copiado!';
+      } catch {
+        if (acao) acao.textContent = 'Selecione e copie';
+      }
+      setTimeout(() => { if (acao) acao.textContent = 'Copiar'; }, 2000);
+    });
+  });
   // ---------- FOTO AMPLIADA ----------
   const modal = document.getElementById('foto-modal');
   const modalImg = document.getElementById('foto-modal-img');
@@ -652,6 +677,14 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .locais.aberto .extra { display: inline; }
   .locais.aberto .locais-mais { display: none; }
   .locais-mais { background: none; border: 0; padding: 0 0 0 4px; color: var(--laranja); font: 600 .9rem var(--fonte-corpo); cursor: pointer; }
+  .cupom-guia { border: 1.5px dashed var(--laranja); border-radius: 10px; background: rgba(218,115,38,.07); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .cupom-guia__topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .cupom-guia__lbl { font-family: var(--fonte-display, 'Oswald', sans-serif); text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; color: #a8540f; }
+  .cupom-guia__codigo { display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer; background: var(--creme); color: var(--verde-escuro); border-radius: 6px; padding: 5px 10px; font: inherit; }
+  .cupom-guia__texto { font-family: var(--fonte-display, 'Oswald', sans-serif); font-size: 1rem; letter-spacing: .04em; }
+  .cupom-guia__acao { font-size: .72rem; font-weight: 600; color: var(--laranja); }
+  .cupom-guia__codigo:hover .cupom-guia__acao { text-decoration: underline; }
+  .cupom-guia__desc { margin: 0; font-size: .85rem; line-height: 1.4; color: var(--marrom); }
   .cert summary { cursor: pointer; color: var(--verde-escuro); font-weight: 600; font-size: .85rem; list-style: none; display: inline-flex; align-items: center; gap: 6px; }
   .cert summary::-webkit-details-marker { display: none; }
   .cert summary::before { content: "+"; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--creme-claro); font-weight: 700; }
