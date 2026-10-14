@@ -76,15 +76,49 @@ export type Croqui = {
   tipo: 'link' | 'pdf' | 'foto' | 'referencia';
   url: string | null;
   texto: string | null;
+  titulo: string | null;
+  autores: string | null;
+  versao: string | null;
+  texto_credito: string | null;
 };
 
-export type Rota = {
+// Pedra de boulder ou parte de um setor (ex: "Beach Park" no Guardião).
+// O site só enxerga blocos com publicado = true (RLS).
+export type Bloco = {
   id: string;
   setor_id: string;
   nome: string;
+  slug: string | null;
+  ordem: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  descricao: string | null;
+};
+
+// Via ou boulder. O site só enxerga rotas com publicado = true (RLS).
+export type Rota = {
+  id: string;
+  setor_id: string;
+  bloco_id: string | null;
+  numero: string | null;
+  ordem: number | null;
+  nome: string;
   grau: string | null;
-  tipo: string | null;
+  grau_sistema: string | null;
+  grau_alternativo: string | null;
+  tipo: 'esportiva' | 'trad' | 'mista' | 'artificial' | 'boulder' | 'top_rope' | null;
+  estrelas: number | null;
+  chapas: number | null;
+  paradas: number | null;
   numero_enfiadas: number | null;
+  altura_m: number | null;
+  conquistadores: string | null;
+  ano_conquista: number | null;
+  primeira_ascensao: string | null;
+  variante_de: string | null;
+  situacao: 'ativa' | 'projeto' | 'quebrada' | 'confirmar';
+  observacoes: string | null;
+  croqui_id: string | null;
   fotos_url: string[] | null;
   croqui_url: string | null;
   descricao: string | null;

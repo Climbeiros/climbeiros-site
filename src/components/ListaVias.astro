@@ -1,0 +1,165 @@
+---
+// src/components/ListaVias.astro
+// Lista as vias / boulders de um setor, agrupadas por bloco quando houver.
+// Recebe os dados já buscados (a página do setor faz a consulta), então dá
+// pra reaproveitar em outros lugares. Pensado pro celular primeiro: cada via
+// é um cartão em linha (número · nome e detalhes · grau), sem tabela larga.
+import type { Rota, Bloco } from '../lib/supabase';
+
+interface Props {
+  rotas: Rota[];
+  blocos?: Bloco[];
+}
+
+const { rotas, blocos = [] } = Astro.props;
+
+const nomeTipo: Record<string, string> = {
+  esportiva: 'Esportiva',
+  trad: 'Tradicional',
+  mista: 'Mista',
+  artificial: 'Artificial',
+  boulder: 'Boulder',
+  top_rope: 'Top rope',
+};
+
+const seloSituacao: Record<string, string> = {
+  projeto: 'Projeto',
+  quebrada: 'Quebrada',
+  confirmar: 'Confirmar no local',
+};
+
+const porId = new Map(rotas.map((r) => [r.id, r]));
+
+function detalhes(r: Rota): string[] {
+  const d: string[] = [];
+  if (r.tipo && nomeTipo[r.tipo]) d.push(nomeTipo[r.tipo]);
+  if (r.tipo !== 'boulder' && r.chapas != null) {
+    d.push(`${r.chapas} ${r.chapas === 1 ? 'chapa' : 'chapas'}${r.paradas ? ' + parada' : ''}`);
+  }
+  if (r.altura_m != null) d.push(`${String(r.altura_m).replace('.', ',')} m`);
+  if (r.numero_enfiadas && r.numero_enfiadas > 1) d.push(`${r.numero_enfiadas} enfiadas`);
+  return d;
+}
+
+function estrelas(n: number | null): string | null {
+  if (n == null) return null;
+  return '★'.repeat(n) + '☆'.repeat(Math.max(0, 5 - n));
+}
+
+const todasBoulder = rotas.length > 0 && rotas.every((r) => r.tipo === 'boulder');
+const palavra = todasBoulder
+  ? (rotas.length === 1 ? 'boulder' : 'boulders')
+  : (rotas.length === 1 ? 'via' : 'vias');
+
+// Agrupa por bloco (na ordem dos blocos); o que não tem bloco vem primeiro.
+const blocosOrdenados = [...blocos].sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999));
+const semBloco = rotas.filter((r) => !r.bloco_id || !blocos.some((b) => b.id === r.bloco_id));
+const grupos = [
+  ...(semBloco.length ? [{ bloco: null as Bloco | null, rotas: semBloco }] : []),
+  ...blocosOrdenados
+    .map((b) => ({ bloco: b as Bloco | null, rotas: rotas.filter((r) => r.bloco_id === b.id) }))
+    .filter((g) => g.rotas.length > 0),
+];
+---
+{rotas.length > 0 && (
+  <div class="vias">
+    <p class="vias__resumo">{rotas.length} {palavra}</p>
+
+    {grupos.map((g) => (
+      <div class="vias__grupo">
+        {g.bloco && (
+          <div class="vias__bloco">
+            <h3>{g.bloco.nome}</h3>
+            {g.bloco.descricao && <p>{g.bloco.descricao}</p>}
+          </div>
+        )}
+        <ol class="vias__lista">
+          {g.rotas.map((r) => {
+            const pai = r.variante_de ? porId.get(r.variante_de) : undefined;
+            const d = detalhes(r);
+            const est = estrelas(r.estrelas);
+            return (
+              <li class:list={['via', { 'via--variante': !!r.variante_de, 'via--inativa': r.situacao === 'quebrada' }]}>
+                <span class="via__num" aria-label={r.numero ? `Número ${r.numero} no croqui` : undefined}>{r.numero ?? '·'}</span>
+                <div class="via__corpo">
+                  <p class="via__nome">
+                    {r.nome}
+                    {seloSituacao[r.situacao] && (
+                      <span class={`via__selo via__selo--${r.situacao}`}>{seloSituacao[r.situacao]}</span>
+                    )}
+                  </p>
+                  {pai && <p class="via__variante">Variante de {pai.nome}</p>}
+                  {(d.length > 0 || est) && (
+                    <p class="via__meta">
+                      {d.join(' · ')}
+                      {est && <span class="via__estrelas" aria-label={`${r.estrelas} de 5 estrelas`}>{d.length ? ' · ' : ''}{est}</span>}
+                    </p>
+                  )}
+                  {r.conquistadores && <p class="via__conq">{r.conquistadores}</p>}
+                  {r.observacoes && <p class="via__obs">{r.observacoes}</p>}
+                </div>
+                <span class="via__grau">
+                  {r.grau ?? (r.situacao === 'projeto' ? '?' : '')}
+                  {r.grau_alternativo && <small>{r.grau_alternativo}</small>}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    ))}
+  </div>
+)}
+
+<style>
+  .vias__resumo {
+    font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: 0.04em;
+    font-size: 0.82rem; color: var(--laranja); margin: -4px 0 14px;
+  }
+  .vias__grupo + .vias__grupo { margin-top: 24px; }
+  .vias__bloco h3 {
+    font-family: var(--fonte-display); text-transform: uppercase; font-size: 1rem;
+    color: var(--marrom); margin: 0 0 4px;
+  }
+  .vias__bloco p { margin: 0 0 10px; font-size: 0.88rem; opacity: 0.8; }
+
+  .vias__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+  .via {
+    display: grid; grid-template-columns: 2.1rem 1fr auto; gap: 12px; align-items: start;
+    background: var(--creme-claro); border-radius: 8px; padding: 12px 14px;
+  }
+  .via--variante { margin-left: 1.4rem; background: rgba(240, 226, 178, 0.55); }
+  .via--inativa { opacity: 0.6; }
+
+  .via__num {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 2.1rem; height: 2.1rem; padding: 0 4px; border-radius: 999px;
+    background: var(--verde-escuro); color: var(--branco);
+    font-family: var(--fonte-display); font-size: 0.85rem; line-height: 1;
+  }
+  .via__corpo { min-width: 0; }
+  .via__corpo p { margin: 0; }
+  .via__nome {
+    font-family: var(--fonte-display); text-transform: uppercase; font-size: 1rem;
+    color: var(--verde-escuro); line-height: 1.25; overflow-wrap: anywhere;
+  }
+  .via__selo {
+    display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+    font-family: var(--fonte-corpo); text-transform: none; font-size: 0.72rem; font-weight: 600;
+    vertical-align: middle; background: var(--marrom); color: var(--branco);
+  }
+  .via__selo--projeto { background: var(--amarelo); color: var(--marrom); }
+  .via__selo--confirmar { background: var(--laranja); }
+  .via__variante { font-size: 0.8rem; color: var(--laranja); margin-top: 2px !important; }
+  .via__meta { font-size: 0.85rem; margin-top: 4px !important; }
+  .via__estrelas { color: var(--amarelo); letter-spacing: 0.05em; }
+  .via__conq { font-size: 0.8rem; opacity: 0.7; margin-top: 4px !important; }
+  .via__obs { font-size: 0.82rem; font-style: italic; margin-top: 4px !important; color: var(--marrom); }
+
+  .via__grau {
+    font-family: var(--fonte-display); font-size: 1.15rem; color: var(--marrom);
+    white-space: nowrap; text-align: right; line-height: 1.1; padding-top: 2px;
+  }
+  .via__grau small { display: block; font-size: 0.72rem; opacity: 0.7; }
+</style>
