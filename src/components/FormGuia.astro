@@ -99,7 +99,12 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
   </div>
   <div class="fc-campo">
     <label for="fg-bio">Sobre você (aparece na sua página pública)</label>
-    <textarea id="fg-bio" name="bio" rows="3" placeholder="Conte um pouco sobre sua experiência e os cursos que oferece"></textarea>
+    <textarea id="fg-bio" name="bio" rows="3" placeholder="Conte um pouco sobre sua experiência"></textarea>
+  </div>
+  <div class="fc-campo">
+    <label for="fg-cursos">Cursos oferecidos (opcional, aparece no seu card)</label>
+    <textarea id="fg-cursos" name="cursos_oferecidos" rows="4" placeholder="Conte quais cursos você oferece: o nível, onde acontece, próximas datas, valor e o link ou contato pra inscrição."></textarea>
+    <small class="fc-ajuda">Um curso por linha ou parágrafo. Não oferece cursos? Pode deixar em branco.</small>
   </div>
   <div class="fc-campo">
     <label for="fg-msg">Mensagem pra equipe Climbeiros (opcional, não aparece no site)</label>
@@ -195,6 +200,7 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
       certificacao: dados.certificacao || null,
       foto_url: fotoUrl,
       bio: dados.bio || null,
+      cursos_oferecidos: String(dados.cursos_oferecidos || '').trim() || null,
       locais_ids: locaisIds,
       locais_interesse: dados.locais_outro || null,
       mensagem: dados.mensagem || null,
