@@ -223,6 +223,12 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
                   </ul>
                 </div>
               )}
+              {g.cursos_oferecidos?.trim() && (
+                <div class="bloco cursos-oferecidos">
+                  <div class="lbl">Cursos oferecidos</div>
+                  <p class="cursos-texto">{g.cursos_oferecidos.trim()}</p>
+                </div>
+              )}
               {g.certificacao && (
                 <details class="cert">
                   <summary>Ver certificações</summary>
@@ -503,6 +509,8 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .cert summary::before { content: "+"; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--creme-claro); font-weight: 700; }
   .cert[open] summary::before { content: "–"; }
   .cert p { margin: 8px 0 0; font-size: .85rem; line-height: 1.5; color: #7a6c58; }
+  .cursos-oferecidos { background: rgba(218,115,38,.07); border-left: 4px solid var(--laranja); border-radius: 8px; padding: 10px 12px; }
+  .cursos-texto { margin: 0; font-size: .92rem; line-height: 1.5; color: #4a4033; white-space: pre-line; overflow-wrap: anywhere; }
   .courses { list-style: none; margin: 0; display: flex; flex-direction: column; gap: 9px; padding: 0; }
   .courses li { display: flex; gap: 10px; font-size: .95rem; color: #4a4033; align-items: flex-start; }
   .courses li::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 2px; background: var(--amarelo); margin-top: 8px; transform: rotate(45deg); }
