@@ -1,0 +1,138 @@
+---
+// src/components/FormHospedagem.astro
+// Formulário de cadastro de hospedagem perto de um pico. Grava em
+// "inscricoes_hospedagens" (entra pendente no painel). Usado na página de
+// cada Local (com o local já marcado) e na página de Contato.
+import { supabase } from '../lib/supabase';
+import '../styles/formularios.css';
+
+interface Props {
+  localId?: string; // local que já vem selecionado
+}
+const { localId } = Astro.props;
+
+const { data: locais } = await supabase
+  .from('locais')
+  .select('id, nome, estado')
+  .order('estado', { ascending: true })
+  .order('nome', { ascending: true }) as { data: { id: string; nome: string; estado: string | null }[] | null };
+
+const locaisPorEstado = new Map<string, { id: string; nome: string }[]>();
+for (const l of locais ?? []) {
+  const estado = l.estado || 'Outros';
+  if (!locaisPorEstado.has(estado)) locaisPorEstado.set(estado, []);
+  locaisPorEstado.get(estado)!.push(l);
+}
+---
+<form class="fc" id="form-hospedagem">
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="hp-nome">Nome da hospedagem *</label>
+      <input type="text" id="hp-nome" name="nome" required />
+    </div>
+    <div class="fc-campo">
+      <label for="hp-distancia">Distância até o pico</label>
+      <input type="text" id="hp-distancia" name="distancia" placeholder="Ex.: a 5 min a pé, 10 km de carro" />
+    </div>
+  </div>
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="hp-contato">Contato para reserva *</label>
+      <input type="text" id="hp-contato" name="contato_reserva" placeholder="Telefone, WhatsApp ou e-mail" required />
+    </div>
+    <div class="fc-campo">
+      <label for="hp-link">Link de reserva (opcional)</label>
+      <input type="url" id="hp-link" name="link_reserva" placeholder="Booking, site próprio, Instagram..." />
+    </div>
+  </div>
+  <div class="fc-campo">
+    <label for="hp-locais">Locais que atende</label>
+    <select id="hp-locais" name="locais_ids" multiple size="5">
+      {Array.from(locaisPorEstado.entries()).map(([estado, lista]) => (
+        <optgroup label={estado}>
+          {lista.map((l) => <option value={l.id} selected={l.id === localId}>{l.nome}</option>)}
+        </optgroup>
+      ))}
+    </select>
+    <small class="fc-ajuda">
+      {localId ? 'Já vem selecionado este local. ' : ''}Segure Ctrl (ou Cmd no Mac) pra marcar mais de um.
+    </small>
+  </div>
+  <label class="fc-check">
+    <input type="checkbox" name="tem_desconto" id="hp-tem-desconto" />
+    Quero oferecer desconto para quem vier do Climbeiros
+  </label>
+  <div class="fc-destaque" id="hp-desconto-campos" hidden>
+    <div class="fc-campo">
+      <label for="hp-cod">Código do desconto</label>
+      <input type="text" id="hp-cod" name="desconto_codigo" placeholder="Ex.: CLIMBEIROS10" />
+    </div>
+    <div class="fc-campo">
+      <label for="hp-desc">Como funciona o desconto?</label>
+      <textarea id="hp-desc" name="desconto_desc" rows="2" placeholder="Ex.: 10% na diária pra quem mencionar o Climbeiros"></textarea>
+    </div>
+  </div>
+  <div class="fc-campo">
+    <label for="hp-msg">Mensagem (opcional)</label>
+    <textarea id="hp-msg" name="mensagem" rows="3"></textarea>
+  </div>
+  <input type="text" name="site" class="fc-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+  <button type="submit" class="botao" id="hp-enviar">Enviar cadastro</button>
+  <p class="fc-status" id="hp-status" role="status"></p>
+  <p class="fc-aviso">O cadastro passa por uma checagem da equipe do Climbeiros antes de aparecer no site.</p>
+</form>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  const form = document.getElementById('form-hospedagem') as HTMLFormElement | null;
+  const status = document.getElementById('hp-status');
+  const btn = document.getElementById('hp-enviar');
+  const toggleDesconto = document.getElementById('hp-tem-desconto') as HTMLInputElement | null;
+  const camposDesconto = document.getElementById('hp-desconto-campos');
+
+  toggleDesconto?.addEventListener('change', () => {
+    if (camposDesconto) camposDesconto.hidden = !toggleDesconto.checked;
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!status || !btn || !form) return;
+    const dados = new FormData(form);
+
+    // Campo invisível: se veio preenchido, é robô. Finge que deu certo.
+    if (dados.get('site')) {
+      status.textContent = 'Cadastro enviado!';
+      form.reset();
+      return;
+    }
+
+    btn.setAttribute('disabled', '');
+    status.textContent = 'Enviando...';
+
+    const temDesconto = !!toggleDesconto?.checked;
+    const selectLocais = form.querySelector<HTMLSelectElement>('#hp-locais');
+    const locaisIds = selectLocais ? Array.from(selectLocais.selectedOptions).map((o) => o.value) : [];
+
+    const { error } = await supabase.from('inscricoes_hospedagens').insert([{
+      nome: dados.get('nome'),
+      contato_reserva: dados.get('contato_reserva'),
+      link_reserva: dados.get('link_reserva') || null,
+      distancia: dados.get('distancia') || null,
+      locais_ids: locaisIds,
+      tem_desconto: temDesconto ? 'Sim' : 'Não',
+      desconto_codigo: temDesconto ? (dados.get('desconto_codigo') || null) : null,
+      desconto_desc: temDesconto ? (dados.get('desconto_desc') || null) : null,
+      mensagem: dados.get('mensagem') || null,
+    }]);
+
+    if (error) {
+      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.br';
+    } else {
+      status.textContent = 'Recebemos seu cadastro! Ele passa por uma checagem antes de aparecer no site.';
+      form.reset();
+      if (camposDesconto) camposDesconto.hidden = true;
+    }
+    btn.removeAttribute('disabled');
+  });
+</script>

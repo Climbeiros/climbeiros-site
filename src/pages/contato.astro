@@ -1,184 +1,239 @@
 ---
+// src/pages/contato.astro
+// Página de Contato com "Qual o motivo do contato?": cada motivo abre o
+// formulário certo, que grava direto na tabela certa (e aparece no painel de
+// pendências com o tipo certo). "Academia" e "Outros" usam o formulário
+// genérico (tabela mensagens_contato). Dá pra abrir já com um motivo
+// escolhido pelo link, ex.: /contato?motivo=croqui
 import Layout from '../layouts/Layout.astro';
+import FormGuia from '../components/FormGuia.astro';
+import FormHospedagem from '../components/FormHospedagem.astro';
+import FormParceiro from '../components/FormParceiro.astro';
+import FormCroqui from '../components/FormCroqui.astro';
+import '../styles/formularios.css';
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
+const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+
+const MOTIVOS = [
+  { valor: 'guia', rotulo: 'Quero me cadastrar como guia/instrutor', intro: 'Seu card aparece na página Guias & Cursos e nos locais onde você atua. É gratuito!' },
+  { valor: 'hospedagem', rotulo: 'Tenho hospedagem perto de um pico', intro: 'Sua hospedagem aparece na página dos locais que ela atende.' },
+  { valor: 'parceiro', rotulo: 'Quero ser parceiro (marca ou loja)', intro: 'Sua marca perto de uma comunidade engajada de escaladores. Vamos conversar?' },
+  { valor: 'croqui', rotulo: 'Enviar croqui de um setor', intro: 'Mande o croqui (PDF, foto ou link) que a gente cadastra as vias no site, com os créditos de quem fez.' },
+  { valor: 'academia', rotulo: 'Cadastrar academia ou ginásio', intro: 'Conta pra gente qual é a academia que ela entra na página de Academias.' },
+  { valor: 'outros', rotulo: 'Outros assuntos', intro: 'Sugestões, correções, dúvidas ou qualquer outra coisa.' },
+];
 ---
-<Layout titulo="Contato" descricao="Fale com o time do Climbeiros.">
+<Layout titulo="Contato" descricao="Fale com o time do Climbeiros: cadastre guia, hospedagem, academia, envie croquis ou proponha parcerias.">
   <section class="secao">
     <div class="container contato">
-      <div>
+      <div class="contato__intro">
         <p class="eyebrow">Fale com a gente</p>
         <h1>Sua academia, curso ou setor não está no site?</h1>
-        <p>Manda uma mensagem que a gente cadastra. Também recebemos sugestões de parceria e correções.</p>
+        <p>Escolha o motivo do contato e o formulário certo aparece logo abaixo. Também recebemos sugestões, correções e propostas de parceria.</p>
       </div>
 
-      <form
-        id="form-contato"
-        class="form-contato"
-        data-supabase-url={supabaseUrl}
-        data-supabase-key={supabaseKey}
-      >
-        <label>
-          Nome
-          <input type="text" name="nome" required />
-        </label>
-        <label>
-          Assunto
-          <input type="text" name="assunto" placeholder="Ex.: Cadastrar minha academia" required />
-        </label>
-        <label>
-          E-mail
-          <input type="email" name="email" required />
-        </label>
-        <label>
-          Celular
-          <input
-            type="tel"
-            name="celular"
-            id="campo-celular"
-            placeholder="(11)991721313"
-            maxlength="13"
-            inputmode="numeric"
-          />
-        </label>
-        <label>
-          Mensagem
-          <textarea name="mensagem" rows="5" required></textarea>
-        </label>
-        <label class="form-consentimento">
-          <input type="checkbox" name="consentimento" required />
-          <span>Li e concordo com a <a href="/privacidade" target="_blank">Política de Privacidade</a></span>
-        </label>
-        <button type="submit" class="botao">Enviar mensagem</button>
-        <p id="form-status" class="form-status" role="status"></p>
-      </form>
+      <div class="contato__caixa">
+        <div class="fc">
+          <div class="fc-campo">
+            <label for="motivo">Qual o motivo do contato?</label>
+            <select id="motivo" name="motivo">
+              <option value="">Selecione...</option>
+              {MOTIVOS.map((m) => <option value={m.valor}>{m.rotulo}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {MOTIVOS.map((m) => (
+          <p class="contato__motivo-intro" data-intro={m.valor} hidden>{m.intro}</p>
+        ))}
+
+        <div class="contato__painel" data-motivo="guia" hidden><FormGuia /></div>
+        <div class="contato__painel" data-motivo="hospedagem" hidden><FormHospedagem /></div>
+        <div class="contato__painel" data-motivo="parceiro" hidden><FormParceiro /></div>
+        <div class="contato__painel" data-motivo="croqui" hidden><FormCroqui /></div>
+
+        <div class="contato__painel" data-motivo="academia outros" hidden>
+          <form id="form-contato" class="fc">
+            <input type="hidden" name="tipo" id="fc-tipo" value="outros" />
+            <div class="fc-linha">
+              <div class="fc-campo">
+                <label for="fc-nome">Seu nome *</label>
+                <input type="text" id="fc-nome" name="nome" required />
+              </div>
+              <div class="fc-campo">
+                <label for="fc-email">E-mail *</label>
+                <input type="email" id="fc-email" name="email" required />
+              </div>
+            </div>
+            <div class="fc-campo">
+              <label for="fc-celular">Celular</label>
+              <input type="tel" id="fc-celular" name="celular" placeholder="(11)991721313" maxlength="13" inputmode="numeric" />
+            </div>
+
+            <div class="fc-destaque" id="fc-academia" hidden>
+              <div class="fc-campo">
+                <label for="fc-ac-nome">Nome da academia *</label>
+                <input type="text" id="fc-ac-nome" name="academia_nome" />
+              </div>
+              <div class="fc-linha">
+                <div class="fc-campo">
+                  <label for="fc-ac-cidade">Cidade *</label>
+                  <input type="text" id="fc-ac-cidade" name="academia_cidade" />
+                </div>
+                <div class="fc-campo">
+                  <label for="fc-ac-uf">UF</label>
+                  <select id="fc-ac-uf" name="academia_uf">
+                    <option value="">Selecione</option>
+                    {UFS.map((uf) => <option value={uf}>{uf}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div class="fc-campo">
+                <label for="fc-ac-endereco">Endereço</label>
+                <input type="text" id="fc-ac-endereco" name="academia_endereco" />
+              </div>
+              <div class="fc-campo">
+                <label for="fc-ac-links">Site ou Instagram</label>
+                <input type="text" id="fc-ac-links" name="academia_links" placeholder="@academia ou www.academia.com.br" />
+              </div>
+              <label class="fc-check">
+                <input type="checkbox" name="academia_responsavel" />
+                <span>Sou responsável ou trabalho nessa academia</span>
+              </label>
+            </div>
+
+            <div class="fc-campo" id="fc-assunto-campo">
+              <label for="fc-assunto">Assunto *</label>
+              <input type="text" id="fc-assunto" name="assunto" />
+            </div>
+            <div class="fc-campo">
+              <label for="fc-mensagem" id="fc-mensagem-label">Mensagem *</label>
+              <textarea id="fc-mensagem" name="mensagem" rows="5"></textarea>
+            </div>
+            <label class="fc-check">
+              <input type="checkbox" name="consentimento" required />
+              <span>Li e concordo com a <a href="/privacidade" target="_blank">Política de Privacidade</a>.</span>
+            </label>
+            <button type="submit" class="botao" id="fc-enviar">Enviar mensagem</button>
+            <p id="fc-status" class="fc-status" role="status"></p>
+          </form>
+        </div>
+      </div>
     </div>
   </section>
 </Layout>
 
 <script>
-  // Import "normal" no topo do arquivo (em vez de import() dinâmico dentro
-  // de define:vars) — assim o Astro consegue processar e empacotar o
-  // pacote do Supabase corretamente pro navegador entender.
-  import { createClient } from '@supabase/supabase-js';
+  import { supabase } from '../lib/supabase';
+  import { mascaraTelefone, telefoneValido } from '../lib/formularios';
 
-  const form = document.getElementById('form-contato');
-  const status = document.getElementById('form-status');
+  // ---------- Troca de formulário conforme o motivo ----------
+  const seletor = document.getElementById('motivo') as HTMLSelectElement | null;
+  const paineis = Array.from(document.querySelectorAll<HTMLElement>('.contato__painel'));
+  const intros = Array.from(document.querySelectorAll<HTMLElement>('.contato__motivo-intro'));
+  const blocoAcademia = document.getElementById('fc-academia');
+  const campoAssunto = document.getElementById('fc-assunto-campo');
+  const inputAssunto = document.getElementById('fc-assunto') as HTMLInputElement | null;
+  const inputTipo = document.getElementById('fc-tipo') as HTMLInputElement | null;
+  const labelMensagem = document.getElementById('fc-mensagem-label');
+  const inputMensagem = document.getElementById('fc-mensagem') as HTMLTextAreaElement | null;
+  const camposAcademiaObrigatorios = ['fc-ac-nome', 'fc-ac-cidade']
+    .map((id) => document.getElementById(id) as HTMLInputElement | null);
 
-  const campoCelular = document.getElementById('campo-celular');
-  campoCelular?.addEventListener('input', () => {
-    const numeros = campoCelular.value.replace(/\D/g, '').slice(0, 11);
-    let formatado = '';
-    if (numeros.length > 0) {
-      formatado = '(' + numeros.slice(0, 2);
-    }
-    if (numeros.length >= 2) {
-      formatado += ')' + numeros.slice(2);
-    }
-    campoCelular.value = formatado;
+  function mostrar(motivo: string) {
+    paineis.forEach((p) => { p.hidden = !(p.dataset.motivo || '').split(' ').includes(motivo); });
+    intros.forEach((p) => { p.hidden = p.dataset.intro !== motivo; });
+    const academia = motivo === 'academia';
+    if (inputTipo) inputTipo.value = academia ? 'academia' : 'outros';
+    if (blocoAcademia) blocoAcademia.hidden = !academia;
+    camposAcademiaObrigatorios.forEach((c) => { if (c) c.required = academia; });
+    if (campoAssunto) campoAssunto.hidden = academia;
+    if (inputAssunto) inputAssunto.required = !academia;
+    if (inputMensagem) inputMensagem.required = !academia;
+    if (labelMensagem) labelMensagem.textContent = academia ? 'Mais alguma informação? (opcional)' : 'Mensagem *';
+  }
+
+  seletor?.addEventListener('change', () => {
+    mostrar(seletor.value);
+    const url = new URL(window.location.href);
+    if (seletor.value) url.searchParams.set('motivo', seletor.value); else url.searchParams.delete('motivo');
+    history.replaceState(null, '', url);
   });
+
+  // Abre direto num motivo se o link vier com ?motivo=...
+  const inicial = new URLSearchParams(window.location.search).get('motivo');
+  if (seletor && inicial && Array.from(seletor.options).some((o) => o.value === inicial)) {
+    seletor.value = inicial;
+    mostrar(inicial);
+  }
+
+  // ---------- Formulário genérico (Academia e Outros) ----------
+  const form = document.getElementById('form-contato') as HTMLFormElement | null;
+  const status = document.getElementById('fc-status');
+  const btn = document.getElementById('fc-enviar');
+  const campoCelular = document.getElementById('fc-celular') as HTMLInputElement | null;
+  mascaraTelefone(campoCelular);
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    const celularValor = campoCelular ? campoCelular.value : '';
-    if (celularValor && !/^\(\d{2}\)\d{9}$/.test(celularValor)) {
-      status.textContent = 'Preencha o celular no formato (11)991721313, com DDD e 9 números — ou deixe o campo em branco.';
-      campoCelular.focus();
+    if (!form || !status || !btn) return;
+    const dados = new FormData(form);
+    const celular = String(dados.get('celular') || '');
+    if (!telefoneValido(celular)) {
+      status.textContent = 'Preencha o celular no formato (11)991721313, com DDD e 9 números, ou deixe o campo em branco.';
+      campoCelular?.focus();
       return;
     }
 
-    const dados = new FormData(form);
-    const botao = form.querySelector('button');
-    botao.disabled = true;
-    status.textContent = 'Enviando...';
-
-    try {
-      const supabase = createClient(form.dataset.supabaseUrl, form.dataset.supabaseKey);
-
-      const { error } = await supabase.from('mensagens_contato').insert({
-        nome: dados.get('nome'),
-        assunto: dados.get('assunto'),
-        email: dados.get('email'),
-        celular: dados.get('celular') || null,
-        mensagem: dados.get('mensagem'),
-      });
-
-      if (error) {
-        status.textContent = 'Erro ao enviar: ' + error.message;
-      } else {
-        status.textContent = 'Mensagem enviada! Vamos te responder em breve.';
-        form.reset();
-      }
-    } catch (err) {
-      status.textContent = 'Erro inesperado: ' + (err && err.message ? err.message : String(err));
+    let assunto = String(dados.get('assunto') || '').trim();
+    let mensagem = String(dados.get('mensagem') || '').trim();
+    if (dados.get('tipo') === 'academia') {
+      const nomeAcademia = String(dados.get('academia_nome') || '').trim();
+      assunto = `Cadastro de academia: ${nomeAcademia}`;
+      const linhas = [
+        `Academia: ${nomeAcademia}`,
+        `Cidade: ${String(dados.get('academia_cidade') || '').trim()}${dados.get('academia_uf') ? ' / ' + dados.get('academia_uf') : ''}`,
+        dados.get('academia_endereco') ? `Endereço: ${dados.get('academia_endereco')}` : '',
+        dados.get('academia_links') ? `Site/Instagram: ${dados.get('academia_links')}` : '',
+        dados.get('academia_responsavel') ? 'Quem enviou é responsável ou trabalha na academia.' : '',
+        mensagem ? `Mensagem: ${mensagem}` : '',
+      ].filter(Boolean);
+      mensagem = linhas.join('\n');
     }
 
-    botao.disabled = false;
+    btn.setAttribute('disabled', '');
+    status.textContent = 'Enviando...';
+
+    const { error } = await supabase.from('mensagens_contato').insert({
+      nome: dados.get('nome'),
+      assunto,
+      email: dados.get('email'),
+      celular: celular || null,
+      mensagem,
+    });
+
+    if (error) {
+      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.br';
+    } else {
+      status.textContent = 'Mensagem enviada! Vamos te responder em breve.';
+      const tipo = inputTipo?.value || 'outros';
+      form.reset();
+      if (inputTipo) inputTipo.value = tipo;
+    }
+    btn.removeAttribute('disabled');
   });
 </script>
 
 <style>
-  .contato {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 48px;
-    align-items: start;
+  .contato { max-width: 780px; }
+  .contato__intro { margin-bottom: 28px; }
+  .contato__caixa {
+    display: flex; flex-direction: column; gap: 22px;
+    background: var(--creme-claro); padding: 28px; border-radius: var(--raio);
   }
-  .form-contato {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    background: var(--creme-claro);
-    padding: 28px;
-    border-radius: var(--raio);
-  }
-  .form-contato label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-family: var(--fonte-display);
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    color: var(--verde-escuro);
-    letter-spacing: 0.03em;
-  }
-  .form-contato input,
-  .form-contato textarea {
-    font-family: var(--fonte-corpo);
-    font-size: 1rem;
-    padding: 10px 12px;
-    border-radius: 6px;
-    border: 1px solid rgba(42,31,22,0.2);
-    color: var(--marrom);
-  }
-  .form-contato button { align-self: flex-start; }
-  .form-status { font-size: 0.9rem; min-height: 1.2em; margin: 0; }
-
-  .form-consentimento {
-    flex-direction: row !important;
-    align-items: flex-start;
-    gap: 8px !important;
-    text-transform: none !important;
-    font-family: var(--fonte-corpo) !important;
-    font-size: 0.85rem !important;
-    letter-spacing: normal !important;
-    color: var(--marrom) !important;
-  }
-  .form-consentimento input {
-    width: auto;
-    margin-top: 3px;
-  }
-  .form-consentimento a {
-    color: var(--verde-escuro);
-    text-decoration: underline;
-  }
-  .form-consentimento span::after {
-    content: ".";
-  }
-
-  @media (max-width: 760px) {
-    .contato { grid-template-columns: 1fr; }
+  .contato__motivo-intro { margin: -6px 0 0; font-size: 0.95rem; color: var(--marrom); opacity: 0.85; }
+  .contato__painel { border-top: 1px solid rgba(42, 31, 22, 0.12); padding-top: 22px; }
+  @media (max-width: 560px) {
+    .contato__caixa { padding: 20px 16px; }
   }
 </style>

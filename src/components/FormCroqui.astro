@@ -1,0 +1,220 @@
+---
+// src/components/FormCroqui.astro
+// Formulário "Enviar croqui de um setor". Os arquivos vão pro bucket PRIVADO
+// "croquis-envios" (o público só envia, ninguém de fora consegue abrir) e o
+// registro vai pra "envios_croqui", que aparece no painel de pendências.
+// A equipe baixa o croqui pelo Supabase (Storage > croquis-envios), traz pro
+// chat com o Claude, e o cadastro das vias é feito a partir dele.
+import { supabase } from '../lib/supabase';
+import '../styles/formularios.css';
+
+const { data: locais } = await supabase
+  .from('locais')
+  .select('id, nome, estado')
+  .order('estado', { ascending: true })
+  .order('nome', { ascending: true }) as { data: { id: string; nome: string; estado: string | null }[] | null };
+
+const { data: setores } = await supabase
+  .from('setores')
+  .select('id, nome, local_id')
+  .not('local_id', 'is', null)
+  .order('nome', { ascending: true }) as { data: { id: string; nome: string; local_id: string }[] | null };
+
+const nomeLocal = new Map((locais ?? []).map((l) => [l.id, l.nome]));
+// Os setores são salvos como "Local - Setor"; no menu mostramos só o "Setor".
+const setoresParaMenu = (setores ?? []).map((s) => {
+  const prefixo = `${nomeLocal.get(s.local_id) ?? ''} - `;
+  return { id: s.id, local_id: s.local_id, nome: s.nome.startsWith(prefixo) ? s.nome.slice(prefixo.length) : s.nome };
+});
+
+const locaisPorEstado = new Map<string, { id: string; nome: string }[]>();
+for (const l of locais ?? []) {
+  const estado = l.estado || 'Outros';
+  if (!locaisPorEstado.has(estado)) locaisPorEstado.set(estado, []);
+  locaisPorEstado.get(estado)!.push(l);
+}
+---
+<form class="fc" id="form-croqui" data-setores={JSON.stringify(setoresParaMenu)}>
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fq-nome">Seu nome *</label>
+      <input type="text" id="fq-nome" name="nome" required />
+    </div>
+    <div class="fc-campo">
+      <label for="fq-contato">E-mail ou WhatsApp *</label>
+      <input type="text" id="fq-contato" name="contato" required placeholder="Pra gente tirar dúvidas sobre o croqui" />
+    </div>
+  </div>
+
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fq-local">Local *</label>
+      <select id="fq-local" name="local_id" required>
+        <option value="">Selecione...</option>
+        {Array.from(locaisPorEstado.entries()).map(([estado, lista]) => (
+          <optgroup label={estado}>
+            {lista.map((l) => <option value={l.id}>{l.nome}</option>)}
+          </optgroup>
+        ))}
+        <option value="outro">Não está na lista</option>
+      </select>
+    </div>
+    <div class="fc-campo">
+      <label for="fq-setor">Setor</label>
+      <select id="fq-setor" name="setor_id" disabled>
+        <option value="">Escolha o local primeiro</option>
+      </select>
+    </div>
+  </div>
+  <div class="fc-campo" id="fq-local-outro-campo" hidden>
+    <label for="fq-local-outro">Qual local? *</label>
+    <input type="text" id="fq-local-outro" name="local_sugerido" placeholder="Nome do local, cidade e estado" />
+  </div>
+  <div class="fc-campo" id="fq-setor-outro-campo" hidden>
+    <label for="fq-setor-outro">Qual setor?</label>
+    <input type="text" id="fq-setor-outro" name="setor_sugerido" placeholder="Nome do setor (ou deixe em branco se o croqui é do local inteiro)" />
+  </div>
+
+  <div class="fc-campo">
+    <label for="fq-arquivos">Arquivo do croqui</label>
+    <input type="file" id="fq-arquivos" name="arquivos" multiple accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,.heic" />
+    <small class="fc-ajuda">PDF ou foto (JPG, PNG, WEBP, HEIC). Pode mandar mais de um, até 50 MB cada.</small>
+  </div>
+  <div class="fc-campo">
+    <label for="fq-link">Ou um link pro croqui</label>
+    <input type="url" id="fq-link" name="link_externo" placeholder="Google Drive, Instagram, site..." />
+    <small class="fc-ajuda">Precisa de pelo menos um dos dois: arquivo ou link.</small>
+  </div>
+
+  <div class="fc-campo">
+    <label for="fq-credito">Quem fez o croqui? *</label>
+    <input type="text" id="fq-credito" name="credito" required placeholder="Ex.: Fulano e Ciclana, grupo de escalada X" />
+    <small class="fc-ajuda">É assim que vamos dar o crédito no site. Os conquistadores de cada via aparecem junto com a via.</small>
+  </div>
+  <div class="fc-campo">
+    <label for="fq-msg">Mensagem (opcional)</label>
+    <textarea id="fq-msg" name="mensagem" rows="3" placeholder="Algo importante sobre o croqui: vias novas, correções, se tem versão mais recente..."></textarea>
+  </div>
+
+  <label class="fc-check">
+    <input type="checkbox" name="autorizacao" id="fq-autorizacao" required />
+    <span>Sou autor(a) deste croqui ou tenho autorização de quem fez para publicá-lo no Climbeiros, com os devidos créditos. *</span>
+  </label>
+
+  <input type="text" name="site" class="fc-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+  <button type="submit" class="botao" id="fq-enviar">Enviar croqui</button>
+  <p class="fc-status" id="fq-status" role="status"></p>
+  <p class="fc-aviso">A equipe confere o croqui e cadastra as vias. Nada vai pro site sem revisão.</p>
+</form>
+
+<script>
+  import { supabase } from '../lib/supabase';
+  import { nomeArquivoUnico } from '../lib/formularios';
+
+  const LIMITE = 50 * 1024 * 1024;
+  const form = document.getElementById('form-croqui') as HTMLFormElement | null;
+  const status = document.getElementById('fq-status');
+  const btn = document.getElementById('fq-enviar');
+  const selLocal = document.getElementById('fq-local') as HTMLSelectElement | null;
+  const selSetor = document.getElementById('fq-setor') as HTMLSelectElement | null;
+  const campoLocalOutro = document.getElementById('fq-local-outro-campo');
+  const campoSetorOutro = document.getElementById('fq-setor-outro-campo');
+  const setores: { id: string; nome: string; local_id: string }[] = JSON.parse(form?.dataset.setores || '[]');
+
+  // Quando escolhe o local, o menu de setor mostra só os setores dele.
+  function atualizarSetores() {
+    if (!selLocal || !selSetor) return;
+    const localId = selLocal.value;
+    const outroLocal = localId === 'outro';
+    if (campoLocalOutro) campoLocalOutro.hidden = !outroLocal;
+    selSetor.innerHTML = '';
+    if (!localId || outroLocal) {
+      selSetor.disabled = true;
+      selSetor.add(new Option(outroLocal ? 'Escreva abaixo' : 'Escolha o local primeiro', ''));
+      if (campoSetorOutro) campoSetorOutro.hidden = !outroLocal;
+      return;
+    }
+    selSetor.disabled = false;
+    selSetor.add(new Option('Croqui do local inteiro / vários setores', ''));
+    setores.filter((s) => s.local_id === localId).forEach((s) => selSetor.add(new Option(s.nome, s.id)));
+    selSetor.add(new Option('Setor que não está na lista', 'outro'));
+    if (campoSetorOutro) campoSetorOutro.hidden = true;
+  }
+  selLocal?.addEventListener('change', atualizarSetores);
+  selSetor?.addEventListener('change', () => {
+    if (campoSetorOutro) campoSetorOutro.hidden = selSetor.value !== 'outro';
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!status || !btn || !form) return;
+    const dados = new FormData(form);
+
+    if (dados.get('site')) {
+      status.textContent = 'Croqui enviado!';
+      form.reset();
+      return;
+    }
+
+    const arquivos = Array.from((document.getElementById('fq-arquivos') as HTMLInputElement | null)?.files ?? []);
+    const link = String(dados.get('link_externo') || '').trim();
+    if (arquivos.length === 0 && !link) {
+      status.textContent = 'Mande o arquivo do croqui ou um link pra ele.';
+      return;
+    }
+    const grande = arquivos.find((a) => a.size > LIMITE);
+    if (grande) {
+      status.textContent = `O arquivo "${grande.name}" passou de 50 MB. Mande um link do Google Drive no lugar.`;
+      return;
+    }
+    const localId = String(dados.get('local_id') || '');
+    const localSugerido = String(dados.get('local_sugerido') || '').trim();
+    if (localId === 'outro' && !localSugerido) {
+      status.textContent = 'Escreva qual é o local.';
+      document.getElementById('fq-local-outro')?.focus();
+      return;
+    }
+    const setorId = String(dados.get('setor_id') || '');
+
+    btn.setAttribute('disabled', '');
+    status.textContent = arquivos.length ? 'Enviando o arquivo... pode levar um minutinho.' : 'Enviando...';
+
+    const caminhos: string[] = [];
+    for (const arquivo of arquivos) {
+      const caminho = nomeArquivoUnico(arquivo);
+      // Alguns celulares mandam foto HEIC sem tipo; sem isso o upload é recusado.
+      const tipo = arquivo.type || (/\.hei[cf]$/i.test(arquivo.name) ? 'image/heic' : 'application/pdf');
+      const { error: erroUpload } = await supabase.storage.from('croquis-envios').upload(caminho, arquivo, { contentType: tipo });
+      if (erroUpload) {
+        status.textContent = `Não conseguimos enviar "${arquivo.name}". Tente de novo ou mande um link.`;
+        btn.removeAttribute('disabled');
+        return;
+      }
+      caminhos.push(caminho);
+    }
+
+    const { error } = await supabase.from('envios_croqui').insert([{
+      nome: dados.get('nome'),
+      contato: dados.get('contato'),
+      local_id: localId && localId !== 'outro' ? localId : null,
+      local_sugerido: localId === 'outro' ? localSugerido : null,
+      setor_id: setorId && setorId !== 'outro' ? setorId : null,
+      setor_sugerido: String(dados.get('setor_sugerido') || '').trim() || null,
+      arquivos: caminhos,
+      link_externo: link || null,
+      autorizacao: dados.get('autorizacao') === 'on',
+      credito: dados.get('credito') || null,
+      mensagem: dados.get('mensagem') || null,
+    }]);
+
+    if (error) {
+      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.br';
+      btn.removeAttribute('disabled');
+      return;
+    }
+    form.reset();
+    atualizarSetores();
+    status.textContent = 'Recebemos seu croqui, valeu demais! A gente confere e cadastra as vias. 🧗';
+    btn.removeAttribute('disabled');
+  });
+</script>

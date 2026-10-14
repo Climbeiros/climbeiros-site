@@ -1,0 +1,49 @@
+/* src/styles/formularios.css
+   Estilo comum dos formulários de cadastro (guia, hospedagem, parceiro,
+   croqui). Fica num arquivo global, com prefixo "fc-", porque os mesmos
+   formulários aparecem em mais de uma página (ex.: Guias & Cursos e Contato). */
+
+.fc { display: flex; flex-direction: column; gap: 18px; text-align: left; }
+.fc .fc-linha { display: flex; gap: 18px; flex-wrap: wrap; }
+.fc .fc-linha > * { flex: 1; min-width: 200px; }
+.fc .fc-campo { display: flex; flex-direction: column; gap: 6px; }
+.fc label,
+.fc .fc-label {
+  font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: 0.04em;
+  font-size: 0.8rem; color: var(--verde-escuro);
+}
+.fc input:not([type="checkbox"]):not([type="radio"]),
+.fc textarea,
+.fc select {
+  font-family: var(--fonte-corpo); font-size: 1rem; padding: 12px 14px; border-radius: 8px;
+  border: 1px solid rgba(42, 31, 22, 0.18); background: var(--branco); color: var(--marrom); width: 100%;
+}
+.fc input[type="file"] { padding: 10px; cursor: pointer; }
+.fc input::placeholder, .fc textarea::placeholder { color: rgba(42, 31, 22, 0.4); }
+.fc input:focus, .fc textarea:focus, .fc select:focus { outline: 2px solid var(--laranja); border-color: var(--laranja); }
+.fc textarea { resize: vertical; }
+.fc select { cursor: pointer; }
+.fc .fc-ajuda {
+  text-transform: none; letter-spacing: normal; font-size: 0.75rem; opacity: 0.7;
+  font-family: var(--fonte-corpo); color: var(--marrom);
+}
+.fc .fc-opcoes { display: flex; gap: 10px 22px; flex-wrap: wrap; padding: 8px 2px; }
+.fc .fc-check {
+  display: flex; align-items: flex-start; gap: 8px; cursor: pointer;
+  font-family: var(--fonte-corpo); text-transform: none; letter-spacing: normal;
+  font-size: 0.95rem; color: var(--marrom);
+}
+.fc .fc-check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--laranja); flex: 0 0 auto; cursor: pointer; }
+.fc .fc-check a { color: var(--verde-escuro); text-decoration: underline; }
+.fc .fc-destaque {
+  display: flex; flex-direction: column; gap: 14px; padding: 16px;
+  border: 1px dashed rgba(218, 115, 38, 0.5); border-radius: 8px; background: rgba(218, 115, 38, 0.06);
+}
+.fc .botao { align-self: flex-start; margin-top: 6px; }
+.fc .botao[disabled] { opacity: 0.6; cursor: default; }
+.fc .fc-status { font-size: 0.92rem; color: var(--verde-escuro); min-height: 1.2em; margin: 0; }
+.fc .fc-aviso { font-size: 0.75rem; opacity: 0.7; margin: 0; }
+.fc .fc-honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+/* O atributo "hidden" precisa vencer os display:flex acima. */
+.fc[hidden], .fc [hidden] { display: none !important; }

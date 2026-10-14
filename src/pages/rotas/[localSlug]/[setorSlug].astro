@@ -136,6 +136,10 @@ const jsonLdSetor = encontrado && setor && local
           Hospedagens, guias e avaliações desse lugar ficam na página do local:
           {' '}<a href={`/rotas/${local.slug}`}>ver {local.nome} →</a>
         </p>
+        <p class="setor-detalhe__cta-croqui">
+          {rotas && rotas.length > 0 ? 'Tem um croqui mais atualizado ou achou algo errado?' : 'Ainda sem vias cadastradas aqui. Tem o croqui?'}
+          {' '}<a href="/contato?motivo=croqui">Envie pra gente →</a>
+        </p>
       </div>
     </section>
   ) : (
@@ -158,6 +162,7 @@ const jsonLdSetor = encontrado && setor && local
   .bloco h2 { font-family: var(--fonte-display); text-transform: uppercase; font-size: 1.2rem; color: var(--verde-escuro); margin-bottom: 10px; }
 
   .setor-detalhe__croquis { display: flex; flex-wrap: wrap; gap: 10px; }
+  .setor-detalhe__cta-croqui { margin-top: 10px; font-size: 0.92rem; opacity: 0.85; }
   .setor-detalhe__credito { margin-top: 16px; font-size: 0.8rem; opacity: 0.7; }
 
   .setor-detalhe__cta-local { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(42, 31, 22, 0.12); font-size: 0.92rem; opacity: 0.85; }

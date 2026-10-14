@@ -22,6 +22,7 @@ import type {
 } from '../../../lib/supabase';
 import AvisoConstrucao from '../../../components/AvisoConstrucao.astro';
 import BotaoFeedback from '../../../components/BotaoFeedback.astro';
+import FormHospedagem from '../../../components/FormHospedagem.astro';
 
 export async function getStaticPaths() {
   const { data: locais } = await supabase
@@ -232,62 +233,7 @@ const jsonLdLocal = local
 
           <details class="cadastro-detalhes">
             <summary>Tem uma hospedagem por aqui? Cadastre-se</summary>
-            <form
-              class="form-hospedagem"
-              id="form-hospedagem"
-            >
-              <div class="linha">
-                <label>
-                  Nome da hospedagem *
-                  <input type="text" name="nome" required />
-                </label>
-                <label>
-                  Distância até aqui
-                  <input type="text" name="distancia" placeholder="Ex.: a 5 min a pé, 10 km de carro" />
-                </label>
-              </div>
-              <div class="linha">
-                <label>
-                  Contato para reserva *
-                  <input type="text" name="contato_reserva" placeholder="Telefone, WhatsApp ou e-mail" required />
-                </label>
-                <label>
-                  Link de reserva (opcional)
-                  <input type="url" name="link_reserva" placeholder="Booking, site próprio, Instagram..." />
-                </label>
-              </div>
-              <label>
-                Locais que atende
-                <select name="locais_ids" id="hp-locais" multiple size="5">
-                  {(todosLocais ?? []).map((l) => (
-                    <option value={l.id} selected={l.id === local.id}>{l.nome}</option>
-                  ))}
-                </select>
-                <small>Já vem selecionado este local. Segure Ctrl (ou Cmd no Mac) pra marcar mais de um.</small>
-              </label>
-              <label class="cupom-toggle">
-                <input type="checkbox" name="tem_desconto" id="hp-tem-desconto" />
-                Quero oferecer desconto para quem vier do Climbeiros
-              </label>
-              <div class="cupom-campos" id="hp-desconto-campos" hidden>
-                <label>
-                  Código do desconto
-                  <input type="text" name="desconto_codigo" placeholder="Ex.: CLIMBEIROS10" />
-                </label>
-                <label>
-                  Como funciona o desconto?
-                  <textarea name="desconto_desc" rows="2" placeholder="Ex.: 10% na diária pra quem mencionar o Climbeiros"></textarea>
-                </label>
-              </div>
-              <label>
-                Mensagem (opcional)
-                <textarea name="mensagem" rows="3"></textarea>
-              </label>
-              <input type="text" name="site" class="campo-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
-              <button type="submit" class="botao botao--pequeno">Enviar cadastro</button>
-              <p class="form-status" role="status"></p>
-              <p class="form-aviso">Seu cadastro passa por uma checagem da equipe do Climbeiros antes de aparecer aqui.</p>
-            </form>
+            <FormHospedagem localId={local.id} />
           </details>
         </div>
 
@@ -320,7 +266,7 @@ const jsonLdLocal = local
           <h2>Setores</h2>
 
           {(!setores || setores.length === 0) && (
-            <p class="vazio">Ainda não temos setores cadastrados aqui.</p>
+            <p class="vazio">Ainda não temos setores cadastrados aqui. Tem o croqui? <a href="/contato?motivo=croqui">Envie pra gente</a> que a gente cadastra as vias.</p>
           )}
 
           {lados.length > 0 ? (
@@ -560,56 +506,6 @@ const jsonLdLocal = local
       })
       .finally(() => clearTimeout(tempoLimite));
   }
-
-  // ---- Formulário de cadastro de hospedagem ----
-  const formHosp = document.getElementById('form-hospedagem') as HTMLFormElement | null;
-  const statusHosp = formHosp?.querySelector('.form-status') as HTMLElement | null;
-  const toggleDesconto = document.getElementById('hp-tem-desconto') as HTMLInputElement | null;
-  const camposDesconto = document.getElementById('hp-desconto-campos');
-
-  toggleDesconto?.addEventListener('change', () => {
-    if (camposDesconto) camposDesconto.hidden = !toggleDesconto.checked;
-  });
-
-  formHosp?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!statusHosp) return;
-    const dados = new FormData(formHosp);
-
-    if (dados.get('site')) {
-      statusHosp.textContent = 'Cadastro enviado!';
-      formHosp.reset();
-      return;
-    }
-
-    const botao = formHosp.querySelector('button[type="submit"]') as HTMLButtonElement | null;
-    botao?.setAttribute('disabled', '');
-    statusHosp.textContent = 'Enviando...';
-
-    const temDesconto = (dados.get('tem_desconto') as string) === 'on';
-    const selectLocais = formHosp.querySelector('#hp-locais') as HTMLSelectElement | null;
-    const locaisIds = selectLocais ? Array.from(selectLocais.selectedOptions).map((o) => o.value) : [];
-
-    const { error } = await supabase.from('inscricoes_hospedagens').insert([{
-      nome: dados.get('nome'),
-      contato_reserva: dados.get('contato_reserva'),
-      link_reserva: dados.get('link_reserva') || null,
-      distancia: dados.get('distancia') || null,
-      locais_ids: locaisIds,
-      tem_desconto: temDesconto ? 'Sim' : 'Não',
-      desconto_codigo: temDesconto ? (dados.get('desconto_codigo') || null) : null,
-      desconto_desc: temDesconto ? (dados.get('desconto_desc') || null) : null,
-      mensagem: dados.get('mensagem') || null,
-    }]);
-
-    if (error) {
-      statusHosp.textContent = 'Ops, algo deu errado: ' + error.message;
-    } else {
-      statusHosp.textContent = 'Recebemos seu cadastro! Ele passa por uma checagem antes de aparecer no site.';
-      formHosp.reset();
-    }
-    botao?.removeAttribute('disabled');
-  });
 
   // ---- Formulário de avaliação (nota + comentário + fotos + vídeo) ----
   const formAv = document.getElementById('form-avaliacao-local') as HTMLFormElement | null;

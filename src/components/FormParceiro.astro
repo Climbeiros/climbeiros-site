@@ -1,0 +1,100 @@
+---
+// src/components/FormParceiro.astro
+// Formulário "Seja um parceiro Climbeiros". Grava em "inscricoes_parceiros"
+// (entra pendente no painel). Usado em Parcerias e na página de Contato.
+import '../styles/formularios.css';
+
+const CATEGORIAS = ['Equipamentos', 'Vestuário', 'Calçados', 'Nutrição', 'Hospedagem', 'Turismo / Agência', 'Tecnologia', 'Outros'];
+---
+<form class="fc" id="form-parceiro">
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fp-marca">Marca *</label>
+      <input type="text" id="fp-marca" name="marca" required />
+    </div>
+    <div class="fc-campo">
+      <label for="fp-resp">Responsável</label>
+      <input type="text" id="fp-resp" name="responsavel" />
+    </div>
+  </div>
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fp-email">E-mail *</label>
+      <input type="email" id="fp-email" name="email" required />
+    </div>
+    <div class="fc-campo">
+      <label for="fp-tel">WhatsApp</label>
+      <input type="tel" id="fp-tel" name="telefone" placeholder="(11)991721313" maxlength="13" inputmode="numeric" />
+    </div>
+  </div>
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fp-site">Site</label>
+      <input type="text" id="fp-site" name="site" placeholder="www.suamarca.com.br" />
+    </div>
+    <div class="fc-campo">
+      <label for="fp-insta">Instagram</label>
+      <input type="text" id="fp-insta" name="instagram" placeholder="@suamarca" />
+    </div>
+  </div>
+  <div class="fc-campo">
+    <label for="fp-cat">Categoria</label>
+    <select id="fp-cat" name="categoria">
+      <option value="">Selecione...</option>
+      {CATEGORIAS.map((c) => <option value={c}>{c}</option>)}
+    </select>
+  </div>
+  <div class="fc-campo">
+    <label for="fp-msg">Mensagem</label>
+    <textarea id="fp-msg" name="mensagem" rows="4" placeholder="Conte um pouco sobre a marca e o que vocês gostariam de oferecer à comunidade"></textarea>
+  </div>
+  <button type="submit" class="botao" id="fp-enviar">Enviar proposta</button>
+  <p class="fc-status" id="fp-status" role="status"></p>
+</form>
+
+<script>
+  import { supabase } from '../lib/supabase';
+  import { mascaraTelefone, telefoneValido } from '../lib/formularios';
+
+  const form = document.getElementById('form-parceiro') as HTMLFormElement | null;
+  const status = document.getElementById('fp-status');
+  const btn = document.getElementById('fp-enviar');
+  const campoTelefone = document.getElementById('fp-tel') as HTMLInputElement | null;
+  mascaraTelefone(campoTelefone);
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!status || !btn || !form) return;
+    const dados = Object.fromEntries(new FormData(form).entries()) as Record<string, any>;
+    if (!dados.marca || !dados.email) {
+      status.textContent = 'Por favor, preencha ao menos a marca e o e-mail.';
+      return;
+    }
+    if (!telefoneValido(String(dados.telefone || ''))) {
+      status.textContent = 'Preencha o WhatsApp no formato (11)991721313, com DDD e 9 números, ou deixe o campo em branco.';
+      campoTelefone?.focus();
+      return;
+    }
+    btn.setAttribute('disabled', '');
+    status.textContent = 'Enviando...';
+
+    const { error } = await supabase.from('inscricoes_parceiros').insert([{
+      marca: dados.marca,
+      responsavel: dados.responsavel || null,
+      email: dados.email,
+      telefone: dados.telefone || null,
+      site: dados.site || null,
+      instagram: dados.instagram || null,
+      categoria: dados.categoria || null,
+      mensagem: dados.mensagem || null,
+    }]);
+    if (error) {
+      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.br';
+      btn.removeAttribute('disabled');
+      return;
+    }
+    form.reset();
+    status.textContent = 'Recebemos sua proposta! Em breve a gente entra em contato. 🤝';
+    btn.removeAttribute('disabled');
+  });
+</script>
