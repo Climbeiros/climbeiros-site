@@ -61,3 +61,6 @@
 .fc .req { display: inline-block; margin-left: 6px; font-family: var(--fonte-corpo, 'Work Sans', sans-serif); font-size: 0.7rem; text-transform: none; letter-spacing: 0.02em; vertical-align: middle; white-space: nowrap; }
 .fc .req--sim { padding: 1px 8px; border-radius: 999px; background: var(--laranja); color: #fff; font-weight: 700; }
 .fc .req--nao { color: rgba(42, 31, 22, 0.6); font-style: italic; }
+
+/* Subtitulo que separa blocos dentro de um formulario (ex.: "Sobre a academia" / "Sobre voce") */
+.fc .fc-secao { margin: 10px 0 0; padding-bottom: 6px; border-bottom: 1px solid rgba(42, 31, 22, 0.15); font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: 0.04em; font-size: 1.05rem; color: var(--laranja); }
