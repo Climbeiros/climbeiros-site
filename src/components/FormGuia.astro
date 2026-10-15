@@ -23,33 +23,34 @@ const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','P
 const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','Escalada indoor','Montanhismo','Alpinismo','Escalada em gelo','Trekking','Canionismo','Escalada móvel','Escalada em fendas','Escalada artificial','Bigwall','Curso de autoresgate'];
 ---
 <form class="fc" id="form-guia">
+  <p class="fc-legenda">Só <strong>nome</strong> e <strong>e-mail</strong> são obrigatórios; o resto é opcional, mas quanto mais completo, melhor fica o seu card. Fique de olho também nas etiquetas: <span class="selo selo--site">No site</span> aparece pra todo mundo, <span class="selo selo--equipe">Só a equipe vê</span> fica só com a gente.</p>
   <div class="fc-linha">
     <div class="fc-campo">
-      <label for="fg-nome">Nome *</label>
+      <label for="fg-nome">Nome <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
       <input type="text" id="fg-nome" name="nome" required />
     </div>
     <div class="fc-campo">
-      <label for="fg-email">E-mail *</label>
+      <label for="fg-email">E-mail <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
       <input type="email" id="fg-email" name="email" required />
     </div>
   </div>
   <div class="fc-linha">
     <div class="fc-campo">
-      <label for="fg-telefone">WhatsApp</label>
+      <label for="fg-telefone">WhatsApp <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
       <input type="tel" id="fg-telefone" name="telefone" placeholder="(11)991721313" maxlength="13" inputmode="numeric" />
     </div>
     <div class="fc-campo">
-      <label for="fg-instagram">Instagram</label>
+      <label for="fg-instagram">Instagram <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
       <input type="text" id="fg-instagram" name="instagram" placeholder="@seu.perfil" />
     </div>
   </div>
   <div class="fc-linha">
     <div class="fc-campo">
-      <label for="fg-cidade">Cidade</label>
+      <label for="fg-cidade">Cidade <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
       <input type="text" id="fg-cidade" name="cidade" placeholder="Ex.: São Paulo" />
     </div>
     <div class="fc-campo">
-      <label for="fg-uf">UF</label>
+      <label for="fg-uf">UF <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
       <select id="fg-uf" name="uf">
         <option value="">Selecione</option>
         {UFS.map((uf) => <option value={uf}>{uf}</option>)}
@@ -57,14 +58,14 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
     </div>
   </div>
   <div class="fc-campo">
-    <span class="fc-label">Melhor contato para divulgarmos</span>
+    <span class="fc-label">Melhor contato para divulgarmos <span class="req req--nao">Opcional</span> <span class="selo selo--equipe">Só a equipe vê</span></span>
     <div class="fc-opcoes">
       <label class="fc-check"><input type="checkbox" name="pref" value="WhatsApp" /> WhatsApp</label>
       <label class="fc-check"><input type="checkbox" name="pref" value="Instagram" /> Instagram</label>
     </div>
   </div>
   <div class="fc-campo">
-    <span class="fc-label">Especialidades</span>
+    <span class="fc-label">Especialidades <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></span>
     <div class="fc-opcoes">
       {ESPECIALIDADES.map((esp) => (
         <label class="fc-check"><input type="checkbox" name="especialidade" value={esp} /> {esp}</label>
@@ -73,16 +74,16 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
     <input type="text" id="fg-espec-outra" name="especialidade_outra" placeholder="Outra especialidade (opcional)" />
   </div>
   <div class="fc-campo">
-    <label for="fg-certificacao">Certificação (opcional)</label>
+    <label for="fg-certificacao">Certificação <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
     <input type="text" id="fg-certificacao" name="certificacao" placeholder="Ex.: Guia CANMOD, AGB, instrutor de ginásio..." />
   </div>
   <div class="fc-campo">
-    <label for="fg-foto">Foto (opcional)</label>
+    <label for="fg-foto">Foto <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
     <input type="file" id="fg-foto" name="foto" accept="image/png, image/jpeg, image/webp" />
-    <small class="fc-ajuda">Aparece no seu card na página de guias. Até 5 MB.</small>
+    <small class="fc-ajuda">Até 5 MB.</small>
   </div>
   <div class="fc-campo">
-    <label for="fg-locais">Em quais locais você atua?</label>
+    <label for="fg-locais">Em quais locais você atua? <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
     <select id="fg-locais" name="locais_ids" multiple size="6">
       {Array.from(locaisPorEstado.entries()).map(([estado, lista]) => (
         <optgroup label={estado}>
@@ -93,21 +94,21 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
     <small class="fc-ajuda">Segure Ctrl (ou Cmd no Mac) pra selecionar mais de um local. Usamos isso pra te mostrar na página de cada local.</small>
   </div>
   <div class="fc-campo">
-    <label for="fg-locais-outro">Atua em algum local que não está na lista?</label>
+    <label for="fg-locais-outro">Atua em algum local que não está na lista? <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
     <textarea id="fg-locais-outro" name="locais_outro" rows="2" placeholder="Escreva aqui o nome do local, cidade e estado. Ainda estamos cadastrando as rotas do site, então é normal seu local não aparecer ainda."></textarea>
     <small class="fc-ajuda">Não precisa se preocupar em não achar seu local na lista acima, isso não trava sua inscrição. A gente usa essa informação pra saber quais locais cadastrar em seguida.</small>
   </div>
   <div class="fc-campo">
-    <label for="fg-bio">Sobre você (aparece na sua página pública)</label>
+    <label for="fg-bio">Sobre você <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
     <textarea id="fg-bio" name="bio" rows="3" placeholder="Conte um pouco sobre sua experiência"></textarea>
   </div>
   <div class="fc-campo">
-    <label for="fg-cursos">Cursos oferecidos (opcional, aparece no seu card)</label>
+    <label for="fg-cursos">Cursos oferecidos <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
     <textarea id="fg-cursos" name="cursos_oferecidos" rows="4" placeholder="Conte quais cursos você oferece: o nível, onde acontece, próximas datas, valor e o link ou contato pra inscrição."></textarea>
     <small class="fc-ajuda">Um curso por linha ou parágrafo. Não oferece cursos? Pode deixar em branco.</small>
   </div>
   <div class="fc-campo">
-    <label for="fg-msg">Mensagem pra equipe Climbeiros (opcional, não aparece no site)</label>
+    <label for="fg-msg">Mensagem pra equipe Climbeiros <span class="req req--nao">Opcional</span> <span class="selo selo--equipe">Só a equipe vê</span></label>
     <textarea id="fg-msg" name="mensagem" rows="3" placeholder="Algo que só a gente precise saber"></textarea>
   </div>
   <label class="fc-check">
@@ -116,12 +117,13 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
   </label>
   <div class="fc-destaque" id="fg-cupom-campos" hidden>
     <div class="fc-campo">
-      <label for="fg-cupom">Código do cupom</label>
+      <label for="fg-cupom">Código do cupom <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
       <input type="text" id="fg-cupom" name="cupom_codigo" placeholder="Ex.: GUIA10" />
     </div>
     <div class="fc-campo">
-      <label for="fg-cupomdesc">Como funciona o desconto?</label>
-      <textarea id="fg-cupomdesc" name="cupom_desc" rows="3" placeholder="Ex.: 10% na primeira aula avulsa"></textarea>
+      <label for="fg-cupomdesc">Qual é o benefício? <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+      <textarea id="fg-cupomdesc" name="cupom_desc" rows="3" placeholder="Ex.: 10% de desconto na primeira aula avulsa, ou 1 dia grátis no curso de 2 dias"></textarea>
+      <small class="fc-ajuda">Aparece embaixo do código no seu card, pra pessoa saber o que ganha usando o cupom.</small>
     </div>
   </div>
   <button type="submit" class="botao" id="fg-enviar">Enviar inscrição</button>
@@ -141,8 +143,13 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
 
   const chkCupom = document.getElementById('fg-tem-cupom') as HTMLInputElement | null;
   const camposCupom = document.getElementById('fg-cupom-campos');
+  const campoCupom = document.getElementById('fg-cupom') as HTMLInputElement | null;
+  const campoCupomDesc = document.getElementById('fg-cupomdesc') as HTMLTextAreaElement | null;
   chkCupom?.addEventListener('change', () => {
     if (camposCupom) camposCupom.hidden = !chkCupom.checked;
+    // Com cupom marcado, código e benefício passam a ser obrigatórios
+    if (campoCupom) campoCupom.required = chkCupom.checked;
+    if (campoCupomDesc) campoCupomDesc.required = chkCupom.checked;
   });
 
   form?.addEventListener('submit', async (e) => {
@@ -159,6 +166,11 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
       return;
     }
     const temCupom = !!chkCupom?.checked;
+    if (temCupom && (!String(dados.cupom_codigo || '').trim() || !String(dados.cupom_desc || '').trim())) {
+      status.textContent = 'Você marcou que quer oferecer um cupom: preencha o código e qual é o benefício (ou desmarque a opção).';
+      (String(dados.cupom_codigo || '').trim() ? campoCupomDesc : campoCupom)?.focus();
+      return;
+    }
     const prefContato = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="pref"]:checked'))
       .map((el) => el.value).join(', ');
     const especialidades = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="especialidade"]:checked'))
