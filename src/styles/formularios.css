@@ -1,7 +1,7 @@
 /* src/styles/formularios.css
-   Estilo comum dos formulários de cadastro (guia, hospedagem, parceiro,
+   Estilo comum dos formulÃ¡rios de cadastro (guia, hospedagem, parceiro,
    croqui). Fica num arquivo global, com prefixo "fc-", porque os mesmos
-   formulários aparecem em mais de uma página (ex.: Guias & Cursos e Contato). */
+   formulÃ¡rios aparecem em mais de uma pÃ¡gina (ex.: Guias & Cursos e Contato). */
 
 .fc { display: flex; flex-direction: column; gap: 18px; text-align: left; }
 .fc .fc-linha { display: flex; gap: 18px; flex-wrap: wrap; }
@@ -47,3 +47,17 @@
 
 /* O atributo "hidden" precisa vencer os display:flex acima. */
 .fc[hidden], .fc [hidden] { display: none !important; }
+
+/* Etiquetas "No site" / "SÃ³ a equipe vÃª" ao lado do nome de cada campo */
+.fc .selo { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-family: var(--fonte-corpo, 'Work Sans', sans-serif); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.02em; text-transform: none; vertical-align: middle; white-space: nowrap; }
+.fc .selo--site { background: var(--verde); color: #fff; }
+.fc .selo--equipe { background: var(--marrom); color: var(--creme-claro); }
+.fc .selo--site::before { content: "ðŸ‘ "; }
+.fc .selo--equipe::before { content: "ðŸ”’ "; }
+.fc .fc-legenda { margin: 0; padding: 12px 14px; border-radius: 8px; background: rgba(255, 253, 247, 0.7); font-size: 0.92rem; line-height: 1.7; color: var(--marrom); }
+.fc .fc-legenda .selo { margin-left: 0; }
+
+/* ObrigatÃ³rio / Opcional ao lado do nome de cada campo */
+.fc .req { display: inline-block; margin-left: 6px; font-family: var(--fonte-corpo, 'Work Sans', sans-serif); font-size: 0.7rem; text-transform: none; letter-spacing: 0.02em; vertical-align: middle; white-space: nowrap; }
+.fc .req--sim { padding: 1px 8px; border-radius: 999px; background: var(--laranja); color: #fff; font-weight: 700; }
+.fc .req--nao { color: rgba(42, 31, 22, 0.6); font-style: italic; }
