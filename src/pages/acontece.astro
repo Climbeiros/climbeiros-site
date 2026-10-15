@@ -11,7 +11,7 @@ import Layout from '../layouts/Layout.astro';
 import { getSiteConfig } from '../lib/supabase';
 import { getAgenda, getNovidades, partesData, dataCurta, diaSemana } from '../lib/acontece';
 
-const [agenda, novidades, config] = await Promise.all([getAgenda(), getNovidades(10), getSiteConfig()]);
+const [agenda, novidades, config] = await Promise.all([getAgenda(), getNovidades(40), getSiteConfig()]);
 const linkWhatsApp = config.whatsapp_comunidade || '';
 
 const nomeOrganizador: Record<string, string> = {
@@ -49,6 +49,25 @@ const corNovidade: Record<string, string> = {
   'Escalada 101': 'artigo',
   'Parceria': 'cupom',
 };
+
+// Novidades em blocos por tema (layout "A"): guias num bloco largo e os
+// outros temas numa coluna ao lado. Cada bloco mostra só os mais recentes.
+const BLOCOS = [
+  { chave: 'guia', titulo: 'Novos guias', tipos: ['Novo guia'], href: '/cursos', max: 6, cor: 'guia' },
+  { chave: 'academia', titulo: 'Academias', tipos: ['Academia'], href: '/academias', max: 3, cor: 'academia' },
+  { chave: 'local', titulo: 'Locais de escalada', tipos: ['Novo local'], href: '/rotas', max: 3, cor: 'local' },
+  { chave: 'conteudo', titulo: 'Conteúdo novo', tipos: ['Crux', 'Escalada 101'], href: '/beta', max: 3, cor: 'artigo' },
+  { chave: 'galeria', titulo: 'Galeria', tipos: ['Galeria'], href: '/galeria', max: 3, cor: 'galeria' },
+  { chave: 'parceria', titulo: 'Parcerias', tipos: ['Parceria'], href: '/parceiros', max: 3, cor: 'cupom' },
+];
+const blocos = BLOCOS
+  .map((b) => {
+    const todos = novidades.filter((n) => b.tipos.includes(n.tipo));
+    return { ...b, total: todos.length, itens: todos.slice(0, b.max) };
+  })
+  .filter((b) => b.total > 0);
+const blocoPrincipal = blocos.find((b) => b.chave === 'guia');
+const blocosLado = blocos.filter((b) => b.chave !== 'guia');
 ---
 <Layout titulo="Acontece" descricao="Agenda de encontros, eventos de academias e da comunidade, e o que acabou de chegar no Climbeiros.">
   <section class="secao">
@@ -136,18 +155,47 @@ const corNovidade: Record<string, string> = {
     <section class="secao">
       <div class="container">
         <h2>Novidades no site</h2>
-        <ul class="ac-feed">
-          {novidades.map((n) => (
-            <li class="ac-item">
-              <span class={`ac-item__tipo ac-item__tipo--${corNovidade[n.tipo] ?? 'local'}`}>{n.tipo}</span>
-              <div>
-                <a href={n.href} class="ac-item__titulo">{n.titulo}</a>
-                {n.texto && <p>{n.texto}</p>}
+        <div class:list={['ac-nov', { 'ac-nov--so-lado': !blocoPrincipal, 'ac-nov--so-principal': blocosLado.length === 0 }]}>
+          {blocoPrincipal && (
+            <div class={`ac-bloco ac-bloco--${blocoPrincipal.cor}`}>
+              <header>
+                <h3>{blocoPrincipal.titulo} <span class="ac-bloco__conta">{blocoPrincipal.total}</span></h3>
+                <a href={blocoPrincipal.href} class="ac-bloco__ver">Ver todos →</a>
+              </header>
+              <div class="ac-guias">
+                {blocoPrincipal.itens.map((n) => (
+                  <a href={n.href} class="ac-guia">
+                    <span class="ac-guia__avatar" aria-hidden="true">{iniciais(n.titulo)}</span>
+                    <span>
+                      <strong>{n.titulo}</strong>
+                      {n.texto && <span class="ac-guia__texto">{n.texto}</span>}
+                      <time datetime={n.data}>{dataCurta(n.data)}</time>
+                    </span>
+                  </a>
+                ))}
               </div>
-              <time datetime={n.data}>{dataCurta(n.data)}</time>
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+          {blocosLado.length > 0 && (
+            <div class="ac-nov__lado">
+              {blocosLado.map((b) => (
+                <div class={`ac-bloco ac-bloco--${b.cor}`}>
+                  <header>
+                    <h3>{b.titulo} <span class="ac-bloco__conta">{b.total}</span></h3>
+                    <a href={b.href} class="ac-bloco__ver">Ver →</a>
+                  </header>
+                  {b.itens.map((n) => (
+                    <div class="ac-bloco__item">
+                      <a href={n.href} class="ac-bloco__titulo">{n.titulo}</a>
+                      {n.texto && <p>{n.texto}</p>}
+                      <time datetime={n.data}>{dataCurta(n.data)}</time>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   )}
@@ -280,6 +328,38 @@ const corNovidade: Record<string, string> = {
     .ac-item__tipo { justify-self: start; }
     .ac-wpp { grid-template-columns: 1fr; }
   }
+
+  /* Novidades em blocos por tema */
+  .ac-nov { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start; margin-top: 16px; }
+  .ac-nov--so-principal, .ac-nov--so-lado { grid-template-columns: 1fr; }
+  .ac-nov--so-lado .ac-nov__lado { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .ac-nov__lado { display: flex; flex-direction: column; gap: 20px; }
+  .ac-bloco { --cor: var(--verde); background: #fff; border: 1px solid #eadfbf; border-radius: 14px; padding: 18px; }
+  .ac-bloco--guia { --cor: var(--laranja); }
+  .ac-bloco--academia { --cor: var(--verde-escuro); }
+  .ac-bloco--local { --cor: var(--verde); }
+  .ac-bloco--galeria { --cor: var(--amarelo); }
+  .ac-bloco--artigo { --cor: #7a6a4f; }
+  .ac-bloco--cupom { --cor: #a1582a; }
+  .ac-bloco header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 3px solid var(--cor); }
+  .ac-bloco h3 { margin: 0; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .03em; font-size: 1.15rem; color: var(--cor); }
+  .ac-bloco__conta { display: inline-block; margin-left: 6px; padding: 1px 9px; border-radius: 999px; background: var(--cor); color: #fff; font: 600 .75rem var(--fonte-corpo); vertical-align: middle; }
+  .ac-bloco__ver { font-weight: 600; font-size: .85rem; color: var(--laranja); white-space: nowrap; }
+  .ac-bloco__item { padding: 10px 0; border-top: 1px solid #eadfbf; }
+  .ac-bloco__item:first-of-type { border-top: 0; padding-top: 0; }
+  .ac-bloco__titulo { font-weight: 700; color: var(--marrom); }
+  .ac-bloco__titulo:hover { color: var(--laranja); text-decoration: none; }
+  .ac-bloco__item p { margin: 2px 0 0; font-size: .9rem; color: #5c4e3e; }
+  .ac-nov time { display: block; font-size: .78rem; opacity: .7; margin-top: 2px; }
+  .ac-guias { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .ac-guia { display: flex; gap: 10px; padding: 10px; border-radius: 10px; background: var(--branco, #fffdf7); color: var(--marrom); }
+  .ac-guia:hover { text-decoration: none; background: var(--creme-claro); }
+  .ac-guia__avatar { flex: none; width: 42px; height: 42px; border-radius: 50%; background: var(--verde); color: var(--creme); display: flex; align-items: center; justify-content: center; font-family: var(--fonte-display); font-size: .95rem; }
+  .ac-guia strong { display: block; font-size: .95rem; line-height: 1.25; }
+  .ac-guia__texto { display: block; font-size: .85rem; color: #5c4e3e; }
+  @media (max-width: 760px) {
+    .ac-nov { grid-template-columns: 1fr; }
+  }
 </style>
 
 <script>
@@ -335,7 +415,7 @@ const corNovidade: Record<string, string> = {
     if (dias < 365) { const m = Math.floor(dias / 30); return m === 1 ? 'há um mês' : `há ${m} meses`; }
     const a = Math.floor(dias / 365); return a === 1 ? 'há um ano' : `há ${a} anos`;
   }
-  document.querySelectorAll<HTMLTimeElement>('.ac-item time').forEach((t) => {
+  document.querySelectorAll<HTMLTimeElement>('.ac-item time, .ac-nov time').forEach((t) => {
     const txt = relativo(t.dateTime);
     if (txt) { t.title = t.textContent || ''; t.textContent = txt; }
   });
