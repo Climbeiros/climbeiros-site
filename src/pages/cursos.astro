@@ -224,9 +224,10 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
                 </div>
               )}
               {g.cursos_oferecidos?.trim() && (
-                <div class="bloco cursos-oferecidos">
+                <div class="bloco bio-bloco cursos-oferecidos">
                   <div class="lbl">Cursos oferecidos</div>
-                  <p class="cursos-texto">{g.cursos_oferecidos.trim()}</p>
+                  <p class="bio cursos-texto">{g.cursos_oferecidos.trim()}</p>
+                  <button type="button" class="ler-mais" hidden>Ler mais</button>
                 </div>
               )}
               {g.certificacao && (
@@ -510,7 +511,8 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .cert[open] summary::before { content: "–"; }
   .cert p { margin: 8px 0 0; font-size: .85rem; line-height: 1.5; color: #7a6c58; }
   .cursos-oferecidos { background: rgba(218,115,38,.07); border-left: 4px solid var(--laranja); border-radius: 8px; padding: 10px 12px; }
-  .cursos-texto { margin: 0; font-size: .92rem; line-height: 1.5; color: #4a4033; white-space: pre-line; overflow-wrap: anywhere; }
+  .cursos-texto { font-size: .92rem; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; -webkit-line-clamp: 4; }
+  .cursos-texto.aberto { -webkit-line-clamp: unset; }
   .courses { list-style: none; margin: 0; display: flex; flex-direction: column; gap: 9px; padding: 0; }
   .courses li { display: flex; gap: 10px; font-size: .95rem; color: #4a4033; align-items: flex-start; }
   .courses li::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 2px; background: var(--amarelo); margin-top: 8px; transform: rotate(45deg); }
