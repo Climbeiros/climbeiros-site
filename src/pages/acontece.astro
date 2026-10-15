@@ -53,12 +53,12 @@ const corNovidade: Record<string, string> = {
 // Novidades em blocos por tema (layout "A"): guias num bloco largo e os
 // outros temas numa coluna ao lado. Cada bloco mostra só os mais recentes.
 const BLOCOS = [
-  { chave: 'guia', titulo: 'Novos guias', tipos: ['Novo guia'], href: '/cursos', max: 6, cor: 'guia' },
-  { chave: 'academia', titulo: 'Academias', tipos: ['Academia'], href: '/academias', max: 3, cor: 'academia' },
-  { chave: 'local', titulo: 'Locais de escalada', tipos: ['Novo local'], href: '/rotas', max: 3, cor: 'local' },
-  { chave: 'conteudo', titulo: 'Conteúdo novo', tipos: ['Crux', 'Escalada 101'], href: '/beta', max: 3, cor: 'artigo' },
-  { chave: 'galeria', titulo: 'Galeria', tipos: ['Galeria'], href: '/galeria', max: 3, cor: 'galeria' },
-  { chave: 'parceria', titulo: 'Parcerias', tipos: ['Parceria'], href: '/parceiros', max: 3, cor: 'cupom' },
+  { chave: 'guia', titulo: 'Novos guias', tipos: ['Novo guia'], href: '/cursos', max: 8, cor: 'guia' },
+  { chave: 'academia', titulo: 'Academias', tipos: ['Academia'], href: '/academias', max: 2, cor: 'academia' },
+  { chave: 'local', titulo: 'Novos locais', tipos: ['Novo local'], href: '/rotas', max: 2, cor: 'local' },
+  { chave: 'conteudo', titulo: 'Conteúdo novo', tipos: ['Crux', 'Escalada 101'], href: '/beta', max: 2, cor: 'artigo' },
+  { chave: 'galeria', titulo: 'Galeria', tipos: ['Galeria'], href: '/galeria', max: 2, cor: 'galeria' },
+  { chave: 'parceria', titulo: 'Parcerias', tipos: ['Parceria'], href: '/parceiros', max: 2, cor: 'cupom' },
 ];
 const blocos = BLOCOS
   .map((b) => {
@@ -155,7 +155,7 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
     <section class="secao">
       <div class="container">
         <h2>Novidades no site</h2>
-        <div class:list={['ac-nov', { 'ac-nov--so-lado': !blocoPrincipal, 'ac-nov--so-principal': blocosLado.length === 0 }]}>
+        <div class="ac-nov">
           {blocoPrincipal && (
             <div class={`ac-bloco ac-bloco--${blocoPrincipal.cor}`}>
               <header>
@@ -329,11 +329,10 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
     .ac-wpp { grid-template-columns: 1fr; }
   }
 
-  /* Novidades em blocos por tema */
-  .ac-nov { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start; margin-top: 16px; }
-  .ac-nov--so-principal, .ac-nov--so-lado { grid-template-columns: 1fr; }
-  .ac-nov--so-lado .ac-nov__lado { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  .ac-nov__lado { display: flex; flex-direction: column; gap: 20px; }
+  /* Novidades em blocos por tema: guias numa faixa larga em cima e os
+     outros temas lado a lado embaixo, todos com a mesma altura (sem buraco). */
+  .ac-nov { display: flex; flex-direction: column; gap: 20px; margin-top: 16px; }
+  .ac-nov__lado { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; align-items: stretch; }
   .ac-bloco { --cor: var(--verde); background: #fff; border: 1px solid #eadfbf; border-radius: 14px; padding: 18px; }
   .ac-bloco--guia { --cor: var(--laranja); }
   .ac-bloco--academia { --cor: var(--verde-escuro); }
@@ -341,24 +340,24 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
   .ac-bloco--galeria { --cor: var(--amarelo); }
   .ac-bloco--artigo { --cor: #7a6a4f; }
   .ac-bloco--cupom { --cor: #a1582a; }
-  .ac-bloco header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 3px solid var(--cor); }
-  .ac-bloco h3 { margin: 0; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .03em; font-size: 1.15rem; color: var(--cor); }
+  .ac-bloco header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 3px solid var(--cor); }
+  .ac-bloco h3 { margin: 0; white-space: nowrap; min-width: 0; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .03em; font-size: 1.05rem; color: var(--cor); }
   .ac-bloco__conta { display: inline-block; margin-left: 6px; padding: 1px 9px; border-radius: 999px; background: var(--cor); color: #fff; font: 600 .75rem var(--fonte-corpo); vertical-align: middle; }
   .ac-bloco__ver { font-weight: 600; font-size: .85rem; color: var(--laranja); white-space: nowrap; }
   .ac-bloco__item { padding: 10px 0; border-top: 1px solid #eadfbf; }
   .ac-bloco__item:first-of-type { border-top: 0; padding-top: 0; }
   .ac-bloco__titulo { font-weight: 700; color: var(--marrom); }
   .ac-bloco__titulo:hover { color: var(--laranja); text-decoration: none; }
-  .ac-bloco__item p { margin: 2px 0 0; font-size: .9rem; color: #5c4e3e; }
+  .ac-bloco__item p { margin: 2px 0 0; font-size: .9rem; color: #5c4e3e; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .ac-nov time { display: block; font-size: .78rem; opacity: .7; margin-top: 2px; }
-  .ac-guias { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .ac-guias { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
   .ac-guia { display: flex; gap: 10px; padding: 10px; border-radius: 10px; background: var(--branco, #fffdf7); color: var(--marrom); }
   .ac-guia:hover { text-decoration: none; background: var(--creme-claro); }
   .ac-guia__avatar { flex: none; width: 42px; height: 42px; border-radius: 50%; background: var(--verde); color: var(--creme); display: flex; align-items: center; justify-content: center; font-family: var(--fonte-display); font-size: .95rem; }
   .ac-guia strong { display: block; font-size: .95rem; line-height: 1.25; }
-  .ac-guia__texto { display: block; font-size: .85rem; color: #5c4e3e; }
+  .ac-guia__texto { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: .85rem; color: #5c4e3e; }
   @media (max-width: 760px) {
-    .ac-nov { grid-template-columns: 1fr; }
+    .ac-guia:nth-child(n+5) { display: none; } /* no celular, so os 4 mais recentes */
   }
 </style>
 
