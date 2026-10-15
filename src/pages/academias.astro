@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 import type { Academia, AvaliacaoPublica } from '../lib/supabase';
+import FormAcademia from '../components/FormAcademia.astro';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
@@ -39,6 +40,7 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
     <div class="container">
       <p class="eyebrow">Onde treinar</p>
       <h1>Academias de escalada</h1>
+      <p class="cta-academia"><a class="botao botao--secundario" href="#seja-academia">É dono(a) de academia? Apareça aqui →</a></p>
 
       {temSeloIndica && (
         <p class="selo-disclaimer">
@@ -166,6 +168,17 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
             </article>
           );
         })}
+      </div>
+    </div>
+  </section>
+
+  <section class="seja-academia secao secao--creme" id="seja-academia">
+    <div class="container">
+      <div class="seja-academia__box">
+        <h2>Sua academia não está aqui?</h2>
+        <p class="seja-academia__intro">Se você é dono(a) ou trabalha numa academia de escalada, preencha abaixo, é gratuito!
+          Depois de uma checagem rápida da equipe, ela entra nesta página.</p>
+        <FormAcademia />
       </div>
     </div>
   </section>
@@ -510,4 +523,9 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
   .estrelas-input label:hover ~ label {
     color: var(--amarelo);
   }
+  .cta-academia { margin: 4px 0 20px; }
+  .seja-academia__box { background: var(--creme-claro); border-radius: 12px; padding: 48px 40px; max-width: 760px; margin: 0 auto; box-shadow: var(--sombra); }
+  .seja-academia h2 { font-family: var(--fonte-display); text-transform: uppercase; color: var(--verde-escuro); text-align: center; font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0 0 12px; }
+  .seja-academia__intro { max-width: 520px; margin: 0 auto 32px; text-align: center; color: #5f5344; }
+  @media (max-width: 600px) { .seja-academia__box { padding: 32px 18px; } }
 </style>
