@@ -1,0 +1,203 @@
+---
+// src/components/FormAcademia.astro
+// Formulário "É dono(a) ou trabalha numa academia? Apareça aqui". Grava em
+// "inscricoes_academias" (entra pendente no painel; ao aprovar, a academia
+// é copiada pra tabela "academias" e aparece no site). Mesmo estilo e etiquetas do formulário de guia.
+// Use só uma vez por página (os ids são fixos).
+import '../styles/formularios.css';
+
+const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+const MODALIDADES = ['Boulder', 'Top rope', 'Escalada guiada (esportiva)', 'Aulas para iniciantes', 'Escalada infantil', 'Treinamento / preparação física'];
+
+const OB = '<span class="req req--sim">Obrigatório</span>';
+const OP = '<span class="req req--nao">Opcional</span>';
+const SITE = '<span class="selo selo--site">No site</span>';
+const EQ = '<span class="selo selo--equipe">Só a equipe vê</span>';
+---
+<form class="fc" id="form-academia">
+  <p class="fc-legenda">
+    Os campos marcados como <strong>Obrigatório</strong> são o mínimo pro card da academia ficar bom no site;
+    o resto é opcional, mas quanto mais completo, melhor. Fique de olho também nas etiquetas:
+    <Fragment set:html={SITE} /> aparece pra todo mundo, <Fragment set:html={EQ} /> fica só com a gente.
+  </p>
+
+  <h3 class="fc-secao">Sobre a academia</h3>
+  <div class="fc-campo">
+    <label for="fa-nome">Nome da academia <Fragment set:html={OB + ' ' + SITE} /></label>
+    <input type="text" id="fa-nome" name="nome" required />
+  </div>
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fa-cidade">Cidade <Fragment set:html={OB + ' ' + SITE} /></label>
+      <input type="text" id="fa-cidade" name="cidade" placeholder="Ex.: São Paulo" required />
+    </div>
+    <div class="fc-campo">
+      <label for="fa-uf">UF <Fragment set:html={OB + ' ' + SITE} /></label>
+      <select id="fa-uf" name="estado" required>
+        <option value="">Selecione</option>
+        {UFS.map((uf) => <option value={uf}>{uf}</option>)}
+      </select>
+    </div>
+  </div>
+  <div class="fc-campo">
+    <label for="fa-endereco">Endereço <Fragment set:html={OB + ' ' + SITE} /></label>
+    <input type="text" id="fa-endereco" name="endereco" placeholder="Rua, número, bairro (e CEP, se quiser)" required />
+    <small class="fc-ajuda">Com o CEP, a academia aparece também pra quem busca por CEP na página.</small>
+  </div>
+  <div class="fc-campo">
+    <span class="fc-label">Modalidades <Fragment set:html={OP + ' ' + SITE} /></span>
+    <div class="fc-opcoes">
+      {MODALIDADES.map((m) => (
+        <label class="fc-check"><input type="checkbox" name="modalidade" value={m} /> {m}</label>
+      ))}
+    </div>
+    <input type="text" id="fa-modalidade-outra" name="modalidade_outra" placeholder="Outra modalidade" />
+  </div>
+  <div class="fc-campo">
+    <label for="fa-descricao">Sobre a academia <Fragment set:html={OP + ' ' + SITE} /></label>
+    <textarea id="fa-descricao" name="descricao" rows="3" placeholder="O que faz a academia ser especial: estrutura, ambiente, horários, eventos..."></textarea>
+  </div>
+  <div class="fc-campo">
+    <label for="fa-foto">Foto ou logo <Fragment set:html={OB + ' ' + SITE} /></label>
+    <input type="file" id="fa-foto" name="foto" accept="image/*" required />
+    <small class="fc-ajuda">Até 5 MB. De preferência uma foto da parede ou do espaço.</small>
+  </div>
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fa-whatsapp">WhatsApp da academia <Fragment set:html={OP + ' ' + SITE} /></label>
+      <input type="tel" id="fa-whatsapp" name="whatsapp" placeholder="(11)991721313" maxlength="13" inputmode="numeric" />
+    </div>
+    <div class="fc-campo">
+      <label for="fa-instagram">Instagram <Fragment set:html={OP + ' ' + SITE} /></label>
+      <input type="text" id="fa-instagram" name="instagram" placeholder="@academia" />
+    </div>
+  </div>
+  <div class="fc-campo">
+    <label for="fa-site">Site <Fragment set:html={OP + ' ' + SITE} /></label>
+    <input type="text" id="fa-site" name="website" placeholder="www.academia.com.br" />
+  </div>
+
+  <h3 class="fc-secao">Sobre você</h3>
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fa-contato-nome">Seu nome <Fragment set:html={OB + ' ' + EQ} /></label>
+      <input type="text" id="fa-contato-nome" name="contato_nome" required />
+    </div>
+    <div class="fc-campo">
+      <label for="fa-contato-email">Seu e-mail <Fragment set:html={OB + ' ' + EQ} /></label>
+      <input type="email" id="fa-contato-email" name="contato_email" required />
+    </div>
+  </div>
+  <label class="fc-check">
+    <input type="checkbox" name="responsavel" />
+    Sou dono(a) ou trabalho nessa academia
+  </label>
+  <div class="fc-campo">
+    <label for="fa-msg">Mensagem pra equipe Climbeiros <Fragment set:html={OP + ' ' + EQ} /></label>
+    <textarea id="fa-msg" name="mensagem" rows="3" placeholder="Algo que só a gente precise saber"></textarea>
+  </div>
+
+  <label class="fc-check">
+    <input type="checkbox" name="consentimento" required />
+    <span>Li e concordo com a <a href="/privacidade" target="_blank">Política de Privacidade</a>.</span>
+  </label>
+  <input type="text" name="site" class="fc-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+  <button type="submit" class="botao" id="fa-enviar">Enviar cadastro</button>
+  <p class="fc-status" id="fa-status" role="status"></p>
+  <p class="fc-aviso">O cadastro passa por uma checagem da equipe do Climbeiros antes de aparecer no site. É gratuito.</p>
+</form>
+
+<script>
+  import { supabase } from '../lib/supabase';
+  import { linkInstagram } from '../lib/contatos';
+  import { mascaraTelefone, telefoneValido, nomeArquivoUnico } from '../lib/formularios';
+
+  const form = document.getElementById('form-academia') as HTMLFormElement | null;
+  const status = document.getElementById('fa-status');
+  const btn = document.getElementById('fa-enviar');
+  const campoWhats = document.getElementById('fa-whatsapp') as HTMLInputElement | null;
+  mascaraTelefone(campoWhats);
+
+  // Site: aceita "www.x.com.br" e completa com https://
+  function linkSite(valor: string): string | null {
+    const v = valor.trim();
+    if (!v) return null;
+    return /^https?:\/\//i.test(v) ? v : `https://${v}`;
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!status || !btn || !form) return;
+    const dados = Object.fromEntries(new FormData(form).entries()) as Record<string, any>;
+
+    // Campo invisível: se veio preenchido, é robô. Finge que deu certo.
+    if (dados.site) {
+      status.textContent = 'Cadastro enviado!';
+      form.reset();
+      return;
+    }
+    const obrig = (v: unknown) => String(v || '').trim();
+    const arquivoFoto = form.querySelector<HTMLInputElement>('#fa-foto')?.files?.[0];
+    if (!obrig(dados.nome) || !obrig(dados.cidade) || !obrig(dados.estado) || !obrig(dados.endereco)
+        || !arquivoFoto || !obrig(dados.contato_nome) || !obrig(dados.contato_email)) {
+      status.textContent = 'Preencha os campos obrigatórios: nome, cidade, UF, endereço e foto ou logo da academia, seu nome e seu e-mail.';
+      return;
+    }
+    if (!telefoneValido(String(dados.whatsapp || ''))) {
+      status.textContent = 'Preencha o WhatsApp no formato (11)991721313, com DDD e 9 números, ou deixe o campo em branco.';
+      campoWhats?.focus();
+      return;
+    }
+
+    const modalidades = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="modalidade"]:checked')).map((el) => el.value);
+    if (obrig(dados.modalidade_outra)) modalidades.push(obrig(dados.modalidade_outra));
+    // WhatsApp guardado como o card usa: só números, com 55 na frente
+    let whats = String(dados.whatsapp || '').replace(/\D/g, '');
+    if (whats.length === 10 || whats.length === 11) whats = '55' + whats;
+
+    btn.setAttribute('disabled', '');
+    status.textContent = 'Enviando...';
+
+    // Foto ou logo (obrigatória): sobe pro bucket público de fotos (o mesmo dos guias)
+    if (arquivoFoto.size > 5 * 1024 * 1024) {
+      status.textContent = 'A foto passou de 5 MB. Escolha uma menor, por favor.';
+      btn.removeAttribute('disabled');
+      return;
+    }
+    const nomeArquivo = 'academia-' + nomeArquivoUnico(arquivoFoto);
+    const { error: erroUpload } = await supabase.storage.from('fotos-guias').upload(nomeArquivo, arquivoFoto);
+    if (erroUpload) {
+      status.textContent = 'Não conseguimos enviar a foto. Tente outra imagem ou escreva para contato@climbeiros.com.br';
+      btn.removeAttribute('disabled');
+      return;
+    }
+    const fotoUrl = supabase.storage.from('fotos-guias').getPublicUrl(nomeArquivo).data.publicUrl;
+
+    // Entra pendente em "inscricoes_academias". Ao aprovar no painel de
+    // pendencias, a academia e copiada pra tabela "academias" e vai pro site.
+    const { error } = await supabase.from('inscricoes_academias').insert([{
+      nome: obrig(dados.nome),
+      cidade: obrig(dados.cidade),
+      estado: obrig(dados.estado),
+      endereco: obrig(dados.endereco),
+      modalidades: modalidades.length ? modalidades.join(', ') : null,
+      descricao: obrig(dados.descricao) || null,
+      imagem_url: fotoUrl,
+      whatsapp: whats || null,
+      instagram: linkInstagram(dados.instagram),
+      website: linkSite(String(dados.website || '')),
+      contato_nome: obrig(dados.contato_nome),
+      contato_email: obrig(dados.contato_email),
+      responsavel: !!dados.responsavel,
+      mensagem: obrig(dados.mensagem) || null,
+    }]);
+    if (error) {
+      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.br';
+      btn.removeAttribute('disabled');
+      return;
+    }
+    form.reset();
+    status.textContent = 'Recebemos o cadastro! Depois da checagem da equipe, a academia aparece no site. 🧗';
+    btn.removeAttribute('disabled');
+  });
+</script>
