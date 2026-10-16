@@ -56,6 +56,10 @@ for (const l of locais ?? []) {
 }
 // Quantos locais aparecem no card antes do botão "+N locais".
 const MAX_LOCAIS = 4;
+// Selo "Climbeiros indica": guias que a equipe conhece e recomenda.
+// Liga/desliga na coluna climbeiros_indica da tabela inscricoes_guias.
+const temSeloIndica = (guias ?? []).some((g) => g.climbeiros_indica);
+const textoSeloIndica = 'O selo "Climbeiros indica" identifica os guias que a gente conhece de perto, já escalou junto e recomenda com confiança.';
 function nomesDosLocais(locaisIds) {
   return (locaisIds ?? []).map((id) => locaisPorId.get(id)).filter(Boolean);
 }
@@ -164,6 +168,12 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
       {(!guias || guias.length === 0) && (
         <p class="vazio">Em breve nossa rede de guias estará por aqui. 🧗</p>
       )}
+      {temSeloIndica && (
+        <p class="selo-disclaimer">
+          <img class="selo-disclaimer__icone" src="/selo-climbeiros-indica.png" alt="" aria-hidden="true" />
+          {textoSeloIndica}
+        </p>
+      )}
       <div class="guides">
         {guias?.map((g) => (
           <article
@@ -182,7 +192,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
               ) : (
                 <div class="photo">{iniciais(g.nome)}</div>
               )}
-              <div>
+              <div class="head__info">
                 <h3>{g.nome}</h3>
                 {(g.cidade || g.uf) && (
                   <div class="base">
@@ -191,6 +201,9 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
                   </div>
                 )}
               </div>
+              {g.climbeiros_indica && (
+                <img class="guide__selo" src="/selo-climbeiros-indica.png" alt="Selo Climbeiros indica" title={textoSeloIndica} loading="lazy" />
+              )}
             </div>
             <div class="body">
               {g.bio && (
@@ -741,4 +754,8 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .estrelas-input input:checked ~ label,
   .estrelas-input label:hover,
   .estrelas-input label:hover ~ label { color: var(--amarelo); }
+  .guide .head__info { flex: 1; min-width: 0; }
+  .guide__selo { width: 54px; height: 54px; flex: 0 0 auto; align-self: flex-start; filter: drop-shadow(0 2px 4px rgba(0,0,0,.35)); }
+  .selo-disclaimer { display: flex; align-items: center; gap: 10px; max-width: 720px; font-size: .85rem; opacity: .75; margin: 0 0 16px; }
+  .selo-disclaimer__icone { width: 26px; height: 26px; flex-shrink: 0; }
 </style>
