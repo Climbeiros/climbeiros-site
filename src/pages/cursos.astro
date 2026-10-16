@@ -121,6 +121,12 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
             valores com o próprio guia.
           </p>
           <a class="topo-link" href="#seja-guia">É guia? Apareça aqui →</a>
+          {temSeloIndica && (
+            <p class="selo-nota" title={textoSeloIndica}>
+              <img src="/selo-climbeiros-indica.png" alt="" aria-hidden="true" />
+              <span><strong>Climbeiros indica:</strong> guias que a gente conhece de perto e recomenda.</span>
+            </p>
+          )}
         </div>
         {guias && guias.length > 0 && (
           <div class="busca-guias">
@@ -167,12 +173,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
       </div>
       {(!guias || guias.length === 0) && (
         <p class="vazio">Em breve nossa rede de guias estará por aqui. 🧗</p>
-      )}
-      {temSeloIndica && (
-        <p class="selo-disclaimer">
-          <img class="selo-disclaimer__icone" src="/selo-climbeiros-indica.png" alt="" aria-hidden="true" />
-          {textoSeloIndica}
-        </p>
       )}
       <div class="guides">
         {guias?.map((g) => (
@@ -756,6 +756,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .estrelas-input label:hover ~ label { color: var(--amarelo); }
   .guide .head__info { flex: 1; min-width: 0; }
   .guide__selo { width: 54px; height: 54px; flex: 0 0 auto; align-self: flex-start; filter: drop-shadow(0 2px 4px rgba(0,0,0,.35)); }
-  .selo-disclaimer { display: flex; align-items: center; gap: 10px; max-width: 720px; font-size: .85rem; opacity: .75; margin: 0 0 16px; }
-  .selo-disclaimer__icone { width: 26px; height: 26px; flex-shrink: 0; }
+  .selo-nota { display: flex; width: fit-content; max-width: 100%; align-items: center; gap: 8px; margin: 18px 0 0; padding: 6px 14px 6px 6px; border-radius: 999px; background: var(--creme-claro); font-size: .85rem; color: #4a4033; }
+  .selo-nota img { width: 28px; height: 28px; flex: 0 0 auto; }
+  .selo-nota strong { color: var(--verde-escuro); }
 </style>
