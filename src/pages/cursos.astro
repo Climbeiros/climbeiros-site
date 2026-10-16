@@ -168,6 +168,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
         {guias?.map((g) => (
           <article
             class="guide"
+            id={`guia-${g.id}`}
             data-busca={normalizar([g.nome, g.cidade, g.uf, ...(g.especialidades_lista ?? []), ...nomesDosLocais(g.locais_ids), g.locais_interesse].filter(Boolean).join(" "))}
             data-espec={(g.especialidades_lista ?? []).map((e) => normalizar(e)).join("|")}
             data-uf={(g.uf || "").trim().toUpperCase()}
@@ -583,6 +584,8 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .photo-btn:hover .photo-img { transform: scale(1.06); }
   .guide .photo-img { transition: transform .2s; }
   .guide[hidden] { display: none; }
+  .guide { scroll-margin-top: 110px; }
+  .guide:target { box-shadow: 0 0 0 3px var(--laranja), 0 20px 44px -22px rgba(47,66,48,.5); }
   .topo-grade { display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
   /* min-width: 0 evita que uma opção longa nos filtros alargue a página no celular */
   .topo-grade > * { min-width: 0; }

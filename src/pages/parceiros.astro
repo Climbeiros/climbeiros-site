@@ -4,14 +4,34 @@ import { supabase } from '../lib/supabase';
 import type { Parceiro } from '../lib/supabase';
 import FormParceiro from '../components/FormParceiro.astro';
 const { data: parceiros } = await supabase.from('parceiros').select('*').order('nome_marca') as { data: Parceiro[] | null };
+
+// Cupons dos guias: vêm direto das inscrições dos guias (mesma fonte da página
+// de Guias & Cursos). O RLS já devolve só os guias aprovados, então quando um
+// guia é aprovado com cupom ele aparece aqui sozinho. Pra tirar um cupom,
+// basta apagar o "cupom_codigo" do guia no Supabase e fazer um novo deploy.
+const { data: guiasComCupom } = await supabase
+  .from('inscricoes_guias')
+  .select('id, nome, cidade, uf, foto_url, cupom_codigo, cupom_desc, ordem')
+  .not('cupom_codigo', 'is', null)
+  .order('ordem', { ascending: true });
+const cuponsGuias = (guiasComCupom ?? []).filter((g) => g.cupom_codigo?.trim());
+function iniciais(nome: string) {
+  return (nome || '').trim().split(/\s+/).map((p) => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+}
+function localGuia(g: { cidade?: string | null; uf?: string | null }) {
+  return [g.cidade?.trim(), g.uf?.trim()].filter(Boolean).join(' · ');
+}
 ---
 <Layout titulo="Parcerias & Cupons" descricao="Marcas parceiras dos Climbeiros e cupons de desconto para a comunidade.">
   <section class="secao">
     <div class="container">
       <p class="eyebrow">Marcas que apoiam a comunidade</p>
       <h1>Parcerias & Cupons</h1>
-      {(!parceiros || parceiros.length === 0) && (
+      {(!parceiros || parceiros.length === 0) && cuponsGuias.length === 0 && (
         <p>Ainda estamos fechando as primeiras parcerias. Volte em breve!</p>
+      )}
+      {parceiros && parceiros.length > 0 && cuponsGuias.length > 0 && (
+        <h2 class="subtitulo-secao">Marcas parceiras</h2>
       )}
       <div class="grade grade--2">
         {parceiros?.map((p) => (
@@ -28,6 +48,44 @@ const { data: parceiros } = await supabase.from('parceiros').select('*').order('
           </article>
         ))}
       </div>
+
+      {cuponsGuias.length > 0 && (
+        <div class="cupons-guias" id="cupons-guias">
+          <h2 class="subtitulo-secao">Cupons com guias</h2>
+          <p class="cupons-guias__intro">
+            Guias e instrutores da nossa rede que oferecem desconto pra quem chega pelos Climbeiros.
+            Copie o código e use ao combinar a atividade direto com o guia.
+          </p>
+          <div class="cupons-guias__grade">
+            {cuponsGuias.map((g) => (
+              <article class="cupom-card">
+                <div class="cupom-card__topo">
+                  {g.foto_url ? (
+                    <img class="cupom-card__foto" src={g.foto_url} alt={g.nome} loading="lazy" />
+                  ) : (
+                    <div class="cupom-card__foto cupom-card__foto--iniciais">{iniciais(g.nome)}</div>
+                  )}
+                  <div>
+                    <h3>{g.nome.trim()}</h3>
+                    {localGuia(g) && <p class="cupom-card__local">{localGuia(g)}</p>}
+                  </div>
+                </div>
+                {g.cupom_desc?.trim() && <p class="cupom-card__desc">{g.cupom_desc.trim()}</p>}
+                <div class="cupom-card__rodape">
+                  <button type="button" class="cupom-card__codigo" data-codigo={g.cupom_codigo.trim()} title="Copiar código">
+                    <span class="cupom-card__texto">{g.cupom_codigo.trim()}</span>
+                    <span class="cupom-card__acao">Copiar</span>
+                  </button>
+                  <a class="cupom-card__ver" href={`/cursos#guia-${g.id}`}>Ver guia</a>
+                </div>
+              </article>
+            ))}
+          </div>
+          <p class="cupons-guias__aviso">
+            Os descontos são oferecidos e definidos por cada guia. Confirme as condições com ele na hora de combinar.
+          </p>
+        </div>
+      )}
     </div>
   </section>
 
@@ -44,6 +102,22 @@ const { data: parceiros } = await supabase.from('parceiros').select('*').order('
     </div>
   </section>
 </Layout>
+
+<script>
+  // Copiar o código do cupom do guia ao clicar
+  document.querySelectorAll<HTMLElement>('.cupom-card__codigo').forEach((botao) => {
+    botao.addEventListener('click', async () => {
+      const acao = botao.querySelector('.cupom-card__acao');
+      try {
+        await navigator.clipboard.writeText(botao.dataset.codigo || '');
+        if (acao) acao.textContent = 'Copiado!';
+      } catch {
+        if (acao) acao.textContent = 'Selecione e copie';
+      }
+      setTimeout(() => { if (acao) acao.textContent = 'Copiar'; }, 2000);
+    });
+  });
+</script>
 
 
 <style>
@@ -80,6 +154,27 @@ const { data: parceiros } = await supabase.from('parceiros').select('*').order('
     border-radius: 6px;
     letter-spacing: 0.03em;
   }
+
+  /* Cupons com guias */
+  .subtitulo-secao { font-family: var(--fonte-display); text-transform: uppercase; color: var(--verde-escuro); font-size: clamp(1.4rem, 3vw, 1.9rem); margin: 8px 0 16px; }
+  .cupons-guias { margin-top: 56px; }
+  .cupons-guias__intro { max-width: 640px; color: var(--marrom); opacity: .9; margin-bottom: 24px; }
+  .cupons-guias__grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+  .cupom-card { background: var(--branco); border: 1.5px dashed var(--laranja); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .cupom-card__topo { display: flex; align-items: center; gap: 12px; }
+  .cupom-card__foto { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; border: 2px solid var(--creme); }
+  .cupom-card__foto--iniciais { display: grid; place-items: center; background: var(--verde-escuro); color: var(--creme); font-family: var(--fonte-display); font-size: 1.1rem; }
+  .cupom-card h3 { font-family: var(--fonte-display); text-transform: uppercase; font-size: 1.1rem; line-height: 1.1; color: var(--verde-escuro); margin: 0; }
+  .cupom-card__local { font-size: .85rem; color: var(--marrom); opacity: .75; margin: 2px 0 0; }
+  .cupom-card__desc { font-size: .92rem; line-height: 1.45; color: var(--marrom); margin: 0; white-space: pre-line; flex: 1; }
+  .cupom-card__rodape { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .cupom-card__codigo { display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer; background: var(--creme); color: var(--verde-escuro); border-radius: 6px; padding: 7px 12px; font: inherit; }
+  .cupom-card__texto { font-family: var(--fonte-display); font-size: 1rem; letter-spacing: .04em; }
+  .cupom-card__acao { font-size: .72rem; font-weight: 600; color: var(--laranja); }
+  .cupom-card__codigo:hover .cupom-card__acao { text-decoration: underline; }
+  .cupom-card__ver { font-weight: 700; font-size: .85rem; color: var(--laranja); text-decoration: none; }
+  .cupom-card__ver:hover { text-decoration: underline; }
+  .cupons-guias__aviso { font-size: .82rem; font-style: italic; color: #8a7d68; margin-top: 18px; }
 
   /* Seja um parceiro — bloco de captação */
   .parceiro-cta { max-width: 720px; }
