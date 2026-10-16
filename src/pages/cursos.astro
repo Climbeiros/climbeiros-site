@@ -11,10 +11,26 @@ import Layout from "../layouts/Layout.astro";
 import { supabase } from "../lib/supabase";
 import { linkInstagram, usuarioInstagram, linkWhatsApp } from "../lib/contatos";
 import FormGuia from "../components/FormGuia.astro";
-const { data: guias } = await supabase
+const { data: guiasBanco } = await supabase
   .from("inscricoes_guias")
-  .select("*")
-  .order("ordem", { ascending: true });
+  .select("*");
+// Ordem dos cards (automática):
+// 0) Fixados: quem tem "ordem" maior que 0 no Supabase vem primeiro (1, 2, 3...).
+//    Deixe 0 (ou vazio) pra seguir a ordem automática abaixo.
+// 1) Guias com o selo "Climbeiros indica".
+// 2) Cards mais completos (foto, sobre, cursos, cupom, certificação, especialidades, locais).
+// 3) Desempate: cadastrados mais recentemente primeiro.
+const preenchido = (v: unknown) => Array.isArray(v) ? v.length > 0 : !!String(v ?? "").trim();
+const completude = (g: any) =>
+  [g.foto_url, g.bio, g.cursos_oferecidos, g.cupom_codigo, g.certificacao, g.especialidades_lista, g.locais_ids]
+    .filter(preenchido).length;
+const fixado = (g: any) => (Number(g.ordem) > 0 ? Number(g.ordem) : Infinity);
+const guias = [...(guiasBanco ?? [])].sort((a: any, b: any) =>
+  fixado(a) - fixado(b) ||
+  Number(!!b.climbeiros_indica) - Number(!!a.climbeiros_indica) ||
+  completude(b) - completude(a) ||
+  String(b.criado_em ?? "").localeCompare(String(a.criado_em ?? ""))
+);
 // Avaliações dos guias: a view só devolve as aprovadas (sem e-mail).
 const { data: avaliacoesGuias } = await supabase
   .from("avaliacoes_guias_publicas")
