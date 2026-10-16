@@ -197,19 +197,20 @@ const valores = [
   .colagem {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    /* minmax(0, ...) impede que o tamanho original da foto estique a linha */
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr);
+    /* Alturas fixas: a foto nunca estica nem invade outra, em qualquer navegador */
+    grid-template-rows: 175px 175px 205px;
     grid-template-areas: "a b" "a c" "d d";
     gap: 8px;
     min-width: 0;
-    min-height: 440px;
-    /* O tamanho original das fotos e ignorado: a colagem acompanha a altura do texto */
-    contain: size;
+    align-self: center;
   }
   .colagem img {
+    display: block;
     width: 100%;
     height: 100%;
+    min-width: 0;
     min-height: 0;
+    overflow: hidden;
     object-fit: cover;
     border-radius: var(--raio);
     box-shadow: var(--sombra);
@@ -221,7 +222,7 @@ const valores = [
 
   @media (max-width: 760px) {
     .sobre { grid-template-columns: 1fr; }
-    .colagem { order: -1; grid-template-rows: 120px 120px 140px; min-height: 0; contain: none; }
+    .colagem { order: -1; grid-template-rows: 120px 120px 140px;  }
   }
 
 
