@@ -178,6 +178,7 @@ export type Guia = {
   certificacao: string | null;
   locais_ids: string[] | null;
   ordem: number;
+  climbeiros_indica?: boolean | null;
 };
 
 export type Hospedagem = {
