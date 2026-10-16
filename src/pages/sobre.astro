@@ -55,12 +55,16 @@ const valores = [
 ];
 ---
 <Layout titulo="Sobre" descricao="Conheça a história e o time por trás dos Climbeiros, uma comunidade de amigos que escalam juntos e criaram um hub de escalada para o Brasil." imagem={FOTOS + 'colagem-goat.jpg'}>
-  <section class="secao">
+  <section class="secao secao--topo">
     <div class="container sobre">
       <div class="sobre__texto">
         <p class="eyebrow">Quem somos</p>
         <h1>A escalada é melhor em grupo</h1>
         <p>{texto}</p>
+        <div class="missao">
+          <strong>Nossa missão: ninguém precisa subir sozinho</strong>
+          <p>Aproximar quem ama a vertical, pra mais gente escalar com segurança, informação e boa companhia.</p>
+        </div>
         <a href="/contato" class="botao">Fale com a gente</a>
       </div>
       <div class="colagem">
@@ -68,20 +72,6 @@ const valores = [
           <img src={f.src} alt={f.alt} class={f.classe} loading="eager" />
         ))}
       </div>
-    </div>
-  </section>
-
-  <!-- MISSÃO -->
-  <section class="secao">
-    <div class="container missao">
-      <p class="eyebrow">Nossa missão</p>
-      <h2>Ninguém precisa subir sozinho</h2>
-      <p>
-        Aproximar quem ama a vertical. Reunimos num só lugar tudo que a comunidade
-        de escalada no Brasil precisa: onde treinar, onde aprender, quais vias vale
-        a pena pegar e quais marcas realmente apoiam quem escala, para que mais
-        gente escale com segurança, informação e boa companhia.
-      </p>
     </div>
   </section>
 
@@ -110,8 +100,8 @@ const valores = [
       <div class="bastidores">
         <div class="bastidores__rostos">
           {bastidores.map((p) => (
-            <button type="button" class="bastidores__foto" data-grande={p.grande} data-nome={p.alt} aria-label={⁠ Ver foto da ${p.alt} maior ⁠}>
-              <img src={p.src} alt={p.alt} style={⁠ object-position: ${p.posicao} ⁠} loading="lazy" />
+            <button type="button" class="bastidores__foto" data-grande={p.grande} data-nome={p.alt} aria-label={`Ver foto da ${p.alt} maior`}>
+              <img src={p.src} alt={p.alt} style={`object-position: ${p.posicao}`} loading="lazy" />
             </button>
           ))}
         </div>
@@ -139,7 +129,7 @@ const valores = [
       <h2>Nossos valores</h2>
       <div class="valores valores--grade">
         {valores.map((v) => (
-          <article class={⁠ valor valor--${v.cor} ⁠}>
+          <article class={`valor valor--${v.cor}`}>
             <div class="valor__corpo">
               <h3>{v.titulo}</h3>
               <p>{v.texto}</p>
@@ -169,26 +159,57 @@ const valores = [
   }
 </script>
 <style>
+  .secao--topo { padding: 48px 0; }
   .sobre {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: 48px;
-    align-items: center;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: stretch;
   }
-  .sobre__texto { min-width: 0; }
+  .sobre__texto {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .sobre__texto p { margin: 0 0 16px; }
+
+  /* Missão: destaque dentro do topo */
+  .missao {
+    border-left: 4px solid var(--laranja);
+    background: var(--creme-claro);
+    border-radius: 0 var(--raio) var(--raio) 0;
+    padding: 14px 18px;
+    margin: 4px 0 22px;
+  }
+  .missao strong {
+    display: block;
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    font-size: 1.1rem;
+    color: var(--verde-escuro);
+    margin-bottom: 4px;
+  }
+  .missao p { margin: 0; font-size: 0.98rem; }
 
   /* Colagem do topo: 4 fotos de grupo */
   .colagem {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: 150px 150px 170px;
+    /* minmax(0, ...) impede que o tamanho original da foto estique a linha */
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr);
     grid-template-areas: "a b" "a c" "d d";
     gap: 8px;
     min-width: 0;
+    min-height: 440px;
+    /* O tamanho original das fotos e ignorado: a colagem acompanha a altura do texto */
+    contain: size;
   }
   .colagem img {
     width: 100%;
     height: 100%;
+    min-height: 0;
     object-fit: cover;
     border-radius: var(--raio);
     box-shadow: var(--sombra);
@@ -200,12 +221,9 @@ const valores = [
 
   @media (max-width: 760px) {
     .sobre { grid-template-columns: 1fr; }
-    .colagem { order: -1; grid-template-rows: 120px 120px 140px; }
+    .colagem { order: -1; grid-template-rows: 120px 120px 140px; min-height: 0; contain: none; }
   }
 
-  /* Missão */
-  .missao h2 { color: var(--verde-escuro); margin-bottom: 16px; }
-  .missao p:not(.eyebrow) { font-size: 1.15rem; color: var(--marrom); opacity: 0.9; margin: 0; max-width: 760px; }
 
   /* Como a gente se juntou */
   .historia {
