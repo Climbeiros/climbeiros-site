@@ -429,18 +429,52 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
     document.querySelectorAll<HTMLElement>('.bio-bloco').forEach((b) => {
       const p = b.querySelector<HTMLElement>('.bio');
       const btn = b.querySelector<HTMLButtonElement>('.ler-mais');
-      if (!p || !btn || btn.dataset.pronto) return;
-      if (p.scrollHeight > p.clientHeight + 2) {
-        btn.hidden = false;
-        btn.dataset.pronto = '1';
+      if (!p || !btn || p.classList.contains('aberto')) return;
+      btn.hidden = !(p.scrollHeight > p.clientHeight + 2);
+    });
+  }
+
+  // Cards lado a lado ficam com a mesma altura. Quando um card tem menos
+  // conteúdo (ex.: sem cupom), sobra um espaço vazio no meio dele. Aqui a
+  // gente usa esse espaço pra mostrar mais linhas do "Sobre" (e, se ainda
+  // sobrar, dos "Cursos oferecidos"), sem deixar o card mais alto que os vizinhos.
+  function equalizarCards() {
+    const textos = Array.from(document.querySelectorAll<HTMLElement>('.guide .bio'));
+    textos.forEach((p) => { if (!p.classList.contains('aberto')) p.style.webkitLineClamp = ''; });
+    ativarLerMais(); // mostra os "Ler mais" antes de medir, pra conta já incluir o botão
+    document.querySelectorAll<HTMLElement>('.guide').forEach((card) => {
+      if (card.hidden) return;
+      const corpo = card.querySelector<HTMLElement>('.body');
+      if (!corpo) return;
+      // O primeiro bloco empurrado pro fim do card (avaliações ou contato)
+      const blocos = Array.from(corpo.children) as HTMLElement[];
+      const fim = blocos.find((el) => getComputedStyle(el).marginTop !== '0px' && (el.classList.contains('card__avaliacoes') || el.classList.contains('contact')));
+      if (!fim) return;
+      const anterior = fim.previousElementSibling as HTMLElement | null;
+      if (!anterior) return;
+      const gap = parseFloat(getComputedStyle(corpo).rowGap || '0') || 0;
+      let sobra = fim.offsetTop - (anterior.offsetTop + anterior.offsetHeight) - gap;
+      const candidatos = Array.from(card.querySelectorAll<HTMLElement>('.bio')).filter((p) => !p.classList.contains('aberto'));
+      for (const p of candidatos) {
+        if (sobra < 8) break;
+        const linha = parseFloat(getComputedStyle(p).lineHeight) || 24;
+        const base = parseInt(getComputedStyle(p).webkitLineClamp || '3', 10) || 3;
+        const escondido = p.scrollHeight - p.clientHeight;
+        if (escondido <= 2) continue;
+        const extra = Math.min(Math.floor(sobra / linha), Math.ceil(escondido / linha));
+        if (extra <= 0) continue;
+        p.style.webkitLineClamp = String(base + extra);
+        sobra -= extra * linha;
       }
     });
+    ativarLerMais();
   }
   document.querySelectorAll<HTMLButtonElement>('.ler-mais').forEach((btn) =>
     btn.addEventListener('click', () => {
       const p = btn.parentElement?.querySelector('.bio');
       const aberto = p?.classList.toggle('aberto');
       btn.textContent = aberto ? 'Ler menos' : 'Ler mais';
+      equalizarCards();
     })
   );
   document.querySelectorAll<HTMLButtonElement>('.locais-mais').forEach((b) =>
@@ -455,10 +489,15 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
       while (b.scrollWidth > b.clientWidth && f > 10) { f -= 0.4; t.style.fontSize = f + 'px'; }
     });
   }
-  ativarLerMais();
+  equalizarCards();
   ajustarInsta();
-  document.fonts?.ready.then(() => { ativarLerMais(); ajustarInsta(); });
-  window.addEventListener('resize', ajustarInsta);
+  document.fonts?.ready.then(() => { equalizarCards(); ajustarInsta(); });
+  let esperaResize: number | undefined;
+  window.addEventListener('resize', () => {
+    ajustarInsta();
+    clearTimeout(esperaResize);
+    esperaResize = window.setTimeout(equalizarCards, 150);
+  });
 
   // ---------- BUSCA E FILTROS DE GUIAS ----------
   // Tudo acontece no navegador: os cards já estão na página, a gente só
@@ -502,6 +541,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
     const filtrando = termos.length > 0 || espec || uf || cidade;
     if (botaoLimpar) botaoLimpar.hidden = !filtrando;
     if (semResultado) semResultado.hidden = visiveis > 0;
+    equalizarCards();
     if (statusBusca) {
       statusBusca.textContent = filtrando && visiveis > 0
         ? `${visiveis} ${visiveis === 1 ? 'guia encontrado' : 'guias encontrados'}`
