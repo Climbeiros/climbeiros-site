@@ -8,6 +8,7 @@
 // - Link do WhatsApp: Supabase -> tabela `site_config` -> chave `whatsapp_comunidade`.
 // Depois de editar, fazer o Redeploy na Vercel.
 import Layout from '../layouts/Layout.astro';
+import FormEvento from '../components/FormEvento.astro';
 import { getSiteConfig } from '../lib/supabase';
 import { getAgenda, getNovidades, partesData, dataCurta, diaSemana } from '../lib/acontece';
 
@@ -145,7 +146,10 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
 
       <div class="ac-divulgar">
         <p><b>Vai rolar um evento de escalada?</b> Academia, guia ou grupo local: competição, festa, curso, mutirão ou festival. Manda pra gente que a gente divulga aqui e na comunidade do WhatsApp. É grátis.</p>
-        <a href="/contato" class="botao">Divulgar evento</a>
+        <button type="button" class="botao" id="ac-divulgar-btn" aria-expanded="false" aria-controls="divulgar">Divulgar evento</button>
+      </div>
+      <div class="ac-form" id="divulgar" hidden>
+        <FormEvento />
       </div>
     </div>
   </section>
@@ -292,6 +296,9 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
   }
   .ac-divulgar p { margin: 0; max-width: 680px; }
   .ac-divulgar b { color: var(--verde-escuro); }
+  .ac-form { margin-top: 16px; background: var(--creme-claro); border-radius: var(--raio); padding: 28px; }
+  .ac-form[hidden] { display: none; }
+  @media (max-width: 560px) { .ac-form { padding: 20px 16px; } }
 
   .ac-feed { list-style: none; margin: 16px 0 0; padding: 0; border-top: 1px solid #eadfbf; }
   .ac-item { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: start; padding: 14px 0; border-bottom: 1px solid #eadfbf; }
@@ -401,6 +408,26 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
     aplicar(b.dataset.filtro || 'todos');
   }));
   aplicar('todos');
+
+  // Botão "Divulgar evento" abre o formulário ali mesmo. O link
+  // /acontece#divulgar já chega com ele aberto.
+  const btnDivulgar = document.getElementById('ac-divulgar-btn');
+  const caixaForm = document.getElementById('divulgar');
+  function abrirForm(rolar: boolean) {
+    if (!caixaForm || !btnDivulgar) return;
+    caixaForm.hidden = false;
+    btnDivulgar.setAttribute('aria-expanded', 'true');
+    if (rolar) caixaForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  btnDivulgar?.addEventListener('click', () => {
+    if (caixaForm && !caixaForm.hidden) {
+      caixaForm.hidden = true;
+      btnDivulgar.setAttribute('aria-expanded', 'false');
+    } else {
+      abrirForm(true);
+    }
+  });
+  if (window.location.hash === '#divulgar') abrirForm(true);
 
   // 3) Novidades: troca a data ("24 set") por tempo relativo ("há 2 dias").
   //    Roda no navegador, então fica sempre certo, mesmo dias depois do deploy.

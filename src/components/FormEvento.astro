@@ -1,0 +1,233 @@
+---
+// src/components/FormEvento.astro
+// Formulário "Divulgar um evento". Grava o evento em "agenda_eventos" com
+// publicado = false e origem "enviado pelo site" (entra pendente no painel,
+// como "Evento"; lá dá pra editar os dados e publicar). O contato de quem
+// enviou vai pra "agenda_eventos_contatos", que não é pública.
+// Usado na página Acontece e no Contato (motivo "evento").
+// Use só uma vez por página (os ids são fixos).
+import '../styles/formularios.css';
+
+const TIPOS = ['Competição', 'Festa', 'Curso', 'Encontro', 'Festival', 'Mutirão', 'Trip', 'Palestra'];
+
+const OB = '<span class="req req--sim">Obrigatório</span>';
+const OP = '<span class="req req--nao">Opcional</span>';
+const SITE = '<span class="selo selo--site">No site</span>';
+const EQ = '<span class="selo selo--equipe">Só a equipe vê</span>';
+---
+<form class="fc" id="form-evento">
+  <p class="fc-legenda">
+    Os campos marcados como <strong>Obrigatório</strong> são o mínimo pro evento aparecer bem na agenda.
+    Fique de olho também nas etiquetas: <Fragment set:html={SITE} /> aparece pra todo mundo,
+    <Fragment set:html={EQ} /> fica só com a gente.
+  </p>
+
+  <h3 class="fc-secao">Sobre o evento</h3>
+  <div class="fc-campo">
+    <label for="fe-titulo">Nome do evento <Fragment set:html={OB + ' ' + SITE} /></label>
+    <input type="text" id="fe-titulo" name="titulo" placeholder="Ex.: Night Climb de Halloween" required />
+  </div>
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fe-organizador">Quem organiza <Fragment set:html={OB + ' ' + SITE} /></label>
+      <input type="text" id="fe-organizador" name="organizador" placeholder="Nome da academia, grupo ou guia" required />
+    </div>
+    <div class="fc-campo">
+      <label for="fe-org-tipo">É uma... <Fragment set:html={OB + ' ' + SITE} /></label>
+      <select id="fe-org-tipo" name="organizador_tipo" required>
+        <option value="">Selecione</option>
+        <option value="academia">Academia ou ginásio</option>
+        <option value="comunidade">Grupo, clube, guia ou comunidade</option>
+      </select>
+    </div>
+  </div>
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fe-tipo">Tipo de evento <Fragment set:html={OB + ' ' + SITE} /></label>
+      <select id="fe-tipo" name="tipo" required>
+        <option value="">Selecione</option>
+        {TIPOS.map((t) => <option value={t}>{t}</option>)}
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+    <div class="fc-campo" id="fe-tipo-outro-campo" hidden>
+      <label for="fe-tipo-outro">Qual? <Fragment set:html={OB + ' ' + SITE} /></label>
+      <input type="text" id="fe-tipo-outro" name="tipo_outro" placeholder="Ex.: Workshop" />
+    </div>
+  </div>
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fe-data">Data <Fragment set:html={OB + ' ' + SITE} /></label>
+      <input type="date" id="fe-data" name="data" required />
+      <label class="fc-check">
+        <input type="checkbox" name="data_a_confirmar" id="fe-a-confirmar" />
+        Data ainda a confirmar (coloque uma data aproximada)
+      </label>
+    </div>
+    <div class="fc-campo">
+      <label for="fe-horario">Horário <Fragment set:html={OP + ' ' + SITE} /></label>
+      <input type="text" id="fe-horario" name="horario" placeholder="Ex.: a partir das 19h" />
+    </div>
+  </div>
+  <div class="fc-campo">
+    <label for="fe-local">Local <Fragment set:html={OB + ' ' + SITE} /></label>
+    <input type="text" id="fe-local" name="local" placeholder="Academia, endereço ou pico (cidade e estado)" required />
+  </div>
+  <div class="fc-campo">
+    <label for="fe-descricao">Sobre o evento <Fragment set:html={OP} /></label>
+    <textarea id="fe-descricao" name="descricao" rows="3" placeholder="O que vai rolar, valores, pra quem é, se precisa de inscrição..."></textarea>
+  </div>
+  <div class="fc-campo">
+    <label for="fe-link">Link do post ou da inscrição <Fragment set:html={OP + ' ' + SITE} /></label>
+    <input type="text" id="fe-link" name="link" placeholder="instagram.com/p/... ou site do evento" />
+    <small class="fc-ajuda">É pra onde vai o botão "Ver detalhes" na agenda. Com link, a gente confere e publica mais rápido.</small>
+  </div>
+
+  <h3 class="fc-secao">Sobre você</h3>
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fe-contato-nome">Seu nome <Fragment set:html={OB + ' ' + EQ} /></label>
+      <input type="text" id="fe-contato-nome" name="contato_nome" required />
+    </div>
+    <div class="fc-campo">
+      <label for="fe-contato-email">Seu e-mail <Fragment set:html={OB + ' ' + EQ} /></label>
+      <input type="email" id="fe-contato-email" name="contato_email" required />
+    </div>
+  </div>
+  <div class="fc-campo">
+    <label for="fe-celular">Celular <Fragment set:html={OP + ' ' + EQ} /></label>
+    <input type="tel" id="fe-celular" name="celular" placeholder="(11)991721313" maxlength="13" inputmode="numeric" />
+  </div>
+  <label class="fc-check">
+    <input type="checkbox" name="da_organizacao" />
+    Faço parte da organização do evento
+  </label>
+  <div class="fc-campo">
+    <label for="fe-msg">Mensagem pra equipe Climbeiros <Fragment set:html={OP + ' ' + EQ} /></label>
+    <textarea id="fe-msg" name="mensagem" rows="2" placeholder="Algo que só a gente precise saber"></textarea>
+  </div>
+
+  <label class="fc-check">
+    <input type="checkbox" name="consentimento" required />
+    <span>Li e concordo com a <a href="/privacidade" target="_blank">Política de Privacidade</a>.</span>
+  </label>
+  <input type="text" name="site" class="fc-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+  <button type="submit" class="botao" id="fe-enviar">Enviar evento</button>
+  <p class="fc-status" id="fe-status" role="status"></p>
+  <p class="fc-aviso">O evento passa por uma checagem da equipe do Climbeiros antes de aparecer na agenda. É gratuito.</p>
+</form>
+
+<script>
+  import { supabase } from '../lib/supabase';
+  import { mascaraTelefone, telefoneValido } from '../lib/formularios';
+
+  const form = document.getElementById('form-evento') as HTMLFormElement | null;
+  const status = document.getElementById('fe-status');
+  const btn = document.getElementById('fe-enviar');
+  const campoCelular = document.getElementById('fe-celular') as HTMLInputElement | null;
+  const seletorTipo = document.getElementById('fe-tipo') as HTMLSelectElement | null;
+  const campoTipoOutro = document.getElementById('fe-tipo-outro-campo');
+  const inputTipoOutro = document.getElementById('fe-tipo-outro') as HTMLInputElement | null;
+  const inputData = document.getElementById('fe-data') as HTMLInputElement | null;
+  mascaraTelefone(campoCelular);
+
+  // Não deixa escolher data que já passou
+  if (inputData) {
+    const h = new Date();
+    inputData.min = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+  }
+
+  // "Outro" tipo de evento abre o campo pra escrever
+  seletorTipo?.addEventListener('change', () => {
+    const outro = seletorTipo.value === 'outro';
+    if (campoTipoOutro) campoTipoOutro.hidden = !outro;
+    if (inputTipoOutro) inputTipoOutro.required = outro;
+  });
+
+  // Link: aceita "instagram.com/..." e completa com https://. Só aceita http(s).
+  function linkSeguro(valor: string): string | null {
+    const v = valor.trim();
+    if (!v) return null;
+    const url = /^https?:\/\//i.test(v) ? v : `https://${v}`;
+    try {
+      const u = new URL(url);
+      return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null;
+    } catch {
+      return null;
+    }
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!status || !btn || !form) return;
+    const dados = Object.fromEntries(new FormData(form).entries()) as Record<string, any>;
+
+    // Campo invisível: se veio preenchido, é robô. Finge que deu certo.
+    if (dados.site) {
+      status.textContent = 'Evento enviado!';
+      form.reset();
+      return;
+    }
+    const txt = (v: unknown) => String(v || '').trim();
+    const tipo = dados.tipo === 'outro' ? txt(dados.tipo_outro) : txt(dados.tipo);
+    if (!txt(dados.titulo) || !txt(dados.organizador) || !txt(dados.organizador_tipo) || !tipo
+        || !txt(dados.data) || !txt(dados.local) || !txt(dados.contato_nome) || !txt(dados.contato_email)) {
+      status.textContent = 'Preencha os campos obrigatórios: nome do evento, quem organiza, tipo, data, local, seu nome e seu e-mail.';
+      return;
+    }
+    const celular = txt(dados.celular);
+    if (!telefoneValido(celular)) {
+      status.textContent = 'Preencha o celular no formato (11)991721313, com DDD e 9 números, ou deixe o campo em branco.';
+      campoCelular?.focus();
+      return;
+    }
+    const link = linkSeguro(txt(dados.link));
+    if (txt(dados.link) && !link) {
+      status.textContent = 'O link não parece válido. Confira ou deixe o campo em branco.';
+      return;
+    }
+
+    btn.setAttribute('disabled', '');
+    status.textContent = 'Enviando...';
+
+    // O id é gerado aqui pra ligar o evento ao contato de quem enviou.
+    const id = crypto.randomUUID();
+    const { error } = await supabase.from('agenda_eventos').insert([{
+      id,
+      titulo: txt(dados.titulo),
+      organizador: txt(dados.organizador),
+      organizador_tipo: dados.organizador_tipo === 'academia' ? 'academia' : 'comunidade',
+      tipo,
+      data: txt(dados.data),
+      data_a_confirmar: !!dados.data_a_confirmar,
+      horario: txt(dados.horario) || null,
+      local: txt(dados.local),
+      descricao: txt(dados.descricao) || null,
+      link,
+      publicado: false,
+      rejeitado: false,
+      origem: 'enviado pelo site',
+    }]);
+    if (error) {
+      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.br';
+      btn.removeAttribute('disabled');
+      return;
+    }
+
+    // Contato de quem enviou (só a equipe vê, no painel). Se falhar, o
+    // evento já está salvo e aparece no painel do mesmo jeito.
+    await supabase.from('agenda_eventos_contatos').insert([{
+      evento_id: id,
+      nome: txt(dados.contato_nome),
+      email: txt(dados.contato_email),
+      celular: celular || null,
+      da_organizacao: !!dados.da_organizacao,
+      mensagem: txt(dados.mensagem) || null,
+    }]);
+
+    form.reset();
+    if (campoTipoOutro) campoTipoOutro.hidden = true;
+    status.textContent = 'Recebemos o evento! Depois da checagem da equipe, ele aparece na agenda. 🧗';
+    btn.removeAttribute('disabled');
+  });
+</script>

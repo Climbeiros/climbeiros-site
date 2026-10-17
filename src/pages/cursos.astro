@@ -11,26 +11,11 @@ import Layout from "../layouts/Layout.astro";
 import { supabase } from "../lib/supabase";
 import { linkInstagram, usuarioInstagram, linkWhatsApp } from "../lib/contatos";
 import FormGuia from "../components/FormGuia.astro";
-const { data: guiasBanco } = await supabase
+import { textoEstado } from "../lib/busca";
+const { data: guias } = await supabase
   .from("inscricoes_guias")
-  .select("*");
-// Ordem dos cards (automática):
-// 0) Fixados: quem tem "ordem" maior que 0 no Supabase vem primeiro (1, 2, 3...).
-//    Deixe 0 (ou vazio) pra seguir a ordem automática abaixo.
-// 1) Guias com o selo "Climbeiros indica".
-// 2) Cards mais completos (foto, sobre, cursos, cupom, certificação, especialidades, locais).
-// 3) Desempate: cadastrados mais recentemente primeiro.
-const preenchido = (v: unknown) => Array.isArray(v) ? v.length > 0 : !!String(v ?? "").trim();
-const completude = (g: any) =>
-  [g.foto_url, g.bio, g.cursos_oferecidos, g.cupom_codigo, g.certificacao, g.especialidades_lista, g.locais_ids]
-    .filter(preenchido).length;
-const fixado = (g: any) => (Number(g.ordem) > 0 ? Number(g.ordem) : Infinity);
-const guias = [...(guiasBanco ?? [])].sort((a: any, b: any) =>
-  fixado(a) - fixado(b) ||
-  Number(!!b.climbeiros_indica) - Number(!!a.climbeiros_indica) ||
-  completude(b) - completude(a) ||
-  String(b.criado_em ?? "").localeCompare(String(a.criado_em ?? ""))
-);
+  .select("*")
+  .order("ordem", { ascending: true });
 // Avaliações dos guias: a view só devolve as aprovadas (sem e-mail).
 const { data: avaliacoesGuias } = await supabase
   .from("avaliacoes_guias_publicas")
@@ -72,10 +57,6 @@ for (const l of locais ?? []) {
 }
 // Quantos locais aparecem no card antes do botão "+N locais".
 const MAX_LOCAIS = 4;
-// Selo "Climbeiros indica": guias que a equipe conhece e recomenda.
-// Liga/desliga na coluna climbeiros_indica da tabela inscricoes_guias.
-const temSeloIndica = (guias ?? []).some((g) => g.climbeiros_indica);
-const textoSeloIndica = 'O selo "Climbeiros indica" identifica os guias que a gente conhece de perto, já escalou junto e recomenda com confiança.';
 function nomesDosLocais(locaisIds) {
   return (locaisIds ?? []).map((id) => locaisPorId.get(id)).filter(Boolean);
 }
@@ -137,12 +118,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
             valores com o próprio guia.
           </p>
           <a class="topo-link" href="#seja-guia">É guia? Apareça aqui →</a>
-          {temSeloIndica && (
-            <p class="selo-nota" title={textoSeloIndica}>
-              <img src="/selo-climbeiros-indica.png" alt="" aria-hidden="true" />
-              <span><strong>Climbeiros indica:</strong> guias que a gente conhece de perto e recomenda.</span>
-            </p>
-          )}
         </div>
         {guias && guias.length > 0 && (
           <div class="busca-guias">
@@ -195,7 +170,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
           <article
             class="guide"
             id={`guia-${g.id}`}
-            data-busca={normalizar([g.nome, g.cidade, g.uf, ...(g.especialidades_lista ?? []), ...nomesDosLocais(g.locais_ids), g.locais_interesse].filter(Boolean).join(" "))}
+            data-busca={normalizar([g.nome, g.cidade, textoEstado(g.uf), ...(g.especialidades_lista ?? []), ...nomesDosLocais(g.locais_ids), g.locais_interesse].filter(Boolean).join(" "))}
             data-espec={(g.especialidades_lista ?? []).map((e) => normalizar(e)).join("|")}
             data-uf={(g.uf || "").trim().toUpperCase()}
             data-cidade={normalizar(g.cidade)}
@@ -208,7 +183,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
               ) : (
                 <div class="photo">{iniciais(g.nome)}</div>
               )}
-              <div class="head__info">
+              <div>
                 <h3>{g.nome}</h3>
                 {(g.cidade || g.uf) && (
                   <div class="base">
@@ -217,9 +192,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
                   </div>
                 )}
               </div>
-              {g.climbeiros_indica && (
-                <img class="guide__selo" src="/selo-climbeiros-indica.png" alt="Selo Climbeiros indica" title={textoSeloIndica} loading="lazy" />
-              )}
             </div>
             <div class="body">
               {g.bio && (
@@ -429,52 +401,18 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
     document.querySelectorAll<HTMLElement>('.bio-bloco').forEach((b) => {
       const p = b.querySelector<HTMLElement>('.bio');
       const btn = b.querySelector<HTMLButtonElement>('.ler-mais');
-      if (!p || !btn || p.classList.contains('aberto')) return;
-      btn.hidden = !(p.scrollHeight > p.clientHeight + 2);
-    });
-  }
-
-  // Cards lado a lado ficam com a mesma altura. Quando um card tem menos
-  // conteúdo (ex.: sem cupom), sobra um espaço vazio no meio dele. Aqui a
-  // gente usa esse espaço pra mostrar mais linhas do "Sobre" (e, se ainda
-  // sobrar, dos "Cursos oferecidos"), sem deixar o card mais alto que os vizinhos.
-  function equalizarCards() {
-    const textos = Array.from(document.querySelectorAll<HTMLElement>('.guide .bio'));
-    textos.forEach((p) => { if (!p.classList.contains('aberto')) p.style.webkitLineClamp = ''; });
-    ativarLerMais(); // mostra os "Ler mais" antes de medir, pra conta já incluir o botão
-    document.querySelectorAll<HTMLElement>('.guide').forEach((card) => {
-      if (card.hidden) return;
-      const corpo = card.querySelector<HTMLElement>('.body');
-      if (!corpo) return;
-      // O primeiro bloco empurrado pro fim do card (avaliações ou contato)
-      const blocos = Array.from(corpo.children) as HTMLElement[];
-      const fim = blocos.find((el) => getComputedStyle(el).marginTop !== '0px' && (el.classList.contains('card__avaliacoes') || el.classList.contains('contact')));
-      if (!fim) return;
-      const anterior = fim.previousElementSibling as HTMLElement | null;
-      if (!anterior) return;
-      const gap = parseFloat(getComputedStyle(corpo).rowGap || '0') || 0;
-      let sobra = fim.offsetTop - (anterior.offsetTop + anterior.offsetHeight) - gap;
-      const candidatos = Array.from(card.querySelectorAll<HTMLElement>('.bio')).filter((p) => !p.classList.contains('aberto'));
-      for (const p of candidatos) {
-        if (sobra < 8) break;
-        const linha = parseFloat(getComputedStyle(p).lineHeight) || 24;
-        const base = parseInt(getComputedStyle(p).webkitLineClamp || '3', 10) || 3;
-        const escondido = p.scrollHeight - p.clientHeight;
-        if (escondido <= 2) continue;
-        const extra = Math.min(Math.floor(sobra / linha), Math.ceil(escondido / linha));
-        if (extra <= 0) continue;
-        p.style.webkitLineClamp = String(base + extra);
-        sobra -= extra * linha;
+      if (!p || !btn || btn.dataset.pronto) return;
+      if (p.scrollHeight > p.clientHeight + 2) {
+        btn.hidden = false;
+        btn.dataset.pronto = '1';
       }
     });
-    ativarLerMais();
   }
   document.querySelectorAll<HTMLButtonElement>('.ler-mais').forEach((btn) =>
     btn.addEventListener('click', () => {
       const p = btn.parentElement?.querySelector('.bio');
       const aberto = p?.classList.toggle('aberto');
       btn.textContent = aberto ? 'Ler menos' : 'Ler mais';
-      equalizarCards();
     })
   );
   document.querySelectorAll<HTMLButtonElement>('.locais-mais').forEach((b) =>
@@ -489,15 +427,10 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
       while (b.scrollWidth > b.clientWidth && f > 10) { f -= 0.4; t.style.fontSize = f + 'px'; }
     });
   }
-  equalizarCards();
+  ativarLerMais();
   ajustarInsta();
-  document.fonts?.ready.then(() => { equalizarCards(); ajustarInsta(); });
-  let esperaResize: number | undefined;
-  window.addEventListener('resize', () => {
-    ajustarInsta();
-    clearTimeout(esperaResize);
-    esperaResize = window.setTimeout(equalizarCards, 150);
-  });
+  document.fonts?.ready.then(() => { ativarLerMais(); ajustarInsta(); });
+  window.addEventListener('resize', ajustarInsta);
 
   // ---------- BUSCA E FILTROS DE GUIAS ----------
   // Tudo acontece no navegador: os cards já estão na página, a gente só
@@ -541,7 +474,6 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
     const filtrando = termos.length > 0 || espec || uf || cidade;
     if (botaoLimpar) botaoLimpar.hidden = !filtrando;
     if (semResultado) semResultado.hidden = visiveis > 0;
-    equalizarCards();
     if (statusBusca) {
       statusBusca.textContent = filtrando && visiveis > 0
         ? `${visiveis} ${visiveis === 1 ? 'guia encontrado' : 'guias encontrados'}`
@@ -810,9 +742,4 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .estrelas-input input:checked ~ label,
   .estrelas-input label:hover,
   .estrelas-input label:hover ~ label { color: var(--amarelo); }
-  .guide .head__info { flex: 1; min-width: 0; }
-  .guide__selo { width: 54px; height: 54px; flex: 0 0 auto; align-self: flex-start; filter: drop-shadow(0 2px 4px rgba(0,0,0,.35)); }
-  .selo-nota { display: flex; width: fit-content; max-width: 100%; align-items: center; gap: 8px; margin: 18px 0 0; padding: 6px 14px 6px 6px; border-radius: 999px; background: var(--creme-claro); font-size: .85rem; color: #4a4033; }
-  .selo-nota img { width: 28px; height: 28px; flex: 0 0 auto; }
-  .selo-nota strong { color: var(--verde-escuro); }
 </style>

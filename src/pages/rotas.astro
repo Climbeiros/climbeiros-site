@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { Local, Setor } from '../lib/supabase';
 import AvisoConstrucao from '../components/AvisoConstrucao.astro';
 import BotaoFeedback from '../components/BotaoFeedback.astro';
+import { normalizar, siglaEstado, textoEstado, listarCidades } from '../lib/busca';
 
 const { data: locais } = await supabase
   .from('locais')
@@ -20,8 +21,9 @@ const { data: setores } = await supabase
 const locaisComCoordenadas = (locais ?? []).filter((l) => l.latitude && l.longitude);
 
 // Opções pros filtros: estados e tipos de escalada realmente presentes nos locais cadastrados.
-const estadosDisponiveis = [...new Set((locais ?? []).map((l) => l.estado).filter(Boolean))].sort() as string[];
-const tiposDisponiveis = [...new Set((locais ?? []).flatMap((l) => l.tipos ?? []))].sort();
+const estadosDisponiveis = [...new Set((locais ?? []).map((l) => siglaEstado(l.estado)).filter(Boolean))].sort();
+const tiposDisponiveis = [...new Set((locais ?? []).flatMap((l) => l.tipos ?? []))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+const cidadesDisponiveis = listarCidades(locais ?? []);
 
 function setoresDoLocal(localId: string) {
   return (setores ?? []).filter((s) => s.local_id === localId);
@@ -47,45 +49,52 @@ function ladosDoLocal(localId: string) {
     <div class="container">
       <p class="eyebrow">Onde escalar</p>
       <h1>Rotas & Setores</h1>
-      <p>Explore os locais de escalada catalogados pela comunidade. Cada local pode ter um ou mais setores, cada um com croqui e dicas de acesso; hospedagens, guias e avaliações ficam na página do local. Clique num pin do mapa, busque pelo nome do local, cidade ou CEP, ou filtre por tipo e estado.</p>
+      <p>Explore os locais de escalada catalogados pela comunidade. Cada local pode ter um ou mais setores, cada um com croqui e dicas de acesso; hospedagens, guias e avaliações ficam na página do local. Clique num pin do mapa, busque pelo nome do local, setor, cidade, estado ou CEP, ou filtre por tipo, estado e cidade.</p>
 
       <AvisoConstrucao />
 
       {locais && locais.length > 0 && (
         <>
-          <div class="busca-local">
+          <div class="painel-busca">
+            <h2>Encontre um local</h2>
             <input
-              type="text"
-              id="busca-cidade"
-              placeholder="Buscar por nome do local, cidade ou CEP..."
-              aria-label="Buscar locais por nome, cidade ou CEP"
+              type="search"
+              id="busca-local"
+              placeholder="Local, setor, cidade, estado ou CEP..."
+              aria-label="Buscar locais por nome, setor, cidade, estado ou CEP"
             />
-            <button type="button" id="busca-botao" class="botao">Buscar</button>
-            <button type="button" id="busca-limpar" class="botao botao--secundario" hidden>Limpar</button>
+            <div class="filtros">
+              {tiposDisponiveis.length > 0 && (
+                <label class="filtro-campo">
+                  Tipo
+                  <select id="filtro-tipo">
+                    <option value="">Todos</option>
+                    {tiposDisponiveis.map((t) => <option value={normalizar(t)}>{t}</option>)}
+                  </select>
+                </label>
+              )}
+              {estadosDisponiveis.length > 0 && (
+                <label class="filtro-campo">
+                  Estado
+                  <select id="filtro-uf">
+                    <option value="">Todos</option>
+                    {estadosDisponiveis.map((uf) => <option value={uf}>{uf}</option>)}
+                  </select>
+                </label>
+              )}
+              {cidadesDisponiveis.length > 0 && (
+                <label class="filtro-campo">
+                  Cidade
+                  <select id="filtro-cidade">
+                    <option value="">Todas</option>
+                    {cidadesDisponiveis.map((c) => <option value={c.chave} data-uf={c.uf}>{c.nome}{c.uf ? ` (${c.uf})` : ''}</option>)}
+                  </select>
+                </label>
+              )}
+              <button type="button" id="filtro-limpar" class="botao botao--secundario" hidden>Limpar</button>
+            </div>
+            <p id="busca-status" class="busca-status" role="status"></p>
           </div>
-
-          <div class="filtros">
-            {tiposDisponiveis.length > 0 && (
-              <label class="filtro-campo">
-                Tipo
-                <select id="filtro-tipo">
-                  <option value="">Todos</option>
-                  {tiposDisponiveis.map((t) => <option value={t}>{t}</option>)}
-                </select>
-              </label>
-            )}
-            {estadosDisponiveis.length > 0 && (
-              <label class="filtro-campo">
-                Estado
-                <select id="filtro-estado">
-                  <option value="">Todos</option>
-                  {estadosDisponiveis.map((uf) => <option value={uf}>{uf}</option>)}
-                </select>
-              </label>
-            )}
-          </div>
-
-          <p id="busca-status" class="busca-status" role="status"></p>
         </>
       )}
     </div>
@@ -109,10 +118,13 @@ function ladosDoLocal(localId: string) {
             <article
               class="setor-card"
               id={`local-${local.id}`}
-              data-cidade={(local.cidade || '').toLowerCase()}
-              data-nome={(local.nome || '').toLowerCase()}
-              data-estado={local.estado || ''}
-              data-tipos={(local.tipos || []).join('|')}
+              data-busca={normalizar([
+                local.nome, local.regiao, local.cidade, textoEstado(local.estado),
+                ...(local.tipos ?? []), ...setoresDoLocal(local.id).map((s) => s.nome),
+              ].filter(Boolean).join(' '))}
+              data-uf={siglaEstado(local.estado)}
+              data-cidade={normalizar(local.cidade)}
+              data-tipos={(local.tipos ?? []).map((t) => normalizar(t)).join('|')}
             >
               {local.imagem_capa_url ? (
                 <img class="setor-card__capa" src={local.imagem_capa_url} alt={local.nome} loading="lazy" />
@@ -129,7 +141,7 @@ function ladosDoLocal(localId: string) {
                         local.nome
                       )}
                     </h2>
-                    <p class="setor-card__local">{[local.regiao, local.cidade, local.estado].filter(Boolean).join(' · ')}</p>
+                    <p class="setor-card__local">{[local.regiao, local.cidade, siglaEstado(local.estado)].filter(Boolean).join(' · ')}</p>
                   </div>
                   <button
                     type="button"
@@ -173,6 +185,7 @@ function ladosDoLocal(localId: string) {
           );
         })}
       </div>
+      <p class="vazio-busca" id="sem-resultado" hidden>Nenhum local encontrado com esses filtros. Tente limpar a busca.</p>
     </div>
   </section>
   <BotaoFeedback pagina="Rotas & Setores (lista)" />
@@ -181,121 +194,47 @@ function ladosDoLocal(localId: string) {
 <script type="application/json" id="dados-locais" set:html={JSON.stringify(locaisComCoordenadas)}></script>
 
 <script>
+  import { ativarBusca } from '../lib/filtros-cliente';
+
   const locais = JSON.parse(document.getElementById('dados-locais')?.textContent || '[]');
   let mapa;
   let L;
   const marcadores = {}; // local id -> Leaflet marker
 
-  function normalizar(texto) {
-    return texto
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .trim();
-  }
-
-  async function buscarCidadePorCep(cep) {
-    const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-    const dados = await resposta.json();
-    if (dados.erro) return null;
-    return dados.localidade;
-  }
-
-  const filtroTipo = document.getElementById('filtro-tipo');
-  const filtroEstado = document.getElementById('filtro-estado');
-
-  // Aplica busca de nome/cidade + filtros de tipo/estado juntos. Um card só fica
-  // visível se bater com os três critérios (cada um vazio conta como "vale tudo").
-  function aplicarFiltros(termoBusca) {
-    const termo = normalizar(termoBusca || '');
-    const tipoEscolhido = filtroTipo?.value || '';
-    const estadoEscolhido = filtroEstado?.value || '';
-    let visiveis = 0;
-    const idsVisiveis = new Set();
-
-    document.querySelectorAll('#lista-setores .setor-card').forEach((card) => {
-      const cidadeCard = normalizar(card.dataset.cidade || '');
-      const nomeCard = normalizar(card.dataset.nome || '');
-      const bateTexto = !termo || cidadeCard.includes(termo) || nomeCard.includes(termo);
-      const bateEstado = !estadoEscolhido || card.dataset.estado === estadoEscolhido;
-      const tiposCard = (card.dataset.tipos || '').split('|').filter(Boolean);
-      const bateTipo = !tipoEscolhido || tiposCard.includes(tipoEscolhido);
-      const bate = bateTexto && bateEstado && bateTipo;
-      card.hidden = !bate;
-      if (bate) {
-        visiveis++;
-        idsVisiveis.add(card.id.replace('local-', ''));
+  // Mostra no mapa só os pins dos locais que sobraram na busca/filtros
+  // e aproxima o mapa deles.
+  function atualizarMapa(visiveis) {
+    if (!mapa) return;
+    const idsVisiveis = new Set(visiveis.map((card) => card.id.replace('local-', '')));
+    const bounds = [];
+    Object.entries(marcadores).forEach(([id, marker]) => {
+      if (idsVisiveis.has(id)) {
+        if (!mapa.hasLayer(marker)) marker.addTo(mapa);
+        bounds.push(marker.getLatLng());
+      } else {
+        mapa.removeLayer(marker);
       }
     });
-
-    // Atualiza os pins do mapa junto com os cards
-    if (mapa) {
-      const bounds = [];
-      Object.entries(marcadores).forEach(([id, marker]) => {
-        if (idsVisiveis.has(id)) {
-          if (!mapa.hasLayer(marker)) marker.addTo(mapa);
-          bounds.push(marker.getLatLng());
-        } else {
-          mapa.removeLayer(marker);
-        }
-      });
-      if (bounds.length === 1) {
-        mapa.setView(bounds[0], 11);
-      } else if (bounds.length > 1) {
-        mapa.fitBounds(bounds, { padding: [30, 30] });
-      }
+    if (bounds.length === 1) {
+      mapa.setView(bounds[0], 11);
+    } else if (bounds.length > 1) {
+      mapa.fitBounds(bounds, { padding: [30, 30] });
     }
-
-    return visiveis;
   }
 
-  const input = document.getElementById('busca-cidade');
-  const botaoBuscar = document.getElementById('busca-botao');
-  const botaoLimpar = document.getElementById('busca-limpar');
-  const status = document.getElementById('busca-status');
-
-  async function executarBusca() {
-    if (!input || !status) return;
-    const valor = input.value.trim();
-    if (!valor) {
-      const encontrados = aplicarFiltros('');
-      status.textContent = '';
-      botaoLimpar?.setAttribute('hidden', '');
-      return;
-    }
-
-    const somenteNumeros = valor.replace(/\D/g, '');
-    let termoParaFiltrar = valor;
-
-    if (somenteNumeros.length === 8) {
-      status.textContent = 'Buscando cidade pelo CEP...';
-      const cidade = await buscarCidadePorCep(somenteNumeros);
-      if (!cidade) {
-        status.textContent = 'CEP não encontrado. Tente digitar o nome do local ou da cidade.';
-        return;
-      }
-      termoParaFiltrar = cidade;
-    }
-
-    const encontrados = aplicarFiltros(termoParaFiltrar);
-    status.textContent = encontrados > 0
-      ? `${encontrados} local(is) encontrado(s) para "${termoParaFiltrar}".`
-      : `Nenhum local encontrado para "${termoParaFiltrar}" ainda.`;
-    botaoLimpar?.removeAttribute('hidden');
-  }
-
-  botaoBuscar?.addEventListener('click', executarBusca);
-  input?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') executarBusca();
+  // Busca livre + filtros de Tipo, Estado e Cidade (mesmo padrão de Guias e Academias).
+  ativarBusca({
+    cards: Array.from(document.querySelectorAll('#lista-setores .setor-card')),
+    campoBusca: document.getElementById('busca-local'),
+    filtroUf: document.getElementById('filtro-uf'),
+    filtroCidade: document.getElementById('filtro-cidade'),
+    filtrosExtras: [{ select: document.getElementById('filtro-tipo'), campo: 'tipos' }],
+    botaoLimpar: document.getElementById('filtro-limpar'),
+    status: document.getElementById('busca-status'),
+    semResultado: document.getElementById('sem-resultado'),
+    rotulo: ['local encontrado', 'locais encontrados'],
+    aoFiltrar: atualizarMapa,
   });
-  botaoLimpar?.addEventListener('click', () => {
-    if (input) input.value = '';
-    aplicarFiltros('');
-    if (status) status.textContent = '';
-    botaoLimpar?.setAttribute('hidden', '');
-  });
-  filtroTipo?.addEventListener('change', () => aplicarFiltros(input?.value || ''));
-  filtroEstado?.addEventListener('change', () => aplicarFiltros(input?.value || ''));
 
   // ---- Botão de compartilhar (Web Share API, com fallback pra copiar o link) ----
   document.querySelectorAll('.botao-compartilhar').forEach((botao) => {
@@ -357,54 +296,6 @@ function ladosDoLocal(localId: string) {
 </style>
 
 <style>
-  .busca-local {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin: 20px 0 12px;
-  }
-  .busca-local input {
-    flex: 1;
-    min-width: 220px;
-    font-family: var(--fonte-corpo);
-    font-size: 1rem;
-    padding: 10px 14px;
-    border-radius: 8px;
-    border: 1px solid rgba(42,31,22,0.25);
-    color: var(--marrom);
-  }
-  .filtros {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
-  }
-  .filtro-campo {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-family: var(--fonte-display);
-    text-transform: uppercase;
-    font-size: 0.72rem;
-    letter-spacing: 0.03em;
-    color: var(--verde-escuro);
-  }
-  .filtro-campo select {
-    font-family: var(--fonte-corpo);
-    font-size: 0.9rem;
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(42,31,22,0.25);
-    color: var(--marrom);
-    background: var(--branco);
-    min-width: 160px;
-  }
-  .busca-status {
-    font-size: 0.9rem;
-    opacity: 0.8;
-    margin-bottom: 8px;
-    min-height: 1.2em;
-  }
   .mapa {
     height: 380px;
     border-radius: var(--raio);

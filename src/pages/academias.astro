@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 import type { Academia, AvaliacaoPublica } from '../lib/supabase';
 import FormAcademia from '../components/FormAcademia.astro';
+import { normalizar, siglaEstado, textoEstado, listarCidades } from '../lib/busca';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
@@ -34,8 +35,29 @@ function resumo(academiaId: string) {
 
 const temSeloIndica = (academias ?? []).some((a) => a.climbeiros_indica);
 const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que a gente conhece de perto, visitou e recomenda com confiança.';
+
+// ---- Filtros da busca ----
+// O campo "Modalidades" é texto livre no Supabase (ex: "Boulder; Top rope; yoga").
+// Pra lista suspensa ficar limpa, cada academia entra nas categorias abaixo
+// conforme as palavras que aparecem nesse texto. Pra criar uma categoria nova,
+// é só acrescentar uma linha aqui.
+const CATEGORIAS_MODALIDADE = [
+  { id: 'boulder', nome: 'Boulder', palavras: /boulder|spray wall|moonboard|kilter/ },
+  { id: 'corda', nome: 'Com corda (top rope ou guiada)', palavras: /top rope|guiada|corda|esportiva/ },
+  { id: 'top-rope', nome: 'Top rope', palavras: /top rope/ },
+  { id: 'guiada', nome: 'Guiada', palavras: /guiada/ },
+  { id: 'aulas', nome: 'Aulas de escalada', palavras: /aula/ },
+];
+function categoriasDa(a: Academia) {
+  const texto = normalizar(a.Modalidades);
+  return CATEGORIAS_MODALIDADE.filter((c) => c.palavras.test(texto)).map((c) => c.id);
+}
+// Só aparecem no filtro as opções que têm pelo menos uma academia.
+const modalidadesDisponiveis = CATEGORIAS_MODALIDADE.filter((c) => (academias ?? []).some((a) => categoriasDa(a).includes(c.id)));
+const estadosDisponiveis = [...new Set((academias ?? []).map((a) => siglaEstado(a.estado)).filter(Boolean))].sort();
+const cidadesDisponiveis = listarCidades(academias ?? []);
 ---
-<Layout titulo="Academias" descricao="Academias de escalada e ginásios de boulder no Brasil, recomendados pela comunidade Climbeiros. Busque por cidade ou CEP e veja endereço, modalidades e contato.">
+<Layout titulo="Academias" descricao="Academias de escalada e ginásios de boulder no Brasil, recomendados pela comunidade Climbeiros. Busque por nome, cidade, estado, modalidade ou CEP e veja endereço, modalidades e contato.">
   <section class="secao">
     <div class="container">
       <p class="eyebrow">Onde treinar</p>
@@ -55,26 +77,61 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
 
       {academias && academias.length > 0 && (
         <>
-          <div class="busca-local" data-busca-grupo="academias">
+          <div class="painel-busca">
+            <h2>Encontre uma academia</h2>
             <input
-              type="text"
-              class="busca-input"
-              placeholder="Buscar por nome, cidade ou CEP..."
-              aria-label="Buscar academias por nome, cidade ou CEP"
+              type="search"
+              id="busca-academia"
+              placeholder="Nome, cidade, estado, modalidade ou CEP..."
+              aria-label="Buscar academias por nome, cidade, estado, modalidade ou CEP"
             />
-            <button type="button" class="botao busca-botao">Buscar</button>
-            <button type="button" class="botao botao--secundario busca-limpar" hidden>Limpar</button>
+            <div class="filtros">
+              {modalidadesDisponiveis.length > 0 && (
+                <label class="filtro-campo">
+                  Modalidade
+                  <select id="filtro-modalidade">
+                    <option value="">Todas</option>
+                    {modalidadesDisponiveis.map((m) => <option value={m.id}>{m.nome}</option>)}
+                  </select>
+                </label>
+              )}
+              {estadosDisponiveis.length > 0 && (
+                <label class="filtro-campo">
+                  Estado
+                  <select id="filtro-uf">
+                    <option value="">Todos</option>
+                    {estadosDisponiveis.map((uf) => <option value={uf}>{uf}</option>)}
+                  </select>
+                </label>
+              )}
+              {cidadesDisponiveis.length > 0 && (
+                <label class="filtro-campo">
+                  Cidade
+                  <select id="filtro-cidade">
+                    <option value="">Todas</option>
+                    {cidadesDisponiveis.map((c) => <option value={c.chave} data-uf={c.uf}>{c.nome}{c.uf ? ` (${c.uf})` : ''}</option>)}
+                  </select>
+                </label>
+              )}
+              <button type="button" id="filtro-limpar" class="botao botao--secundario" hidden>Limpar</button>
+            </div>
+            <p id="busca-status" class="busca-status" role="status"></p>
           </div>
-          <p class="busca-status" role="status"></p>
         </>
       )}
 
-      <div class="grade grade--3" data-busca-lista="academias">
+      <div class="grade grade--3" id="lista-academias">
         {academias?.map((a) => {
           const res = resumo(a.id);
           const comentarios = avaliacoesPorAcademia.get(a.id) ?? [];
           return (
-            <article class="card" data-cidade={(a.cidade || '').toLowerCase()} data-nome={(a.nome || '').toLowerCase()}>
+            <article
+              class="card"
+              data-busca={normalizar([a.nome, a.cidade, textoEstado(a.estado), a.endereco, a.Modalidades].filter(Boolean).join(' '))}
+              data-uf={siglaEstado(a.estado)}
+              data-cidade={normalizar(a.cidade)}
+              data-modalidades={categoriasDa(a).join('|')}
+            >
               <div class="card__imagem-wrap">
                 <img class="card__imagem" src={a.imagem_url || '/logo.png'} alt={a.nome} />
                 {a.climbeiros_indica && (
@@ -89,7 +146,7 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
               </div>
               <div class="card__corpo">
                 <h3>{a.nome}</h3>
-                <p class="card__local">{a.cidade}{a.estado ? `, ${a.estado}` : ''}</p>
+                <p class="card__local">{a.cidade}{a.estado ? `, ${siglaEstado(a.estado)}` : ''}</p>
                 {a.endereco && <p class="card__endereco">{a.endereco}</p>}
                 {a.Modalidades && <p class="card__modalidades"><strong>Modalidades:</strong> {a.Modalidades}</p>}
                 {a.descricao && <p>{a.descricao}</p>}
@@ -169,6 +226,7 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
           );
         })}
       </div>
+      <p class="vazio-busca" id="sem-resultado" hidden>Nenhuma academia encontrada com esses filtros. Tente limpar a busca.</p>
     </div>
   </section>
 
@@ -185,88 +243,19 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
 </Layout>
 
 <script>
-  function normalizar(texto: string) {
-    return texto
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .trim();
-  }
+  import { ativarBusca } from '../lib/filtros-cliente';
 
-  async function buscarCidadePorCep(cep: string) {
-    const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-    const dados = await resposta.json();
-    if (dados.erro) return null;
-    return dados.localidade as string;
-  }
-
-  document.querySelectorAll<HTMLElement>('[data-busca-grupo]').forEach((grupo) => {
-    const nomeGrupo = grupo.dataset.buscaGrupo;
-    const lista = document.querySelector<HTMLElement>(`[data-busca-lista="${nomeGrupo}"]`);
-    const input = grupo.querySelector<HTMLInputElement>('.busca-input');
-    const botaoBuscar = grupo.querySelector('.busca-botao');
-    const botaoLimpar = grupo.querySelector('.busca-limpar');
-    const status = grupo.nextElementSibling?.classList.contains('busca-status')
-      ? (grupo.nextElementSibling as HTMLElement)
-      : null;
-
-    if (!lista || !input) return;
-
-    function filtrar(termoBusca: string) {
-      const termo = normalizar(termoBusca);
-      let visiveis = 0;
-      lista?.querySelectorAll<HTMLElement>('.card').forEach((card) => {
-        const cidadeCard = normalizar(card.dataset.cidade || '');
-        const nomeCard = normalizar(card.dataset.nome || '');
-        const semCidade = !card.dataset.cidade;
-        const bate = !termo || semCidade || cidadeCard.includes(termo) || nomeCard.includes(termo);
-        card.hidden = !bate;
-        if (bate) visiveis++;
-      });
-      return visiveis;
-    }
-
-    async function executarBusca() {
-      const valor = input.value.trim();
-      if (!valor) {
-        filtrar('');
-        if (status) status.textContent = '';
-        botaoLimpar?.setAttribute('hidden', '');
-        return;
-      }
-
-      const somenteNumeros = valor.replace(/\D/g, '');
-      let cidadeParaFiltrar = valor;
-
-      if (somenteNumeros.length === 8) {
-        if (status) status.textContent = 'Buscando cidade pelo CEP...';
-        const cidade = await buscarCidadePorCep(somenteNumeros);
-        if (!cidade) {
-          if (status) status.textContent = 'CEP não encontrado. Tente digitar o nome da cidade.';
-          return;
-        }
-        cidadeParaFiltrar = cidade;
-      }
-
-      const encontrados = filtrar(cidadeParaFiltrar);
-      if (status) {
-        status.textContent = encontrados > 0
-          ? `${encontrados} resultado(s) para ${cidadeParaFiltrar}.`
-          : `Nada encontrado em ${cidadeParaFiltrar} ainda.`;
-      }
-      botaoLimpar?.removeAttribute('hidden');
-    }
-
-    botaoBuscar?.addEventListener('click', executarBusca);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') executarBusca();
-    });
-    botaoLimpar?.addEventListener('click', () => {
-      input.value = '';
-      filtrar('');
-      if (status) status.textContent = '';
-      botaoLimpar.setAttribute('hidden', '');
-    });
+  // Busca livre + filtros de Modalidade, Estado e Cidade (mesmo padrão da página de Guias).
+  ativarBusca({
+    cards: Array.from(document.querySelectorAll<HTMLElement>('#lista-academias .card')),
+    campoBusca: document.querySelector<HTMLInputElement>('#busca-academia'),
+    filtroUf: document.querySelector<HTMLSelectElement>('#filtro-uf'),
+    filtroCidade: document.querySelector<HTMLSelectElement>('#filtro-cidade'),
+    filtrosExtras: [{ select: document.querySelector<HTMLSelectElement>('#filtro-modalidade'), campo: 'modalidades' }],
+    botaoLimpar: document.querySelector<HTMLElement>('#filtro-limpar'),
+    status: document.querySelector<HTMLElement>('#busca-status'),
+    semResultado: document.querySelector<HTMLElement>('#sem-resultado'),
+    rotulo: ['academia encontrada', 'academias encontradas'],
   });
 </script>
 
@@ -368,29 +357,6 @@ const textoSeloIndica = 'O selo "Climbeiros indica" identifica as academias que 
   .card__endereco { font-size: 0.85rem; opacity: 0.65; margin-top: -8px; margin-bottom: 8px; font-style: italic; }
   .card__modalidades { font-size: 0.85rem; margin-bottom: 8px; }
   .card__links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
-
-  .busca-local {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin: 20px 0 8px;
-  }
-  .busca-local input {
-    flex: 1;
-    min-width: 220px;
-    font-family: var(--fonte-corpo);
-    font-size: 1rem;
-    padding: 10px 14px;
-    border-radius: 8px;
-    border: 1px solid rgba(42,31,22,0.25);
-    color: var(--marrom);
-  }
-  .busca-status {
-    font-size: 0.9rem;
-    opacity: 0.8;
-    margin-bottom: 24px;
-    min-height: 1.2em;
-  }
 
   .card__avaliacoes {
     margin-top: 14px;

@@ -11,6 +11,7 @@ import FormHospedagem from '../components/FormHospedagem.astro';
 import FormParceiro from '../components/FormParceiro.astro';
 import FormCroqui from '../components/FormCroqui.astro';
 import FormAcademia from '../components/FormAcademia.astro';
+import FormEvento from '../components/FormEvento.astro';
 import '../styles/formularios.css';
 
 const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
@@ -21,10 +22,11 @@ const MOTIVOS = [
   { valor: 'parceiro', rotulo: 'Quero ser parceiro (marca ou loja)', intro: 'Sua marca perto de uma comunidade engajada de escaladores. Vamos conversar?' },
   { valor: 'croqui', rotulo: 'Enviar croqui de um setor', intro: 'Mande o croqui (PDF, foto ou link) que a gente cadastra as vias no site, com os créditos de quem fez.' },
   { valor: 'academia', rotulo: 'Cadastrar academia ou ginásio', intro: 'Depois de uma checagem rápida da equipe, a academia entra na página de Academias. É gratuito!' },
+  { valor: 'evento', rotulo: 'Divulgar um evento', intro: 'Competição, festa, curso, mutirão ou festival: depois de uma checagem rápida da equipe, o evento entra na agenda do Acontece. É gratuito!' },
   { valor: 'outros', rotulo: 'Outros assuntos', intro: 'Sugestões, correções, dúvidas ou qualquer outra coisa.' },
 ];
 ---
-<Layout titulo="Contato" descricao="Fale com o time do Climbeiros: cadastre guia, hospedagem, academia, envie croquis ou proponha parcerias.">
+<Layout titulo="Contato" descricao="Fale com o time do Climbeiros: cadastre guia, hospedagem, academia, divulgue eventos, envie croquis ou proponha parcerias.">
   <section class="secao">
     <div class="container contato">
       <div class="contato__intro">
@@ -53,6 +55,7 @@ const MOTIVOS = [
         <div class="contato__painel" data-motivo="parceiro" hidden><FormParceiro /></div>
         <div class="contato__painel" data-motivo="croqui" hidden><FormCroqui /></div>
         <div class="contato__painel" data-motivo="academia" hidden><FormAcademia /></div>
+        <div class="contato__painel" data-motivo="evento" hidden><FormEvento /></div>
 
         <div class="contato__painel" data-motivo="outros" hidden>
           <form id="form-contato" class="fc">
