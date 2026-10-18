@@ -129,6 +129,12 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
                           {e.horario}
                         </span>
                       )}
+                      {e.local && (
+                        <a class="ac-tag ac-tag--local" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.local)}`} target="_blank" rel="noopener" title="Ver no mapa">
+                          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
+                          {e.local}
+                        </a>
+                      )}
                       {e.data_a_confirmar && <span class="ac-confirmar">data a confirmar</span>}
                     </div>
                   </div>
@@ -277,6 +283,10 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
   .ac-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .ac-tag { display: inline-flex; align-items: center; gap: 5px; font-size: .75rem; font-weight: 600; background: #f1ebdb; color: #5c4e3e; padding: 3px 9px; border-radius: 999px; }
   .ac-tag svg { width: 13px; height: 13px; }
+  /* Local do evento: abre no Google Maps; texto longo quebra em vez de estourar o card */
+  .ac-tag--local { text-decoration: none; max-width: 100%; white-space: normal; }
+  .ac-tag--local svg { flex: none; }
+  .ac-tag--local:hover { background: #e9dfc6; color: var(--marrom); }
   .ac-confirmar { font-size: .75rem; font-style: italic; opacity: .75; }
   .ac-ver { color: var(--laranja); font-weight: 600; font-size: .88rem; white-space: nowrap; }
   @media (max-width: 640px) {
