@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import RopeDivider from '../components/RopeDivider.astro';
 import { getSiteConfig } from '../lib/supabase';
-import { getAgenda, getNovidades, partesData, dataCurta } from '../lib/acontece';
+import { getAgenda, getNovidades, partesData, dataCurta, fimDoEvento } from '../lib/acontece';
 
 const config = await getSiteConfig();
 const headline = config.home_headline || 'Amigos que escalam juntos';
@@ -14,7 +14,7 @@ const fotoCapa = config.home_foto_capa || '/hero-capa.jpg';
 // data confirmada que ainda não tinham passado no dia do deploy.
 const hojeBuild = new Date().toISOString().slice(0, 10);
 const [agendaHome, novidadesHome] = await Promise.all([getAgenda(), getNovidades(3)]);
-const eventosFuturos = agendaHome.filter((e) => e.data >= hojeBuild && !e.data_a_confirmar).slice(0, 8);
+const eventosFuturos = agendaHome.filter((e) => fimDoEvento(e) >= hojeBuild && !e.data_a_confirmar).slice(0, 8);
 const cardsNovidades = novidadesHome.slice(0, 3);
 const linkWhatsAppHome = config.whatsapp_comunidade || '';
 
@@ -210,10 +210,10 @@ const trilhas = [
         </div>
         <div class="chegou__grade">
           {eventosFuturos.map((e) => { const d = partesData(e.data); return (
-            <a href="/acontece#agenda" class={`chegou__card chegou__card--evento chegou__card--${e.organizador_tipo}`} data-data={e.data} hidden>
+            <a href="/acontece#agenda" class={`chegou__card chegou__card--evento chegou__card--${e.organizador_tipo}`} data-data={e.data} data-fim={fimDoEvento(e)} hidden>
               <span class="chegou__tipo">Próximo evento</span>
               <strong>{e.titulo}</strong>
-              <span>{Number(d.dia)} {d.mes.toLowerCase()} · {e.organizador}</span>
+              <span>{Number(d.dia)} {d.mes.toLowerCase()}{fimDoEvento(e) !== e.data ? ` a ${dataCurta(fimDoEvento(e))}` : ''} · {e.organizador}</span>
             </a>
           ); })}
           {cardsNovidades.map((n, i) => (
@@ -456,7 +456,7 @@ const trilhas = [
   const d = new Date();
   const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const proximo = Array.from(document.querySelectorAll<HTMLElement>('.chegou__card--evento'))
-    .find((c) => (c.dataset.data || '') >= hoje);
+    .find((c) => (c.dataset.fim || c.dataset.data || '') >= hoje);
   if (proximo) {
     proximo.hidden = false;
     const terceira = document.querySelector<HTMLElement>('.chegou__card[data-novidade="2"]');
