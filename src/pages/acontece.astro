@@ -10,7 +10,7 @@
 import Layout from '../layouts/Layout.astro';
 import FormEvento from '../components/FormEvento.astro';
 import { getSiteConfig } from '../lib/supabase';
-import { getAgenda, getNovidades, partesData, dataCurta, diaSemana } from '../lib/acontece';
+import { getAgenda, getNovidades, partesData, dataCurta, diaSemana, fimDoEvento } from '../lib/acontece';
 
 const [agenda, novidades, config] = await Promise.all([getAgenda(), getNovidades(40), getSiteConfig()]);
 const linkWhatsApp = config.whatsapp_comunidade || '';
@@ -109,7 +109,7 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
               const d = partesData(e.data);
               const logo = logoDo(e);
               return (
-                <article class={`ac-evento ac-evento--${e.organizador_tipo}`} data-tipo={e.organizador_tipo} data-data={e.data} data-confirmar={e.data_a_confirmar ? '1' : '0'}>
+                <article class={`ac-evento ac-evento--${e.organizador_tipo}`} data-tipo={e.organizador_tipo} data-data={e.data} data-fim={fimDoEvento(e)} data-confirmar={e.data_a_confirmar ? '1' : '0'}>
                   <div class:list={['ac-data', { 'ac-data--confirmar': e.data_a_confirmar }]}>
                     {e.data_a_confirmar ? (<><b>?</b><span>em breve</span></>) : (<><b>{d.dia}</b><span>{diaSemana(e.data)}</span></>)}
                   </div>
@@ -127,6 +127,12 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
                         <span class="ac-tag">
                           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
                           {e.horario}
+                        </span>
+                      )}
+                      {fimDoEvento(e) !== e.data && !e.data_a_confirmar && (
+                        <span class="ac-tag">
+                          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>
+                          até {dataCurta(fimDoEvento(e))}
                         </span>
                       )}
                       {e.local && (
@@ -388,7 +394,9 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
   const eventos = Array.from(document.querySelectorAll<HTMLElement>('.ac-evento'));
   eventos.forEach((ev) => {
     const data = ev.dataset.data || '';
-    const passou = ev.dataset.confirmar === '1' ? data.slice(0, 7) < mesAtual : data < hojeISO;
+    // Eventos de vários dias continuam aparecendo até o último dia (data-fim).
+    const fim = ev.dataset.fim || data;
+    const passou = ev.dataset.confirmar === '1' ? data.slice(0, 7) < mesAtual : fim < hojeISO;
     if (passou) ev.dataset.passou = '1';
   });
 
