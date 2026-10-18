@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { supabase } from '../lib/supabase';
+import { supabase, mesAno } from '../lib/supabase';
 import type { Academia, AvaliacaoPublica } from '../lib/supabase';
 import FormAcademia from '../components/FormAcademia.astro';
 import { normalizar, siglaEstado, textoEstado, listarCidades } from '../lib/busca';
@@ -176,6 +176,7 @@ const cidadesDisponiveis = listarCidades(academias ?? []);
                             <div class="avaliacao-item__topo">
                               <span class="avaliacao-item__estrelas" aria-hidden="true">{'★'.repeat(c.nota)}{'☆'.repeat(5 - c.nota)}</span>
                               <strong>{c.nome}</strong>
+{mesAno(c.enviado_em) && <span class="avaliacao-item__data">{mesAno(c.enviado_em)}</span>}
                             </div>
                             {c.comentario && <p class="avaliacao-item__comentario">{c.comentario}</p>}
                           </li>
@@ -406,6 +407,7 @@ const cidadesDisponiveis = listarCidades(academias ?? []);
     font-size: 0.85rem;
   }
   .avaliacao-item__estrelas { color: var(--amarelo); letter-spacing: 1px; }
+  .avaliacao-item__data { margin-left: auto; font-size: 0.78rem; opacity: 0.6; white-space: nowrap; }
   .avaliacao-item__comentario {
     margin: 4px 0 0;
     font-size: 0.85rem;
