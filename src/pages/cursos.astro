@@ -8,7 +8,7 @@
 // Site estático: depois de aprovar no painel, é preciso um novo deploy na
 // Vercel pra publicar (o painel já dispara isso sozinho).
 import Layout from "../layouts/Layout.astro";
-import { supabase } from "../lib/supabase";
+import { supabase, mesAno } from "../lib/supabase";
 import { linkInstagram, usuarioInstagram, linkWhatsApp } from "../lib/contatos";
 import FormGuia from "../components/FormGuia.astro";
 import { textoEstado } from "../lib/busca";
@@ -315,6 +315,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
                           <div class="avaliacao-item__topo">
                             <span class="avaliacao-item__estrelas" aria-hidden="true">{'★'.repeat(c.nota)}{'☆'.repeat(5 - c.nota)}</span>
                             <strong>{c.nome}</strong>
+{mesAno(c.enviado_em) && <span class="avaliacao-item__data">{mesAno(c.enviado_em)}</span>}
                           </div>
                           {c.comentario && <p class="avaliacao-item__comentario">{c.comentario}</p>}
                         </li>
@@ -795,6 +796,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
   .avaliacao-item { background: var(--creme-claro); border-radius: 8px; padding: 10px 12px; }
   .avaliacao-item__topo { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
   .avaliacao-item__estrelas { color: var(--amarelo); letter-spacing: 1px; }
+  .avaliacao-item__data { margin-left: auto; font-size: 0.78rem; opacity: 0.6; white-space: nowrap; }
   .avaliacao-item__comentario { margin: 4px 0 0; font-size: 0.85rem; opacity: 0.85; }
   .form-avaliacao { display: flex; flex-direction: column; gap: 10px; background: var(--branco); border: 1px solid rgba(42, 31, 22, 0.15); border-radius: 8px; padding: 14px; }
   .form-avaliacao label { display: flex; flex-direction: column; gap: 4px; font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.72rem; color: var(--verde-escuro); letter-spacing: 0.03em; }
