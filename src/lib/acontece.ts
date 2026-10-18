@@ -21,6 +21,7 @@ export type EventoAgenda = {
   tipo: string | null;
   data: string; // AAAA-MM-DD
   data_a_confirmar: boolean;
+  data_fim?: string | null; // AAAA-MM-DD, último dia (eventos de vários dias; opcional)
   local: string | null;
   descricao: string | null;
   link: string | null;
@@ -52,6 +53,11 @@ export function diaSemana(iso: string) {
 }
 
 // "2026-09-25T13:00:00Z" -> "25 set"
+// Último dia do evento: data_fim quando existe e é depois do início; senão a própria data.
+export function fimDoEvento(e: { data: string; data_fim?: string | null }) {
+  return e.data_fim && e.data_fim > e.data ? e.data_fim : e.data;
+}
+
 export function dataCurta(iso: string) {
   const { dia, mes } = partesData(iso);
   return `${Number(dia)} ${mes.toLowerCase()}`;
@@ -64,7 +70,7 @@ export async function getAgenda(): Promise<EventoAgenda[]> {
   try {
     const { data, error } = await supabase
       .from('agenda_eventos')
-      .select(`${CAMPOS_AGENDA}, horario, logo_url, academias(imagem_url)`)
+      .select(`${CAMPOS_AGENDA}, horario, logo_url, data_fim, academias(imagem_url)`)
       .eq('publicado', true)
       .order('data', { ascending: true });
     if (!error && data) {
