@@ -211,6 +211,18 @@ export type FotoAvaliacaoLocalPublica = {
   enviado_em: string;
 };
 
+// Data curta das avaliações, no formato "out/2026" (horário de São Paulo).
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+export function mesAno(data: string | null | undefined): string {
+  if (!data) return '';
+  const d = new Date(data);
+  if (isNaN(d.getTime())) return '';
+  const partes = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', month: 'numeric', year: 'numeric' }).formatToParts(d);
+  const mes = Number(partes.find((x) => x.type === 'month')?.value);
+  const ano = partes.find((x) => x.type === 'year')?.value;
+  return mes && ano ? `${MESES_CURTOS[mes - 1]}/${ano}` : '';
+}
+
 // Busca as configs da Home/Sobre e devolve como um objeto fácil de usar: { headline: "...", foto_capa: "..." }
 export async function getSiteConfig(): Promise<Record<string, string>> {
   const { data } = await supabase.from('site_config').select('chave, valor');
