@@ -11,7 +11,7 @@
 // aqui (o painel já dispara isso sozinho).
 import { linkInstagram, linkWhatsApp } from "../../../lib/contatos";
 import Layout from '../../../layouts/Layout.astro';
-import { supabase } from '../../../lib/supabase';
+import { supabase, mesAno } from '../../../lib/supabase';
 import type {
   Local,
   Setor,
@@ -344,6 +344,7 @@ const jsonLdLocal = local
                   <div class="avaliacao-item__topo">
                     <span class="avaliacao-item__estrelas" aria-hidden="true">{'★'.repeat(a.nota)}{'☆'.repeat(5 - a.nota)}</span>
                     <strong>{a.nome}</strong>
+{mesAno(a.enviado_em) && <span class="avaliacao-item__data">{mesAno(a.enviado_em)}</span>}
                   </div>
                   {a.comentario && <p class="avaliacao-item__comentario">{a.comentario}</p>}
                   {a.link_video && (
@@ -719,6 +720,7 @@ const jsonLdLocal = local
   .avaliacao-resumo--vazia { opacity: 0.6; font-style: italic; }
   .avaliacao-item__topo { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
   .avaliacao-item__estrelas { color: var(--amarelo); letter-spacing: 1px; }
+  .avaliacao-item__data { margin-left: auto; font-size: 0.78rem; opacity: 0.6; white-space: nowrap; }
   .avaliacao-item__comentario { margin: 4px 0 0; font-size: 0.9rem; opacity: 0.9; }
   .avaliacao-item__video { margin: 6px 0 0; font-size: 0.85rem; }
   .avaliacao-item__fotos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
