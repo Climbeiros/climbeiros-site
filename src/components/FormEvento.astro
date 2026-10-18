@@ -65,6 +65,11 @@ const EQ = '<span class="selo selo--equipe">Só a equipe vê</span>';
       </label>
     </div>
     <div class="fc-campo">
+      <label for="fe-data-fim">Último dia <Fragment set:html={OP + ' ' + SITE} /></label>
+      <input type="date" id="fe-data-fim" name="data_fim" />
+      <small class="fc-ajuda">Só pra eventos de mais de um dia (festival, curso, campeonato). Assim ele fica na agenda até o fim.</small>
+    </div>
+    <div class="fc-campo">
       <label for="fe-horario">Horário <Fragment set:html={OP + ' ' + SITE} /></label>
       <input type="text" id="fe-horario" name="horario" placeholder="Ex.: a partir das 19h" />
     </div>
@@ -181,6 +186,11 @@ const EQ = '<span class="selo selo--equipe">Só a equipe vê</span>';
       campoCelular?.focus();
       return;
     }
+    const dataFim = txt(dados.data_fim);
+    if (dataFim && dataFim < txt(dados.data)) {
+      status.textContent = 'O último dia não pode ser antes da data de início.';
+      return;
+    }
     const link = linkSeguro(txt(dados.link));
     if (txt(dados.link) && !link) {
       status.textContent = 'O link não parece válido. Confira ou deixe o campo em branco.';
@@ -200,6 +210,7 @@ const EQ = '<span class="selo selo--equipe">Só a equipe vê</span>';
       tipo,
       data: txt(dados.data),
       data_a_confirmar: !!dados.data_a_confirmar,
+      ...(dataFim && dataFim > txt(dados.data) ? { data_fim: dataFim } : {}),
       horario: txt(dados.horario) || null,
       local: txt(dados.local),
       descricao: txt(dados.descricao) || null,
