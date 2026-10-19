@@ -65,9 +65,9 @@ const cidadesDisponiveis = listarCidades(academias ?? []);
       <p class="cta-academia"><a class="botao botao--secundario" href="#seja-academia">É dono(a) de academia? Apareça aqui →</a></p>
 
       {temSeloIndica && (
-        <p class="selo-disclaimer">
-          <img class="selo-disclaimer__icone" src="/selo-climbeiros-indica.png" alt="" aria-hidden="true" />
-          {textoSeloIndica}
+        <p class="selo-nota" title={textoSeloIndica}>
+          <img src="/selo-climbeiros-indica.png" alt="" aria-hidden="true" />
+          <span><strong>Climbeiros indica:</strong> academias que a gente conhece de perto, visitou e recomenda.</span>
         </p>
       )}
 
@@ -316,20 +316,10 @@ const cidadesDisponiveis = listarCidades(academias ?? []);
 </script>
 
 <style>
-  .selo-disclaimer {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    max-width: 720px;
-    font-size: 0.85rem;
-    opacity: 0.75;
-    margin: 12px 0 0;
-  }
-  .selo-disclaimer__icone {
-    width: 26px;
-    height: 26px;
-    flex-shrink: 0;
-  }
+  /* Mesmo estilo do aviso da página de guias (cursos.astro) */
+  .selo-nota { display: flex; width: fit-content; max-width: 100%; align-items: center; gap: 8px; margin: 18px 0 0; padding: 6px 14px 6px 6px; border-radius: 999px; background: var(--creme-claro); font-size: .85rem; color: #4a4033; }
+  .selo-nota img { width: 28px; height: 28px; flex: 0 0 auto; }
+  .selo-nota strong { color: var(--verde-escuro); }
 
   .card__imagem-wrap { position: relative; }
   .card__imagem {
