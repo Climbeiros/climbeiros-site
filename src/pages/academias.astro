@@ -60,64 +60,70 @@ const cidadesDisponiveis = listarCidades(academias ?? []);
 <Layout titulo="Academias" descricao="Academias de escalada e ginásios de boulder no Brasil, recomendados pela comunidade Climbeiros. Busque por nome, cidade, estado, modalidade ou CEP e veja endereço, modalidades e contato.">
   <section class="secao">
     <div class="container">
-      <p class="eyebrow">Onde treinar</p>
-      <h1>Academias de escalada</h1>
-      <p class="cta-academia"><a class="botao botao--secundario" href="#seja-academia">É dono(a) de academia? Apareça aqui →</a></p>
-
-      {temSeloIndica && (
-        <p class="selo-nota" title={textoSeloIndica}>
-          <img src="/selo-climbeiros-indica.png" alt="" aria-hidden="true" />
-          <span><strong>Climbeiros indica:</strong> academias que a gente conhece de perto, visitou e recomenda.</span>
-        </p>
-      )}
+      <!-- TOPO + BUSCA (lado a lado no computador, empilhado no celular), igual à página de guias -->
+      <div class="topo-grade">
+        <div class="topo-texto">
+          <p class="eyebrow">Onde treinar</p>
+          <h1>Academias de escalada</h1>
+          <p class="topo-lead">
+            Academias e ginásios de boulder que a galera frequenta e indica, pra você
+            treinar perto de casa. É só escolher e falar direto com a academia sobre
+            horários, aulas e valores.
+          </p>
+          <a class="topo-link" href="#seja-academia">É dono(a) de academia? Apareça aqui →</a>
+          {temSeloIndica && (
+            <p class="selo-nota" title={textoSeloIndica}>
+              <img src="/selo-climbeiros-indica.png" alt="" aria-hidden="true" />
+              <span><strong>Climbeiros indica:</strong> academias que a gente conhece de perto, visitou e recomenda.</span>
+            </p>
+          )}
+        </div>
+        {academias && academias.length > 0 && (
+            <div class="painel-busca">
+              <h2>Encontre uma academia</h2>
+              <input
+                type="search"
+                id="busca-academia"
+                placeholder="Nome, cidade, estado, modalidade ou CEP..."
+                aria-label="Buscar academias por nome, cidade, estado, modalidade ou CEP"
+              />
+              <div class="filtros">
+                {modalidadesDisponiveis.length > 0 && (
+                  <label class="filtro-campo">
+                    Modalidade
+                    <select id="filtro-modalidade">
+                      <option value="">Todas</option>
+                      {modalidadesDisponiveis.map((m) => <option value={m.id}>{m.nome}</option>)}
+                    </select>
+                  </label>
+                )}
+                {estadosDisponiveis.length > 0 && (
+                  <label class="filtro-campo">
+                    Estado
+                    <select id="filtro-uf">
+                      <option value="">Todos</option>
+                      {estadosDisponiveis.map((uf) => <option value={uf}>{uf}</option>)}
+                    </select>
+                  </label>
+                )}
+                {cidadesDisponiveis.length > 0 && (
+                  <label class="filtro-campo">
+                    Cidade
+                    <select id="filtro-cidade">
+                      <option value="">Todas</option>
+                      {cidadesDisponiveis.map((c) => <option value={c.chave} data-uf={c.uf}>{c.nome}{c.uf ? ` (${c.uf})` : ''}</option>)}
+                    </select>
+                  </label>
+                )}
+                <button type="button" id="filtro-limpar" class="botao botao--secundario" hidden>Limpar</button>
+              </div>
+              <p id="busca-status" class="busca-status" role="status"></p>
+            </div>
+        )}
+      </div>
 
       {(!academias || academias.length === 0) && (
         <p>Ainda estamos cadastrando as primeiras academias. Volte em breve!</p>
-      )}
-
-      {academias && academias.length > 0 && (
-        <>
-          <div class="painel-busca">
-            <h2>Encontre uma academia</h2>
-            <input
-              type="search"
-              id="busca-academia"
-              placeholder="Nome, cidade, estado, modalidade ou CEP..."
-              aria-label="Buscar academias por nome, cidade, estado, modalidade ou CEP"
-            />
-            <div class="filtros">
-              {modalidadesDisponiveis.length > 0 && (
-                <label class="filtro-campo">
-                  Modalidade
-                  <select id="filtro-modalidade">
-                    <option value="">Todas</option>
-                    {modalidadesDisponiveis.map((m) => <option value={m.id}>{m.nome}</option>)}
-                  </select>
-                </label>
-              )}
-              {estadosDisponiveis.length > 0 && (
-                <label class="filtro-campo">
-                  Estado
-                  <select id="filtro-uf">
-                    <option value="">Todos</option>
-                    {estadosDisponiveis.map((uf) => <option value={uf}>{uf}</option>)}
-                  </select>
-                </label>
-              )}
-              {cidadesDisponiveis.length > 0 && (
-                <label class="filtro-campo">
-                  Cidade
-                  <select id="filtro-cidade">
-                    <option value="">Todas</option>
-                    {cidadesDisponiveis.map((c) => <option value={c.chave} data-uf={c.uf}>{c.nome}{c.uf ? ` (${c.uf})` : ''}</option>)}
-                  </select>
-                </label>
-              )}
-              <button type="button" id="filtro-limpar" class="botao botao--secundario" hidden>Limpar</button>
-            </div>
-            <p id="busca-status" class="busca-status" role="status"></p>
-          </div>
-        </>
       )}
 
       <div class="grade grade--3" id="lista-academias">
@@ -481,7 +487,15 @@ const cidadesDisponiveis = listarCidades(academias ?? []);
   .estrelas-input label:hover ~ label {
     color: var(--amarelo);
   }
-  .cta-academia { margin: 4px 0 20px; }
+  .topo-grade { display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; margin-bottom: 36px; }
+  /* min-width: 0 evita que uma opção longa nos filtros alargue a página no celular */
+  .topo-grade > * { min-width: 0; }
+  .topo-texto h1 { margin-bottom: 16px; }
+  .topo-lead { font-size: 1.08rem; line-height: 1.6; color: #4a4033; margin: 0 0 14px; max-width: 600px; }
+  .topo-link { color: var(--laranja); font-weight: 600; }
+  .topo-grade .painel-busca { margin: 0; }
+  .topo-grade .painel-busca .filtro-campo { min-width: 120px; }
+  @media (max-width: 820px) { .topo-grade { grid-template-columns: 1fr; gap: 24px; } }
   .seja-academia__box { background: var(--creme-claro); border-radius: 12px; padding: 48px 40px; max-width: 760px; margin: 0 auto; box-shadow: var(--sombra); }
   .seja-academia h2 { font-family: var(--fonte-display); text-transform: uppercase; color: var(--verde-escuro); text-align: center; font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0 0 12px; }
   .seja-academia__intro { max-width: 520px; margin: 0 auto 32px; text-align: center; color: #5f5344; }
