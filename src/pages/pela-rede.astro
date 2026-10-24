@@ -108,7 +108,14 @@ const { data: parceiros } = await supabase
   .from('parceiros')
   .select('*')
   .order('nome_marca') as { data: Parceiro[] | null };
-const parceirosComLogo = (parceiros ?? []).filter((p) => p.logo_url);
+// Alguns logos do Supabase têm muita margem em branco e ficam minúsculos na
+// faixa. Pra esses, usamos uma versão recortada que fica em public/images.
+const logosRecortados: Record<string, string> = {
+  decathlon: '/images/rede-decathlon.png',
+};
+const parceirosComLogo = (parceiros ?? [])
+  .filter((p) => p.logo_url)
+  .map((p) => ({ ...p, logo_url: logosRecortados[p.nome_marca.trim().toLowerCase()] ?? p.logo_url }));
 ---
 <Layout
   titulo="Pela Rede"
