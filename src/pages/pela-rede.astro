@@ -1,0 +1,329 @@
+---
+// Página "Pela Rede": links de fora que a comunidade usa e indica.
+// Pra adicionar, tirar ou mudar um link, é só editar as listas abaixo
+// (não precisa mexer no resto do arquivo). Logos ficam em public/images/rede-*.png;
+// sem logo, o cartão mostra as iniciais que estão em "sigla".
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+import type { Parceiro } from '../lib/supabase';
+
+type Link = {
+  nome: string;
+  url: string;
+  endereco: string;
+  etiqueta: string;
+  texto: string;
+  logo?: string;
+  sigla?: string;
+};
+type Secao = {
+  id: string;
+  eyebrow: string;
+  titulo: string;
+  intro: string;
+  links: Link[];
+  aqui?: { texto: string; href: string }[];
+};
+
+const secoes: Secao[] = [
+  {
+    id: 'rocha',
+    eyebrow: 'Vai pra rocha?',
+    titulo: 'Planejar a saída',
+    intro: 'Guias e croquis online pra achar setor, via, grau e acesso.',
+    links: [
+      { nome: 'Brasil Boulder', url: 'https://brasilboulder.info/', endereco: 'brasilboulder.info', etiqueta: 'Boulder', logo: '/images/rede-brasil-boulder.png',
+        texto: 'Banco de dados colaborativo de setores de boulder no Brasil, com mapa, beta de acesso e busca de problemas por grau.' },
+      { nome: 'theCrag', url: 'https://www.thecrag.com/pt/escalando/brazil', endereco: 'thecrag.com', etiqueta: 'Vias e setores', sigla: 'tC',
+        texto: 'Guia mundial feito pela comunidade, com muitas áreas brasileiras catalogadas, vias, graus e croquis.' },
+      { nome: 'The Topo', url: 'https://thetopo.com/', endereco: 'thetopo.com · antigo 27 Crags', etiqueta: 'Vias e setores', logo: '/images/rede-the-topo.png',
+        texto: 'O antigo 27 Crags, que mudou de nome. Guia colaborativo internacional com croquis em foto e registro das vias que você já mandou.' },
+    ],
+    aqui: [{ texto: 'Rotas & Setores', href: '/rotas' }],
+  },
+  {
+    id: 'dupla',
+    eyebrow: 'Achar parceiro',
+    titulo: 'Pra escalar junto ou achar dupla',
+    intro: 'Pra quem está sem parceiro ou chegou numa cidade nova e quer combinar a próxima escalada.',
+    links: [
+      { nome: 'Gora', url: 'https://goraclimb.com/', endereco: 'goraclimb.com', etiqueta: 'Achar dupla', logo: '/images/rede-gora.png',
+        texto: 'App pra achar parceiro de escalada: mostra no mapa quem está escalando por perto, filtra por estilo e nível e tem chat pra combinar a saída. Por enquanto só pra iPhone.' },
+    ],
+  },
+  {
+    id: 'equipar',
+    eyebrow: 'Comprar o material',
+    titulo: 'Onde se equipar',
+    intro: 'Lojas de escalada pra comprar cadeirinha, sapatilha, corda e o resto do material.',
+    links: [
+      { nome: 'Quero Escalar', url: 'https://queroescalar.com.br/', endereco: 'queroescalar.com.br', etiqueta: 'Cursos e loja', logo: '/images/rede-quero-escalar.png',
+        texto: 'Loja e escola de escalada de São Carlos (SP), com cursos em rocha, vivências e um blog com croquis da região.' },
+      { nome: 'Conquista Montanhismo', url: 'https://www.conquistamontanhismo.com.br/', endereco: 'conquistamontanhismo.com.br', etiqueta: 'Loja · Brasil', logo: '/images/rede-conquista.png',
+        texto: 'Marca brasileira que faz equipamento e roupa de montanha desde 1990: cadeirinhas, cordas, mosquetões, costuras e magnésio. Vende online pra todo o Brasil.' },
+      { nome: 'Au Vieux Campeur', url: 'https://www.auvieuxcampeur.fr/', endereco: 'auvieuxcampeur.fr', etiqueta: 'Loja · Paris', sigla: 'VC',
+        texto: 'A loja francesa clássica de montanha e escalada, com várias lojas no Quartier Latin, em Paris, e loja online. Parada obrigatória pra quem passa por lá.' },
+    ],
+    aqui: [{ texto: 'Guias & Cursos', href: '/cursos' }],
+  },
+  {
+    id: 'federacoes',
+    eyebrow: 'Acompanhar o esporte',
+    titulo: 'Federações e portais',
+    intro: 'As entidades que organizam a escalada no Brasil e os portais com calendário de competições e notícias.',
+    links: [
+      { nome: 'CBEscalada', url: 'https://cbescalada.org.br/', endereco: 'cbescalada.org.br', etiqueta: 'Competição', logo: '/images/rede-cbescalada.png',
+        texto: 'Confederação Brasileira de Escalada Esportiva: calendário do Campeonato Brasileiro, seleção e resultados.' },
+      { nome: 'ABEE', url: 'https://abee.com.br/', endereco: 'abee.com.br', etiqueta: 'Competição', sigla: 'ABEE',
+        texto: 'Associação Brasileira de Escalada Esportiva, com eventos, filiação e uma lista de onde escalar pelo país.' },
+      { nome: 'AltaMontanha', url: 'https://altamontanha.com/', endereco: 'altamontanha.com', etiqueta: 'Notícias', logo: '/images/rede-altamontanha.png',
+        texto: 'Portal brasileiro de montanhismo e escalada, com cobertura dos campeonatos nacionais e notícias da comunidade.' },
+    ],
+    aqui: [{ texto: 'Acontece', href: '/acontece' }],
+  },
+];
+
+const marcas = [
+  { nome: 'Petzl', sigla: 'PZ', origem: 'França', endereco: 'petzl.com', url: 'https://www.petzl.com/',
+    texto: 'Cadeirinhas, capacetes, lanternas e o GriGri, o freio mais visto nas academias.' },
+  { nome: 'Black Diamond', sigla: 'BD', origem: 'EUA', endereco: 'blackdiamondequipment.com', url: 'https://www.blackdiamondequipment.com/',
+    texto: 'Mosquetões, costuras, magnésio e os Camalots, os friends mais usados em móvel.' },
+  { nome: 'Mammut', sigla: 'MA', origem: 'Suíça', endereco: 'mammut.com', url: 'https://www.mammut.com/',
+    texto: 'Cordas, cadeirinhas e roupa de montanha. Uma das marcas mais antigas do esporte.' },
+  { nome: 'Edelrid', sigla: 'ER', origem: 'Alemanha', endereco: 'edelrid.com', url: 'https://www.edelrid.com/',
+    texto: 'Cordas desde o século XIX, cadeirinhas e o Ohm, que ajuda quando a dupla tem pesos diferentes.' },
+  { nome: 'Beal', sigla: 'BE', origem: 'França', endereco: 'beal-planet.com', url: 'https://www.beal-planet.com/',
+    texto: 'Especialista em cordas: simples, duplas e de academia, além de fitas e cordeletes.' },
+  { nome: 'La Sportiva', sigla: 'LS', origem: 'Itália', endereco: 'lasportiva.com', url: 'https://www.lasportiva.com/',
+    texto: 'Sapatilhas que viraram referência, como Solution, Katana e Tarantulace, e botas de montanha.' },
+  { nome: 'Scarpa', sigla: 'SC', origem: 'Itália', endereco: 'scarpa.com', url: 'https://www.scarpa.com/',
+    texto: 'Sapatilhas como Instinct, Drago e Veloce, do boulder ao iniciante.' },
+  { nome: 'Tenaya', sigla: 'TN', origem: 'Espanha', endereco: 'tenaya.net', url: 'https://www.tenaya.net/',
+    texto: 'Sapatilhas de performance, como Oasi e Iati, muito usadas em boulder e esportiva.' },
+];
+
+// Faixa "Com cupom": puxa as marcas parceiras do Supabase (mesma tabela da
+// página Parcerias & Cupons). Marca nova entra aqui sozinha no próximo deploy.
+const { data: parceiros } = await supabase
+  .from('parceiros')
+  .select('*')
+  .order('nome_marca') as { data: Parceiro[] | null };
+const parceirosComLogo = (parceiros ?? []).filter((p) => p.logo_url);
+---
+<Layout
+  titulo="Pela Rede"
+  descricao="Sites, guias, lojas e marcas de escalada que a comunidade Climbeiros usa e indica: croquis online, achar dupla, onde se equipar, federações e portais."
+>
+  <section class="secao rede-topo">
+    <div class="container">
+      <p class="eyebrow">Pela rede</p>
+      <h1>Outros cantos da escalada</h1>
+      <p class="rede-topo__intro">
+        Sites, guias, lojas e marcas que a galera usa e indica. Ninguém precisa saber tudo sozinho:
+        aqui está onde a gente vai quando quer planejar a saída pra rocha, achar dupla, comprar
+        equipamento ou acompanhar campeonato.
+      </p>
+      <nav class="rede-atalhos" aria-label="Seções da página">
+        {secoes.map((s) => (
+          <a href={`#${s.id}`}>{s.titulo} <span>{s.links.length}</span></a>
+        ))}
+        <a href="#marcas">Marcas de escalada <span>{marcas.length}</span></a>
+      </nav>
+    </div>
+  </section>
+
+  {secoes.map((s) => (
+    <section class="rede-bloco" id={s.id}>
+      <div class="container">
+        <div class="rede-bloco__topo">
+          <p class="eyebrow">{s.eyebrow}</p>
+          <h2>{s.titulo}</h2>
+          <p>{s.intro}</p>
+        </div>
+        <div class:list={['rede-grade', { 'rede-grade--1': s.links.length === 1 }]}>
+          {s.links.map((l) => (
+            <a class="rede-link" href={l.url} target="_blank" rel="noopener">
+              <div class="rede-link__topo">
+                {l.logo ? (
+                  <span class="rede-logo"><img src={l.logo} alt="" loading="lazy" /></span>
+                ) : (
+                  <span class="rede-logo rede-logo--texto">{l.sigla}</span>
+                )}
+                <span class="rede-tag">{l.etiqueta}</span>
+              </div>
+              <span class="rede-link__nome">{l.nome}</span>
+              <span class="rede-link__end">{l.endereco}</span>
+              <p>{l.texto}</p>
+              <span class="rede-link__ir">Abrir site →</span>
+            </a>
+          ))}
+        </div>
+
+        {s.id === 'equipar' && parceirosComLogo.length > 0 && (
+          <a class="rede-parceiros" href="/parceiros">
+            <span class="rede-parceiros__selo">Com cupom</span>
+            <span class="rede-parceiros__texto"><strong>Parceiros do Climbeiros</strong></span>
+            <span class="rede-parceiros__logos">
+              {parceirosComLogo.map((p) => (
+                <span class="rede-parceiros__logo"><img src={p.logo_url} alt={p.nome_marca} loading="lazy" /></span>
+              ))}
+            </span>
+            <span class="rede-parceiros__ir">Ver cupons em Parcerias &amp; Cupons →</span>
+          </a>
+        )}
+
+        {s.aqui && (
+          <p class="rede-aqui">
+            Aqui no Climbeiros:{' '}
+            {s.aqui.map((a, i) => (
+              <>{i > 0 && ' · '}<a href={a.href}>{a.texto} →</a></>
+            ))}
+          </p>
+        )}
+      </div>
+    </section>
+  ))}
+
+  <section class="rede-bloco" id="marcas">
+    <div class="container">
+      <div class="rede-bloco__topo">
+        <p class="eyebrow">Conhecer o material</p>
+        <h2>Marcas de escalada</h2>
+        <p>
+          Os nomes que mais aparecem nas cadeirinhas, cordas e sapatilhas da galera. Vale entrar no
+          site de cada uma pra ver ficha técnica, tabela de tamanhos e manual de uso.
+        </p>
+      </div>
+      <div class="rede-marcas">
+        {marcas.map((m) => (
+          <a class="rede-marca" href={m.url} target="_blank" rel="noopener">
+            <span class="rede-marca__sigla">{m.sigla}</span>
+            <span class="rede-marca__info">
+              <span class="rede-marca__nome">{m.nome}</span>
+              <span class="rede-marca__origem">{m.origem} · {m.endereco}</span>
+              <span class="rede-marca__texto">{m.texto}</span>
+            </span>
+          </a>
+        ))}
+      </div>
+      <p class="rede-aqui">
+        Os sites das marcas são de fora. Pra comprar no Brasil, veja as lojas acima ou os
+        <a href="/parceiros">cupons dos parceiros →</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="container">
+    <div class="rede-indique">
+      <div>
+        <h2>Conhece um site ou marca boa?</h2>
+        <p>Manda pra gente. Se for útil pra quem escala, entra na lista.</p>
+      </div>
+      <a href="/contato" class="botao">Indicar um link →</a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .rede-topo { padding-bottom: 28px; }
+  .rede-topo__intro { max-width: 40rem; font-size: 1.08rem; }
+  .rede-atalhos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .rede-atalhos a {
+    font-size: .9rem; font-weight: 600; color: var(--verde-escuro);
+    background: var(--creme-claro); border-radius: 999px; padding: 6px 14px;
+  }
+  .rede-atalhos a:hover { background: var(--creme); text-decoration: none; }
+  .rede-atalhos a span { font-weight: 500; color: var(--verde); margin-left: 4px; }
+
+  .rede-bloco { padding: 36px 0; border-top: 1px solid #eadfc4; scroll-margin-top: 72px; }
+  .rede-bloco__topo { max-width: 40rem; margin-bottom: 20px; }
+  .rede-bloco__topo h2 { margin-bottom: 6px; }
+  .rede-bloco__topo p:last-child { margin: 0; }
+
+  .rede-grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .rede-grade--1 { grid-template-columns: minmax(0, 40rem); }
+
+  .rede-link {
+    background: var(--branco); border: 1px solid #eadfc4; border-radius: 14px; padding: 18px;
+    display: flex; flex-direction: column; gap: 8px; min-width: 0; color: inherit;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .rede-link:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -18px rgba(42,31,22,.5); text-decoration: none; }
+  .rede-link__topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+  .rede-link__nome { font: 700 1.15rem var(--fonte-display); text-transform: uppercase; color: var(--marrom); }
+  .rede-link__end { font-size: .82rem; color: var(--verde); overflow-wrap: anywhere; }
+  .rede-link p { margin: 0; font-size: .94rem; flex: 1; }
+  .rede-link__ir { font-weight: 600; font-size: .9rem; color: var(--laranja); }
+
+  .rede-logo {
+    width: 56px; height: 56px; flex: 0 0 56px; border-radius: 12px; background: #fff;
+    border: 1px solid #eadfc4; display: grid; place-items: center; overflow: hidden;
+  }
+  .rede-logo img { width: 44px; height: 44px; object-fit: contain; }
+  .rede-logo--texto {
+    background: var(--verde-escuro); border-color: var(--verde-escuro); color: var(--creme);
+    font: 700 1.1rem var(--fonte-display); letter-spacing: .02em;
+  }
+  .rede-tag {
+    font: 500 .72rem var(--fonte-display); letter-spacing: .08em; text-transform: uppercase;
+    background: var(--creme-claro); color: var(--verde-escuro); border-radius: 6px; padding: 3px 8px;
+  }
+
+  .rede-parceiros {
+    margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+    background: var(--creme-claro); border: 1px dashed var(--verde); border-radius: 14px;
+    padding: 14px 18px; color: var(--marrom);
+  }
+  .rede-parceiros:hover { background: var(--creme); text-decoration: none; }
+  .rede-parceiros__selo {
+    font: 500 .72rem var(--fonte-display); letter-spacing: .08em; text-transform: uppercase;
+    background: var(--laranja); color: #fff; border-radius: 6px; padding: 3px 8px;
+  }
+  .rede-parceiros__logos { display: flex; flex-wrap: wrap; gap: 10px; }
+  .rede-parceiros__logo {
+    background: #fff; border: 1px solid #eadfc4; border-radius: 10px; height: 52px;
+    padding: 0 16px; display: grid; place-items: center;
+  }
+  .rede-parceiros__logo img { height: 22px; width: auto; max-width: 140px; }
+  .rede-parceiros__ir { margin-left: auto; font-weight: 600; font-size: .9rem; color: var(--laranja); }
+
+  .rede-aqui { margin: 16px 0 0; font-size: .92rem; color: var(--verde-escuro); }
+  .rede-aqui a { font-weight: 600; }
+
+  .rede-marcas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .rede-marca {
+    display: flex; gap: 12px; align-items: flex-start; background: var(--branco);
+    border: 1px solid #eadfc4; border-radius: 14px; padding: 14px; color: inherit; min-width: 0;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .rede-marca:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -18px rgba(42,31,22,.5); text-decoration: none; }
+  .rede-marca__sigla {
+    flex: 0 0 44px; height: 44px; border-radius: 10px; background: var(--verde-escuro); color: var(--creme);
+    display: grid; place-items: center; font: 700 1rem var(--fonte-display); letter-spacing: .02em;
+  }
+  .rede-marca__info { display: grid; gap: 2px; min-width: 0; }
+  .rede-marca__nome { font: 700 1.05rem var(--fonte-display); text-transform: uppercase; }
+  .rede-marca__origem { font-size: .78rem; color: var(--verde); overflow-wrap: anywhere; }
+  .rede-marca__texto { font-size: .88rem; margin-top: 4px; }
+
+  .rede-indique {
+    margin-top: 36px; background: var(--verde-escuro); color: var(--creme-claro); border-radius: 16px;
+    padding: 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .rede-indique h2 { color: var(--creme); font-size: 1.6rem; margin: 0; }
+  .rede-indique p { margin: 6px 0 0; max-width: 34rem; }
+
+  .rede-link:focus-visible, .rede-marca:focus-visible, .rede-parceiros:focus-visible {
+    outline: 2px solid var(--laranja); outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rede-link, .rede-marca { transition: none; }
+  }
+  @media (max-width: 900px) {
+    .rede-grade, .rede-marcas { grid-template-columns: 1fr 1fr; }
+    .rede-grade--1 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .rede-grade, .rede-marcas { grid-template-columns: 1fr; }
+  }
+</style>
