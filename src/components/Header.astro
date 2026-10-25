@@ -1,6 +1,5 @@
 ---
 const links = [
-  { href: '/', label: 'Home' },
   { href: '/sobre', label: 'Sobre' },
   { href: '/acontece', label: 'Acontece' },
   { href: '/beta', label: 'Beta' },
@@ -8,10 +7,14 @@ const links = [
   { href: '/cursos', label: 'Guias & Cursos' },
   { href: '/rotas', label: 'Rotas & Setores' },
   { href: '/parceiros', label: 'Parcerias & Cupons' },
+  { href: '/pela-rede', label: 'Pela Rede' },
   { href: '/galeria', label: 'Galeria' },
   { href: '/contato', label: 'Contato' },
 ];
-const path = Astro.url.pathname;
+// O endereço publicado termina com barra ("/rotas/"), e as páginas de dentro
+// ("/rotas/pedra-do-bau/") também devem acender o item do menu.
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const ativo = (href: string) => path === href || path.startsWith(href + '/');
 ---
 <header class="header">
   <div class="container header__linha">
@@ -23,7 +26,7 @@ const path = Astro.url.pathname;
       <ul class="header__lista header__lista--desktop">
         {links.map((link) => (
           <li>
-            <a href={link.href} class:list={['header__link', { 'header__link--ativo': path === link.href }]}>{link.label}</a>
+            <a href={link.href} class:list={['header__link', { 'header__link--ativo': ativo(link.href) }]}>{link.label}</a>
           </li>
         ))}
       </ul>
@@ -38,7 +41,7 @@ const path = Astro.url.pathname;
   <ul class="header__lista header__lista--mobile" id="menu-lista-mobile">
     {links.map((link) => (
       <li>
-        <a href={link.href} class:list={['header__link', { 'header__link--ativo': path === link.href }]}>{link.label}</a>
+        <a href={link.href} class:list={['header__link', { 'header__link--ativo': ativo(link.href) }]}>{link.label}</a>
       </li>
     ))}
   </ul>
