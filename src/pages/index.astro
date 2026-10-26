@@ -259,8 +259,8 @@ const trilhas = [
 <style>
   .hero {
     position: relative;
-    /* Mais alta no computador pra caber o céu e a parede. */
-    min-height: clamp(560px, 80vh, 860px);
+    /* Faixa mais baixa (46% da tela, entre 340 e 460 px) pra o conteúdo aparecer logo. */
+    min-height: clamp(340px, 46vh, 460px);
     display: flex;
     align-items: flex-end;
     color: var(--branco);
@@ -273,8 +273,8 @@ const trilhas = [
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* Mostra o céu azul em cima e a parede de rocha embaixo. */
-    object-position: center 50%;
+    /* Desce o enquadramento pra mostrar mais parede e menos céu. */
+    object-position: center 64%;
   }
   .hero__sombra {
     position: absolute;
@@ -284,8 +284,8 @@ const trilhas = [
   }
   .hero__conteudo {
     position: relative;
-    padding-bottom: 150px;
-    padding-top: 200px;
+    padding-bottom: 132px;
+    padding-top: 72px;
   }
   .hero__trilhas { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; }
   .hero__pergunta { margin: 0 0 12px; font-family: 'Oswald', sans-serif; font-weight: 500; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--creme-claro); }
@@ -293,7 +293,7 @@ const trilhas = [
   @media (max-width: 640px) {
     /* No celular a foto (vertical) fica mais baixa e mostra a parede, não o céu. */
     .hero { min-height: 0; }
-    .hero__conteudo { padding-top: 96px; padding-bottom: 128px; }
+    .hero__conteudo { padding-top: 40px; padding-bottom: 120px; }
     .hero__imagem img { object-position: center 58%; }
     .hero__pergunta { font-size: 0.88rem; margin-bottom: 10px; }
   }
@@ -303,6 +303,7 @@ const trilhas = [
   .hero__titulo {
     color: var(--branco);
     max-width: 680px;
+    font-size: clamp(2rem, 4.2vw, 3rem);
   }
 
   /* Cartões de destaque — fundo branco com borda colorida no topo (uma cor
