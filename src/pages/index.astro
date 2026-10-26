@@ -279,11 +279,13 @@ const trilhas = [
   .hero__sombra {
     position: absolute;
     inset: 0;
-    /* Céu limpo no alto; escurece só embaixo, onde ficam o título e as abas. */
-    background: linear-gradient(180deg, rgba(42,31,22,0) 0%, rgba(42,31,22,0.05) 35%, rgba(42,31,22,0.55) 70%, rgba(42,31,22,0.85) 100%);
+    /* Escurece a foto toda um pouco (e mais embaixo) pra o título e as abas aparecerem bem. */
+    background: linear-gradient(180deg, rgba(42,31,22,0.15) 0%, rgba(42,31,22,0.35) 35%, rgba(42,31,22,0.7) 70%, rgba(42,31,22,0.9) 100%);
   }
   .hero__conteudo {
     position: relative;
+    /* Ocupa a largura toda: sem isso a caixa encolhe e o título fica centralizado. */
+    width: 100%;
     padding-bottom: 132px;
     padding-top: 72px;
   }
@@ -297,13 +299,14 @@ const trilhas = [
     .hero__imagem img { object-position: center 58%; }
     .hero__pergunta { font-size: 0.88rem; margin-bottom: 10px; }
   }
-  .hero__eyebrow { color: var(--branco); }
+  .hero__eyebrow { color: var(--branco); font-size: 0.9rem; text-shadow: 0 2px 12px rgba(0,0,0,0.55); }
   .hero__eyebrow::before { background: var(--branco); }
 
   .hero__titulo {
     color: var(--branco);
     max-width: 680px;
     font-size: clamp(2rem, 4.2vw, 3rem);
+    text-shadow: 0 2px 12px rgba(0,0,0,0.55);
   }
 
   /* Cartões de destaque — fundo branco com borda colorida no topo (uma cor
