@@ -11,6 +11,7 @@ import Layout from '../layouts/Layout.astro';
 import FormEvento from '../components/FormEvento.astro';
 import { getSiteConfig } from '../lib/supabase';
 import { getAgenda, getNovidades, partesData, dataCurta, diaSemana, fimDoEvento } from '../lib/acontece';
+import { linkGoogle, linkIcs, quandoCurto } from '../lib/calendario';
 
 const [agenda, novidades, config] = await Promise.all([getAgenda(), getNovidades(40), getSiteConfig()]);
 const linkWhatsApp = config.whatsapp_comunidade || '';
@@ -98,7 +99,7 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
       </div>
 
       {agenda.length > 0 && (
-        <p class="ac-legenda">A cor mostra quem organiza. Clique em "Ver detalhes" pra ir direto pro post do evento.</p>
+        <p class="ac-legenda">A cor mostra quem organiza. Clique em "Ver detalhes" pra ir direto pro post do evento, ou em "+ Calendário" pra salvar no seu celular.</p>
       )}
 
       <div class="ac-cal" id="ac-eventos">
@@ -144,12 +145,52 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
                       {e.data_a_confirmar && <span class="ac-confirmar">data a confirmar</span>}
                     </div>
                   </div>
-                  {e.link && <a class="ac-ver" href={e.link} target="_blank" rel="noopener">Ver detalhes →</a>}
+                  {(e.link || !e.data_a_confirmar) && (
+                    <div class="ac-acoes">
+                      {e.link && <a class="ac-ver" href={e.link} target="_blank" rel="noopener">Ver detalhes →</a>}
+                      {!e.data_a_confirmar && (
+                        <button
+                          type="button"
+                          class="ac-add"
+                          aria-haspopup="dialog"
+                          aria-expanded="false"
+                          data-titulo={e.titulo}
+                          data-quando={quandoCurto(e)}
+                          data-google={linkGoogle(e)}
+                          data-ics={linkIcs(e)}
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" /></svg>
+                          Calendário
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </article>
               );
             })}
           </div>
         ))}
+      </div>
+
+
+      <!-- Menu do botão "+ Calendário" (um só pra página; o script preenche com o evento clicado) -->
+      <div class="ac-cal-fundo" id="ac-cal-fundo" hidden></div>
+      <div class="ac-cal-menu" id="ac-cal-menu" role="dialog" aria-label="Salvar no calendário" hidden>
+        <div class="ac-cal-menu__titulo">Salvar no calendário</div>
+        <div class="ac-cal-menu__evento" id="ac-cal-evento"></div>
+        <a class="ac-cal-op" id="ac-cal-google" href="#" target="_blank" rel="noopener">
+          <span class="ac-cal-op__ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M3.5 10h17M8 3v4M16 3v4" /><path d="M9 15h6" /></svg></span>
+          <span><strong>Google Agenda</strong><small>Android ou computador</small></span>
+        </a>
+        <a class="ac-cal-op" id="ac-cal-apple" href="#">
+          <span class="ac-cal-op__ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5" /><path d="M10.5 18.5h3" /></svg></span>
+          <span><strong>iPhone, iPad ou Mac</strong><small>Abre o app Calendário pra confirmar</small></span>
+        </a>
+        <a class="ac-cal-op" id="ac-cal-outro" href="#" download>
+          <span class="ac-cal-op__ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg></span>
+          <span><strong>Outlook ou outro app</strong><small>Baixa o evento pra abrir no app</small></span>
+        </a>
+        <p class="ac-cal-menu__nota">Se o evento mudar depois (horário, local), confira aqui no Acontece: o calendário não atualiza sozinho.</p>
       </div>
 
       <p class="ac-vazio" id="ac-vazio" hidden={agenda.length > 0}>
@@ -295,6 +336,32 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
   .ac-tag--local:hover { background: #e9dfc6; color: var(--marrom); }
   .ac-confirmar { font-size: .75rem; font-style: italic; opacity: .75; }
   .ac-ver { color: var(--laranja); font-weight: 600; font-size: .88rem; white-space: nowrap; }
+
+  /* Botão "+ Calendário" e o menu de opções */
+  .ac-acoes { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .ac-add {
+    display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;
+    font-family: var(--fonte-corpo); font-weight: 600; font-size: .82rem; color: var(--verde-escuro);
+    background: var(--branco); border: 1.5px solid var(--verde-escuro); border-radius: 999px; padding: 5px 12px;
+  }
+  .ac-add svg { width: 14px; height: 14px; }
+  .ac-add:hover, .ac-add[aria-expanded="true"] { background: var(--verde-escuro); color: #fff; }
+  .ac-add:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
+  .ac-cal-fundo { display: none; }
+  .ac-cal-menu {
+    position: fixed; z-index: 60; width: 330px; background: #fff; border-radius: 12px; padding: 8px;
+    box-shadow: 0 18px 40px -12px rgba(42,31,22,.45), 0 0 0 1px #eadfbf;
+  }
+  .ac-cal-menu[hidden], .ac-cal-fundo[hidden] { display: none; }
+  .ac-cal-menu__titulo { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; color: #7a6c58; padding: 8px 10px 0; }
+  .ac-cal-menu__evento { font-weight: 700; font-size: .92rem; padding: 2px 10px 6px; color: var(--marrom); line-height: 1.35; }
+  .ac-cal-op { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 9px; color: var(--marrom); }
+  .ac-cal-op:hover, .ac-cal-op:focus-visible { background: var(--creme-claro); text-decoration: none; outline: none; }
+  .ac-cal-op__ic { flex: none; width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; background: #f1ebdb; color: var(--verde-escuro); }
+  .ac-cal-op__ic svg { width: 20px; height: 20px; }
+  .ac-cal-op strong { display: block; font-size: .95rem; }
+  .ac-cal-op small { display: block; font-size: .8rem; color: #7a6c58; line-height: 1.3; }
+  .ac-cal-menu__nota { font-size: .78rem; color: #7a6c58; border-top: 1px solid #eadfbf; margin: 6px 4px 0; padding: 10px 6px 4px; line-height: 1.4; }
   @media (max-width: 640px) {
     /* No celular: data, logo menor e texto; "Ver detalhes" embaixo do texto. */
     .ac-evento { grid-template-columns: 54px 40px 1fr; gap: 6px 12px; padding: 14px 16px; align-items: start; }
@@ -302,7 +369,14 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
     .ac-data span { font-size: .62rem; letter-spacing: .02em; }
     .ac-logo { width: 40px; height: 40px; margin-top: 4px; }
     .ac-logo--txt { font-size: .85rem; }
-    .ac-ver { grid-column: 3; }
+    .ac-evento { grid-template-columns: 54px 40px minmax(0, 1fr); }
+    .ac-acoes { grid-column: 3; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px 14px; min-width: 0; }
+    .ac-add { padding: 6px 13px; }
+    /* No celular o menu vira uma gaveta que sobe de baixo */
+    .ac-cal-fundo { display: block; position: fixed; inset: 0; background: rgba(42,31,22,.45); z-index: 59; }
+    .ac-cal-menu { left: 0 !important; right: 0; bottom: 0; top: auto !important; width: auto; border-radius: 18px 18px 0 0; padding: 10px 12px 22px; }
+    .ac-cal-menu::before { content: ""; display: block; width: 40px; height: 4px; border-radius: 2px; background: #d8ccab; margin: 2px auto 6px; }
+    .ac-cal-op { padding: 13px 10px; }
   }
   .ac-vazio { margin: 0; }
 
@@ -463,4 +537,55 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
     const txt = relativo(t.dateTime);
     if (txt) { t.title = t.textContent || ''; t.textContent = txt; }
   });
+  // 4) Botão "+ Calendário": abre o menu com as opções pro evento clicado.
+  //    No computador o menu aparece embaixo do botão; no celular, sobe de baixo.
+  const menuCal = document.getElementById('ac-cal-menu');
+  const fundoCal = document.getElementById('ac-cal-fundo');
+  let botaoAberto: HTMLButtonElement | null = null;
+  function fecharCal() {
+    if (!menuCal || !fundoCal) return;
+    menuCal.hidden = true;
+    fundoCal.hidden = true;
+    botaoAberto?.setAttribute('aria-expanded', 'false');
+    botaoAberto = null;
+  }
+  function abrirCal(b: HTMLButtonElement) {
+    if (!menuCal || !fundoCal) return;
+    const d = b.dataset;
+    const ics = new URL(d.ics || '', window.location.origin).href;
+    document.getElementById('ac-cal-evento')!.textContent = `${d.titulo} · ${d.quando}`;
+    (document.getElementById('ac-cal-google') as HTMLAnchorElement).href = d.google || '#';
+    // iPhone/Mac: abrir o .ics faz o app Calendário oferecer "Adicionar".
+    (document.getElementById('ac-cal-apple') as HTMLAnchorElement).href = ics;
+    (document.getElementById('ac-cal-outro') as HTMLAnchorElement).href = ics;
+    menuCal.hidden = false;
+    fundoCal.hidden = false;
+    b.setAttribute('aria-expanded', 'true');
+    botaoAberto = b;
+    // Posição no computador: embaixo do botão, alinhado à direita (ou em cima, se não couber).
+    const r = b.getBoundingClientRect();
+    const alt = menuCal.offsetHeight;
+    const topo = r.bottom + 8 + alt > window.innerHeight && r.top - 8 - alt > 0 ? r.top - 8 - alt : r.bottom + 8;
+    menuCal.style.top = `${topo}px`;
+    menuCal.style.left = `${Math.max(8, Math.min(r.right - menuCal.offsetWidth, window.innerWidth - menuCal.offsetWidth - 8))}px`;
+    (menuCal.querySelector('.ac-cal-op') as HTMLElement | null)?.focus({ preventScroll: true });
+  }
+  document.querySelectorAll<HTMLButtonElement>('.ac-add').forEach((b) =>
+    b.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (botaoAberto === b) fecharCal();
+      else { fecharCal(); abrirCal(b); }
+    })
+  );
+  fundoCal?.addEventListener('click', fecharCal);
+  menuCal?.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    if ((ev.target as HTMLElement).closest('.ac-cal-op')) setTimeout(fecharCal, 300);
+  });
+  document.addEventListener('click', () => { if (botaoAberto) fecharCal(); });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && botaoAberto) { const b = botaoAberto; fecharCal(); b.focus(); }
+  });
+  // No computador o menu "solta" do botão ao rolar a página: fecha.
+  window.addEventListener('scroll', () => { if (botaoAberto && window.innerWidth > 640) fecharCal(); }, { passive: true });
 </script>
