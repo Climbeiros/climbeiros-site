@@ -11,11 +11,13 @@
  *
  * Os botões do menu (Header.astro) têm o atributo data-instalar e começam
  * escondidos; este script mostra quando faz sentido.
- * O banner fica no topo da página, logo abaixo do menu, e aparece assim que
- * a página abre (celular e computador). Se a pessoa fechar, some por 30 dias.
+ * O banner fica fixo na parte de baixo da tela (como os avisos de cookies) e
+ * aparece assim que a página abre, no celular e no computador. Enquanto ele
+ * está aberto, o botão laranja de feedback sobe pra não ficar escondido.
+ * Se a pessoa fechar, some por 30 dias.
  */
 ---
-<div class="inst-aviso" id="inst-aviso" hidden>
+<div class="inst-aviso" id="inst-aviso" role="region" aria-label="Instalar o app Climbeiros" hidden>
   <div class="container inst-aviso__linha">
     <img src="/icons/icon-192.png" alt="" class="inst-aviso__icone" width="40" height="40" />
     <div class="inst-aviso__texto">
@@ -79,18 +81,34 @@
     }
   }
 
+  // Avisa o resto da página que o banner está aberto e qual a altura dele,
+  // pra subir o botão de feedback e deixar espaço no fim da página.
+  function ajustarEspaco() {
+    const aberto = !!aviso && !aviso.hidden;
+    document.body.classList.toggle('com-banner-instalar', aberto);
+    if (aberto && aviso) {
+      document.documentElement.style.setProperty('--altura-banner-instalar', `${aviso.offsetHeight}px`);
+    }
+  }
+  function esconderAviso() {
+    if (aviso) aviso.hidden = true;
+    ajustarEspaco();
+  }
+
   function mostrarBotoes(mostrar: boolean) {
     document.querySelectorAll<HTMLElement>('[data-instalar]').forEach((el) => {
       const alvo = el.closest<HTMLElement>('[data-instalar-item]') ?? el;
       alvo.hidden = !mostrar;
     });
-    if (!mostrar && aviso) aviso.hidden = true;
+    if (!mostrar) esconderAviso();
   }
 
   function talvezMostrarAviso() {
     if (!aviso || avisoFoiFechado() || jaInstalado()) return;
     if (location.pathname.startsWith('/offline')) return;
     aviso.hidden = false;
+    ajustarEspaco();
+    window.addEventListener('resize', ajustarEspaco);
   }
 
   async function instalar() {
@@ -103,7 +121,7 @@
     }
     if (ehIos() && dialogoIos) {
       dialogoIos.showModal();
-      if (aviso) aviso.hidden = true;
+      esconderAviso();
     }
   }
 
@@ -112,7 +130,7 @@
   });
 
   document.getElementById('inst-fechar')?.addEventListener('click', () => {
-    if (aviso) aviso.hidden = true;
+    esconderAviso();
     try { localStorage.setItem(CHAVE_FECHADO, String(Date.now())); } catch { /* sem problema */ }
   });
 
@@ -142,39 +160,53 @@
 
 <style>
   .inst-aviso {
-    background: var(--creme-claro);
-    border-bottom: 1px solid rgba(42, 31, 22, 0.12);
-    animation: inst-descer 0.3s ease-out;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1001; /* acima do botão de feedback */
+    background: var(--branco);
+    border-top: 3px solid var(--laranja);
+    box-shadow: 0 -8px 28px rgba(42, 31, 22, 0.22);
+    padding-bottom: env(safe-area-inset-bottom); /* barra do iPhone */
+    animation: inst-subir 0.35s ease-out;
   }
   .inst-aviso[hidden] { display: none; }
-  @keyframes inst-descer { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes inst-subir { from { transform: translateY(100%); } to { transform: none; } }
 
   .inst-aviso__linha {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding-top: 14px;
+    padding-bottom: 14px;
   }
+  /* Enquanto o banner está aberto: botão de feedback sobe e o fim da página
+     ganha espaço pra nada ficar escondido atrás dele. */
+  :global(body.com-banner-instalar) { padding-bottom: var(--altura-banner-instalar, 80px); }
+  :global(body.com-banner-instalar .botao-fb) { bottom: calc(var(--altura-banner-instalar, 80px) + 14px); }
   .inst-aviso__icone { border-radius: 9px; flex: 0 0 auto; }
   .inst-aviso__texto { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
-  .inst-aviso__texto strong { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.85rem; color: var(--verde-escuro); letter-spacing: 0.02em; }
-  .inst-aviso__texto span { font-size: 0.8rem; opacity: 0.8; }
+  .inst-aviso__texto strong { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.95rem; color: var(--verde-escuro); letter-spacing: 0.02em; }
+  .inst-aviso__texto span { font-size: 0.85rem; opacity: 0.8; }
   .inst-aviso__instalar {
     margin-left: auto;
     flex: 0 0 auto;
     border: none;
     border-radius: 999px;
-    background: var(--verde-escuro);
-    color: var(--creme-claro);
+    background: var(--laranja);
+    color: #fff;
     font-family: var(--fonte-display);
     text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 0.03em;
-    padding: 9px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 12px 22px;
     cursor: pointer;
+    box-shadow: 0 4px 12px rgba(218, 115, 38, 0.4);
+    transition: transform 0.15s, background 0.15s;
   }
-  .inst-aviso__instalar:hover { background: var(--verde); }
+  .inst-aviso__instalar:hover { background: var(--amarelo); transform: translateY(-1px); }
   .inst-aviso__fechar {
     flex: 0 0 auto;
     width: 32px;
@@ -192,6 +224,10 @@
   @media (max-width: 420px) {
     .inst-aviso__linha { gap: 8px; }
     .inst-aviso__icone { width: 34px; height: 34px; }
+    .inst-aviso__texto span { font-size: 0.78rem; }
+    .inst-aviso__instalar { padding: 11px 16px; font-size: 0.85rem; }
+  }
+  @media (max-width: 380px) {
     .inst-aviso__texto span { display: none; }
   }
 
