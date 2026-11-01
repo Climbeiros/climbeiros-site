@@ -103,11 +103,11 @@ const jsonLdTexto = todosBlocos.length
   </head>
   <body>
     <Header />
+    <InstalarApp />
     <main>
       <slot />
     </main>
     <Footer />
-    <InstalarApp />
     <script is:inline>
       // Liga o modo app/offline (arquivo /sw.js). Navegadores antigos só ignoram.
       if ('serviceWorker' in navigator) {
