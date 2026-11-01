@@ -29,6 +29,9 @@ const ativo = (href: string) => path === href || path.startsWith(href + '/');
             <a href={link.href} class:list={['header__link', { 'header__link--ativo': ativo(link.href) }]}>{link.label}</a>
           </li>
         ))}
+        <li data-instalar-item hidden>
+          <button type="button" class="header__link header__instalar" data-instalar>📲 Instalar app</button>
+        </li>
       </ul>
     </nav>
 
@@ -44,6 +47,9 @@ const ativo = (href: string) => path === href || path.startsWith(href + '/');
         <a href={link.href} class:list={['header__link', { 'header__link--ativo': ativo(link.href) }]}>{link.label}</a>
       </li>
     ))}
+    <li data-instalar-item hidden>
+      <button type="button" class="header__link header__instalar" data-instalar>📲 Instalar app</button>
+    </li>
   </ul>
 </header>
 
@@ -106,6 +112,15 @@ const ativo = (href: string) => path === href || path.startsWith(href + '/');
   }
   .header__link:hover { color: var(--amarelo); text-decoration: none; }
   .header__link--ativo { color: var(--amarelo); }
+  .header__lista li[hidden] { display: none; }
+  .header__instalar {
+    background: none;
+    border: 1px solid rgba(240, 226, 178, 0.45);
+    border-radius: 999px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  .header__instalar:hover { color: var(--amarelo); border-color: var(--amarelo); }
 
   @media (max-width: 900px) {
     .header__nav { display: none; }
@@ -124,6 +139,7 @@ const ativo = (href: string) => path === href || path.startsWith(href + '/');
     }
     .header__lista--mobile.header__lista--aberta { display: flex; }
     .header__lista--mobile .header__link { display: block; padding: 10px 0; white-space: normal; }
+    .header__lista--mobile .header__instalar { margin-top: 8px; padding: 10px 16px; }
     .header__lista--mobile li { min-height: auto; justify-content: flex-start; text-align: left; }
   }
 </style>

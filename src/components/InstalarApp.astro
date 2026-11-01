@@ -1,0 +1,221 @@
+---
+/*
+ * Botão "Instalar app" (PWA).
+ *
+ * - Android e computador (Chrome/Edge): o navegador avisa que o site pode ser
+ *   instalado (evento beforeinstallprompt); guardamos esse aviso e, quando a
+ *   pessoa toca no botão, abrimos a instalação nativa.
+ * - iPhone/iPad: a Apple não permite instalação automática, então o botão
+ *   abre um passo a passo de "Compartilhar > Adicionar à Tela de Início".
+ * - Quem já está usando o app instalado não vê nada.
+ *
+ * Os botões do menu (Header.astro) têm o atributo data-instalar e começam
+ * escondidos; este script mostra quando faz sentido.
+ * O aviso do rodapé aparece só no celular, uma vez, e se a pessoa fechar
+ * ele some por 30 dias.
+ */
+---
+<div class="inst-aviso" id="inst-aviso" hidden>
+  <img src="/icons/icon-192.png" alt="" class="inst-aviso__icone" width="44" height="44" />
+  <div class="inst-aviso__texto">
+    <strong>Climbeiros no seu celular</strong>
+    <span>Instale o app e salve locais pra ver sem sinal.</span>
+  </div>
+  <button type="button" class="inst-aviso__instalar" data-instalar>Instalar</button>
+  <button type="button" class="inst-aviso__fechar" id="inst-fechar" aria-label="Fechar aviso">×</button>
+</div>
+
+<dialog class="inst-ios" id="inst-ios" aria-labelledby="inst-ios-titulo">
+  <button type="button" class="inst-ios__fechar" id="inst-ios-fechar" aria-label="Fechar">×</button>
+  <img src="/icons/icon-192.png" alt="" class="inst-ios__icone" width="64" height="64" />
+  <h2 id="inst-ios-titulo">Instale o Climbeiros no iPhone</h2>
+  <ol class="inst-ios__passos">
+    <li>
+      Toque em <strong>Compartilhar</strong>
+      <svg class="inst-ios__simbolo" viewBox="0 0 24 24" aria-label="ícone de Compartilhar" role="img">
+        <path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M8 10H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      na barra do navegador (embaixo no iPhone, em cima no iPad).
+    </li>
+    <li>Role a lista e escolha <strong>Adicionar à Tela de Início</strong>.</li>
+    <li>Toque em <strong>Adicionar</strong>. Pronto, o ícone aparece junto dos seus apps.</li>
+  </ol>
+  <p class="inst-ios__dica">
+    Não achou a opção? Abra o site pelo <strong>Safari</strong>. Dentro do Instagram ou do WhatsApp ela não aparece.
+  </p>
+  <button type="button" class="botao inst-ios__ok" id="inst-ios-ok">Entendi</button>
+</dialog>
+
+<script>
+  const CHAVE_FECHADO = 'climbeiros-instalar-fechado';
+  const TRINTA_DIAS = 30 * 24 * 60 * 60 * 1000;
+
+  type EventoInstalacao = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+  let eventoInstalacao: EventoInstalacao | null = null;
+
+  const aviso = document.getElementById('inst-aviso');
+  const dialogoIos = document.getElementById('inst-ios') as HTMLDialogElement | null;
+
+  const jaInstalado = () =>
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+  const ehIos = () =>
+    /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // Navegador interno do Instagram, Facebook, WhatsApp etc. não instala.
+  const navegadorDeApp = () => /Instagram|FBAN|FBAV|WhatsApp|Line\//i.test(navigator.userAgent);
+
+  const ehCelular = () => window.matchMedia('(max-width: 900px) and (pointer: coarse)').matches;
+
+  function avisoFoiFechado() {
+    try {
+      const quando = Number(localStorage.getItem(CHAVE_FECHADO) || 0);
+      return Date.now() - quando < TRINTA_DIAS;
+    } catch {
+      return false;
+    }
+  }
+
+  function mostrarBotoes(mostrar: boolean) {
+    document.querySelectorAll<HTMLElement>('[data-instalar]').forEach((el) => {
+      const alvo = el.closest<HTMLElement>('[data-instalar-item]') ?? el;
+      alvo.hidden = !mostrar;
+    });
+    if (!mostrar && aviso) aviso.hidden = true;
+  }
+
+  function talvezMostrarAviso() {
+    if (!aviso || !ehCelular() || avisoFoiFechado()) return;
+    if (location.pathname.startsWith('/offline')) return;
+    // Espera um pouco pra não atrapalhar a primeira olhada na página.
+    setTimeout(() => {
+      if (!jaInstalado()) aviso.hidden = false;
+    }, 4000);
+  }
+
+  async function instalar() {
+    if (eventoInstalacao) {
+      eventoInstalacao.prompt();
+      const { outcome } = await eventoInstalacao.userChoice;
+      eventoInstalacao = null;
+      if (outcome === 'accepted') mostrarBotoes(false);
+      return;
+    }
+    if (ehIos() && dialogoIos) {
+      dialogoIos.showModal();
+      if (aviso) aviso.hidden = true;
+    }
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-instalar]').forEach((el) => {
+    el.addEventListener('click', instalar);
+  });
+
+  document.getElementById('inst-fechar')?.addEventListener('click', () => {
+    if (aviso) aviso.hidden = true;
+    try { localStorage.setItem(CHAVE_FECHADO, String(Date.now())); } catch { /* sem problema */ }
+  });
+
+  const fecharIos = () => dialogoIos?.close();
+  document.getElementById('inst-ios-fechar')?.addEventListener('click', fecharIos);
+  document.getElementById('inst-ios-ok')?.addEventListener('click', fecharIos);
+  dialogoIos?.addEventListener('click', (e) => { if (e.target === dialogoIos) fecharIos(); });
+
+  if (!jaInstalado()) {
+    // Android / computador: o navegador avisa quando dá pra instalar.
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      eventoInstalacao = e as EventoInstalacao;
+      mostrarBotoes(true);
+      talvezMostrarAviso();
+    });
+
+    // iPhone/iPad: não existe aviso do navegador, então mostramos direto.
+    if (ehIos() && !navegadorDeApp()) {
+      mostrarBotoes(true);
+      talvezMostrarAviso();
+    }
+  }
+
+  window.addEventListener('appinstalled', () => mostrarBotoes(false));
+</script>
+
+<style>
+  .inst-aviso {
+    position: fixed;
+    left: 12px;
+    right: 84px; /* deixa espaço pro botão laranja de feedback */
+    bottom: 16px;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 10px 10px 12px;
+    background: var(--branco);
+    border: 1px solid rgba(42, 31, 22, 0.12);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(42, 31, 22, 0.25);
+    animation: inst-subir 0.3s ease-out;
+  }
+  .inst-aviso[hidden] { display: none; }
+  @keyframes inst-subir { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .inst-aviso__icone { border-radius: 10px; flex: 0 0 auto; }
+  .inst-aviso__texto { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+  .inst-aviso__texto strong { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.82rem; color: var(--verde-escuro); letter-spacing: 0.02em; }
+  .inst-aviso__texto span { font-size: 0.78rem; opacity: 0.8; }
+  .inst-aviso__instalar {
+    margin-left: auto;
+    flex: 0 0 auto;
+    border: none;
+    border-radius: 999px;
+    background: var(--verde-escuro);
+    color: var(--creme-claro);
+    font-family: var(--fonte-display);
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    padding: 9px 14px;
+    cursor: pointer;
+  }
+  .inst-aviso__fechar {
+    position: absolute;
+    top: -9px;
+    left: -9px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid rgba(42, 31, 22, 0.15);
+    background: var(--branco);
+    color: var(--marrom);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(42, 31, 22, 0.2);
+  }
+
+  .inst-ios {
+    width: min(400px, calc(100vw - 32px));
+    border: none;
+    border-radius: 18px;
+    padding: 26px 22px 22px;
+    background: var(--branco);
+    color: var(--marrom);
+    box-shadow: 0 20px 50px rgba(42, 31, 22, 0.4);
+    text-align: center;
+  }
+  .inst-ios::backdrop { background: rgba(42, 31, 22, 0.45); }
+  .inst-ios__fechar {
+    position: absolute; top: 10px; right: 12px;
+    background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--marrom); opacity: 0.6;
+  }
+  .inst-ios__icone { border-radius: 14px; margin: 0 auto 10px; display: block; }
+  .inst-ios h2 { font-size: 1.25rem; margin: 0 0 14px; }
+  .inst-ios__passos { text-align: left; margin: 0; padding-left: 22px; display: grid; gap: 10px; font-size: 0.95rem; }
+  .inst-ios__simbolo { width: 20px; height: 20px; vertical-align: -4px; color: #0a84ff; margin: 0 2px; }
+  .inst-ios__dica { font-size: 0.82rem; opacity: 0.75; margin: 16px 0; text-align: left; }
+  .inst-ios__ok { width: 100%; }
+</style>

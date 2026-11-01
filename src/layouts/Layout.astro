@@ -1,6 +1,7 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import InstalarApp from '../components/InstalarApp.astro';
 import Analytics from '@vercel/analytics/astro';
 import '../styles/global.css';
 
@@ -106,6 +107,7 @@ const jsonLdTexto = todosBlocos.length
       <slot />
     </main>
     <Footer />
+    <InstalarApp />
     <script is:inline>
       // Liga o modo app/offline (arquivo /sw.js). Navegadores antigos só ignoram.
       if ('serviceWorker' in navigator) {
