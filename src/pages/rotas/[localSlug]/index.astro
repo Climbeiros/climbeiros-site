@@ -171,6 +171,7 @@ const jsonLdLocal = local
 
         <div class="local-detalhe__titulo">
           <h1>{local.nome}</h1>
+          <div class="local-detalhe__acoes">
           <button
             type="button"
             class="botao-compartilhar"
@@ -179,6 +180,15 @@ const jsonLdLocal = local
             title="Compartilhar"
             aria-label={`Compartilhar ${local.nome}`}
           >↗ Compartilhar</button>
+          <button
+            type="button"
+            class="botao-compartilhar botao-offline"
+            data-local={`/rotas/${local.slug}`}
+            data-capa={local.imagem_capa_url || ''}
+            title="Guardar este local e os setores no celular, pra abrir sem internet"
+            hidden
+          >⤓ Salvar offline</button>
+          </div>
         </div>
         <p class="local-detalhe__local">{[local.regiao, local.cidade, local.estado].filter(Boolean).join(' · ')}</p>
 
@@ -444,6 +454,61 @@ const jsonLdLocal = local
     });
   });
 
+  // ---- Salvar offline (PWA) ----
+  // Guarda a página do Local, a de cada setor e os arquivos que elas usam no
+  // cache "climbeiros-salvos", que o service worker (/sw.js) consulta quando
+  // não tem sinal. A chave é o endereço sem a barra final, igual ao sw.js.
+  const CACHE_SALVOS = 'climbeiros-salvos';
+  const chavePagina = (caminho: string) =>
+    window.location.origin + (caminho !== '/' ? caminho.replace(/\/+$/, '') : '/');
+
+  async function salvarUrl(cache: Cache, caminho: string, ehPagina: boolean) {
+    const res = await fetch(caminho, { credentials: 'same-origin' });
+    if (!res.ok) throw new Error(`${caminho}: ${res.status}`);
+    const corpo = await res.blob();
+    const limpa = new Response(corpo, { status: 200, headers: res.headers });
+    await cache.put(ehPagina ? chavePagina(new URL(caminho, window.location.origin).pathname) : caminho, limpa);
+    return ehPagina ? await corpo.text() : '';
+  }
+
+  const botaoOffline = document.querySelector<HTMLButtonElement>('.botao-offline');
+  if (botaoOffline && 'caches' in window && 'serviceWorker' in navigator) {
+    const local = botaoOffline.dataset.local || '';
+    const marcarSalvo = () => { botaoOffline.textContent = '✓ Salvo offline'; };
+    botaoOffline.hidden = false;
+    caches.open(CACHE_SALVOS).then((c) => c.match(chavePagina(local))).then((r) => { if (r) marcarSalvo(); });
+
+    botaoOffline.addEventListener('click', async () => {
+      botaoOffline.disabled = true;
+      botaoOffline.textContent = 'Salvando...';
+      try {
+        const cache = await caches.open(CACHE_SALVOS);
+        const setores = Array.from(document.querySelectorAll<HTMLAnchorElement>('.setores-lista__link'))
+          .map((a) => new URL(a.href).pathname);
+        const paginas = [local, ...new Set(setores)];
+        const arquivos = new Set<string>();
+        for (const p of paginas) {
+          const html = await salvarUrl(cache, p, true);
+          // CSS, scripts e imagens do próprio site usados pela página.
+          for (const m of html.matchAll(/(?:src|href)="(\/(?:_astro|images|icons)\/[^"]+)"/g)) arquivos.add(m[1]);
+        }
+        await Promise.all([...arquivos].map((a) => salvarUrl(cache, a, false).catch(() => {})));
+        const capa = botaoOffline.dataset.capa;
+        if (capa) {
+          try { const r = await fetch(capa); if (r.ok) await cache.put(capa, r); } catch { /* capa é opcional */ }
+        }
+        // Pede ao navegador pra não apagar esse conteúdo quando faltar espaço.
+        try { await navigator.storage?.persist?.(); } catch { /* opcional */ }
+        marcarSalvo();
+      } catch (e) {
+        console.error('Salvar offline falhou:', e);
+        botaoOffline.textContent = 'Não deu, tente com sinal';
+      } finally {
+        botaoOffline.disabled = false;
+      }
+    });
+  }
+
   // ---- Previsão do tempo (Open-Meteo, API pública e gratuita, sem chave) ----
   // Emoji na apresentação colorida padrão do sistema (sem variation selector
   // U+FE0E): a versão monocromática desses símbolos não tem suporte
@@ -503,7 +568,9 @@ const jsonLdLocal = local
       })
       .catch((err) => {
         console.error('Previsão do tempo (Open-Meteo):', err);
-        painelPrevisao.innerHTML = '<p class="previsao__erro">Não foi possível carregar a previsão agora. Tente de novo mais tarde.</p>';
+        painelPrevisao.innerHTML = navigator.onLine === false
+          ? '<p class="previsao__erro">Sem internet agora. A previsão aparece quando o sinal voltar.</p>'
+          : '<p class="previsao__erro">Não foi possível carregar a previsão agora. Tente de novo mais tarde.</p>';
       })
       .finally(() => clearTimeout(tempoLimite));
   }
@@ -608,6 +675,8 @@ const jsonLdLocal = local
   }
   .local-detalhe__titulo { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .local-detalhe__titulo h1 { margin: 0; }
+  .local-detalhe__acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .botao-offline:disabled { opacity: 0.6; cursor: wait; }
   .local-detalhe__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .tag-tipo {
     font-size: 0.72rem;

@@ -16,6 +16,8 @@ interface Props {
   /** Dados estruturados (schema.org): bloco invisível que explica pro Google e
    *  pras IAs o que é a página (um local de escalada, um artigo...). */
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  /** Esconde a página do Google (usado na página /offline/ do app). */
+  semIndice?: boolean;
 }
 const {
   titulo,
@@ -24,6 +26,7 @@ const {
   tipo = 'website',
   tituloCompleto: tituloPersonalizado,
   jsonLd,
+  semIndice = false,
 } = Astro.props;
 
 // Endereço oficial da página, igual ao do sitemap (https://www.climbeiros.com.br/...,
@@ -74,6 +77,13 @@ const jsonLdTexto = todosBlocos.length
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- App instalável (PWA): ícone na tela inicial, tela cheia e modo offline -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Climbeiros" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    {semIndice && <meta name="robots" content="noindex" />}
     <title>{tituloCompleto}</title>
     <meta name="description" content={descricao} />
     <link rel="canonical" href={canonical} />
@@ -96,5 +106,13 @@ const jsonLdTexto = todosBlocos.length
       <slot />
     </main>
     <Footer />
+    <script is:inline>
+      // Liga o modo app/offline (arquivo /sw.js). Navegadores antigos só ignoram.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>

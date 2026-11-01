@@ -1,0 +1,93 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout titulo="Sem conexão" descricao="Você está sem internet. Veja as páginas do Climbeiros salvas no seu celular." semIndice>
+  <section class="secao">
+    <div class="container offline">
+      <p class="eyebrow">Climbeiros</p>
+      <h1>Você está sem sinal</h1>
+      <p>
+        Esta página ainda não estava salva no seu celular. Quando a internet
+        voltar, ela abre normalmente. Enquanto isso, estas estão disponíveis:
+      </p>
+
+      <h2>Locais que você salvou</h2>
+      <ul id="lista-salvos" class="offline__lista"><li class="offline__vazio">Carregando...</li></ul>
+
+      <h2>Páginas que você já abriu</h2>
+      <ul id="lista-vistas" class="offline__lista"><li class="offline__vazio">Carregando...</li></ul>
+
+      <p class="offline__dica">
+        Dica: antes de ir pra falésia, abra a página do Local e toque em
+        <strong>Salvar offline</strong>. Ele guarda o Local e todos os setores.
+      </p>
+      <a href="/" class="botao">Tentar de novo</a>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  async function titulos(nomeCache: string) {
+    if (!('caches' in window)) return [];
+    const cache = await caches.open(nomeCache);
+    const chaves = await cache.keys();
+    const itens: { url: string; titulo: string }[] = [];
+    for (const req of chaves) {
+      const res = await cache.match(req);
+      if (!res || !(res.headers.get('content-type') || '').includes('text/html')) continue;
+      const url = new URL(req.url);
+      if (url.pathname.startsWith('/offline')) continue;
+      const html = await res.text();
+      const m = html.match(/<title>([^<]*)<\/title>/i);
+      const titulo = (m ? m[1] : url.pathname).replace(/\s*·\s*Climbeiros\s*$/, '').replace(/&amp;/g, '&');
+      itens.push({ url: url.pathname, titulo });
+    }
+    return itens.sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR'));
+  }
+
+  function preencher(id: string, itens: { url: string; titulo: string }[], vazio: string) {
+    const ul = document.getElementById(id);
+    if (!ul) return;
+    ul.innerHTML = '';
+    if (!itens.length) {
+      const li = document.createElement('li');
+      li.className = 'offline__vazio';
+      li.textContent = vazio;
+      ul.appendChild(li);
+      return;
+    }
+    for (const { url, titulo } of itens) {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = url;
+      a.textContent = titulo;
+      li.appendChild(a);
+      ul.appendChild(li);
+    }
+  }
+
+  (async () => {
+    try {
+      const salvos = await titulos('climbeiros-salvos');
+      const urlsSalvas = new Set(salvos.map((s) => s.url));
+      const vistas = (await titulos('climbeiros-paginas')).filter((v) => !urlsSalvas.has(v.url));
+      preencher('lista-salvos', salvos, 'Nenhum local salvo ainda.');
+      preencher('lista-vistas', vistas, 'Nenhuma página guardada ainda.');
+    } catch {
+      preencher('lista-salvos', [], 'Não foi possível ler as páginas salvas.');
+      preencher('lista-vistas', [], '');
+    }
+  })();
+</script>
+
+<style>
+  .offline { max-width: 720px; }
+  .offline h2 { margin-top: 28px; font-size: 1.2rem; }
+  .offline__lista { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+  .offline__lista a {
+    display: block; padding: 12px 14px; border-radius: var(--raio);
+    background: var(--creme-claro); color: var(--verde-escuro); text-decoration: none; font-weight: 600;
+  }
+  .offline__vazio { opacity: 0.7; }
+  .offline__dica { margin: 28px 0 18px; padding: 14px; border-left: 4px solid var(--laranja); background: var(--branco); }
+</style>
