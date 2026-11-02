@@ -59,12 +59,12 @@ const lados = nomesLados.map((lado) => ({
 // Hospedagens, guias e avaliações são vinculados ao Local (não mais ao setor
 // específico), já que uma hospedagem/guia costuma atender o lugar inteiro.
 const { data: hospedagens } = local
-  ? await supabase.from('inscricoes_hospedagens').select('*').order('ordem') as { data: Hospedagem[] | null }
+  ? await supabase.from('inscricoes_hospedagens').select('id, nome, contato_reserva, link_reserva, distancia, locais_ids, tem_desconto, desconto_desc, ordem').order('ordem') as { data: Hospedagem[] | null }
   : { data: null };
 const hospedagensDoLocal = (hospedagens ?? []).filter((h) => (h.locais_ids ?? []).includes(local?.id ?? ''));
 
 const { data: guias } = local
-  ? await supabase.from('inscricoes_guias').select('*').order('ordem') as { data: Guia[] | null }
+  ? await supabase.from('inscricoes_guias').select('id, nome, email, telefone, instagram, cidade, uf, especialidades_lista, certificacao, foto_url, bio, cursos_oferecidos, locais_ids, locais_interesse, cupom_codigo, cupom_desc, climbeiros_indica, ordem, criado_em').order('ordem') as { data: Guia[] | null }
   : { data: null };
 const guiasDoLocal = (guias ?? []).filter((g) => (g.locais_ids ?? []).includes(local?.id ?? ''));
 
