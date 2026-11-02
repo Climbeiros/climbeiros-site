@@ -14,7 +14,9 @@ import FormGuia from "../components/FormGuia.astro";
 import { textoEstado } from "../lib/busca";
 const { data: guiasBanco } = await supabase
   .from("inscricoes_guias")
-  .select("*");
+  // Só as colunas públicas (marcadas "No site" no formulário). As de "Só a
+  // equipe vê" (contato_pref, mensagem) são bloqueadas no banco pra chave pública.
+  .select("id, nome, email, telefone, instagram, cidade, uf, especialidades_lista, certificacao, foto_url, bio, cursos_oferecidos, locais_ids, locais_interesse, cupom_codigo, cupom_desc, climbeiros_indica, ordem, criado_em");
 // Ordem dos cards (automática):
 // 0) Fixados: quem tem "ordem" maior que 0 no Supabase vem primeiro (1, 2, 3...).
 //    Deixe 0 (ou vazio) pra seguir a ordem automática abaixo.
