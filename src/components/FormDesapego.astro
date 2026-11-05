@@ -125,6 +125,15 @@ const anoAtual = new Date().getFullYear();
       ))}
     </div>
   </div>
+  <div class="fc-campo" id="fd-bairros-campo" hidden>
+    <label for="fd-bairros">Bairro(s) pra retirada <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+    <input type="text" id="fd-bairros" name="retirada_bairros" maxlength="120" placeholder="Ex.: Pinheiros (perto de casa) ou Vila Olímpia (perto do trabalho)" />
+    <small class="fc-ajuda">Só o bairro, sem endereço. O ponto exato vocês combinam no WhatsApp.</small>
+  </div>
+  <div class="fc-campo" id="fd-academias-campo" hidden>
+    <label for="fd-academias">Em qual(is) academia(s) você pode entregar? <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+    <input type="text" id="fd-academias" name="entrega_academias" maxlength="150" placeholder="Ex.: Casa de Pedra Perdizes, Gravidade" />
+  </div>
 
   <div class="fc-linha">
     <div class="fc-campo">
@@ -190,6 +199,8 @@ const anoAtual = new Date().getFullYear();
   const blocoSeg = document.getElementById('fd-seguranca')!;
   const campoPreco = document.getElementById('fd-preco-campo')!;
   const campoTroca = document.getElementById('fd-troca-campo')!;
+  const campoBairros = document.getElementById('fd-bairros-campo')!;
+  const campoAcademias = document.getElementById('fd-academias-campo')!;
   const inputFotos = document.getElementById('fd-fotos') as HTMLInputElement;
   const previas = document.getElementById('fd-previas')!;
   const campoWhats = document.getElementById('fd-whats') as HTMLInputElement;
@@ -205,9 +216,12 @@ const anoAtual = new Date().getFullYear();
     const modalidade = (form?.querySelector('input[name="modalidade"]:checked') as HTMLInputElement)?.value;
     campoPreco.hidden = modalidade !== 'venda';
     campoTroca.hidden = modalidade !== 'troca';
+    const entregas = Array.from(form?.querySelectorAll<HTMLInputElement>('input[name="entrega"]:checked') ?? []).map((c) => c.value);
+    campoBairros.hidden = !entregas.includes('retirada');
+    campoAcademias.hidden = !entregas.includes('academia');
   };
   selCategoria.addEventListener('change', atualizar);
-  form?.querySelectorAll('input[name="modalidade"]').forEach((r) => r.addEventListener('change', atualizar));
+  form?.querySelectorAll('input[name="modalidade"], input[name="entrega"]').forEach((r) => r.addEventListener('change', atualizar));
   atualizar();
 
   inputFotos.addEventListener('change', () => {
@@ -247,6 +261,8 @@ const anoAtual = new Date().getFullYear();
     if (fotos.length > 3) return erro('São no máximo 3 fotos. Escolha as melhores.', inputFotos);
     if (!String(d.cidade || '').trim() || !d.uf) return erro('Preencha cidade e UF.', document.getElementById('fd-cidade'));
     if (entrega.length === 0) return erro('Marque pelo menos uma forma de entrega.');
+    if (entrega.includes('retirada') && !String(d.retirada_bairros || '').trim()) return erro('Conte o bairro (ou bairros) onde a pessoa pode retirar.', document.getElementById('fd-bairros'));
+    if (entrega.includes('academia') && !String(d.entrega_academias || '').trim()) return erro('Conte em qual academia (ou academias) você pode entregar.', document.getElementById('fd-academias'));
     if (!String(d.nome || '').trim()) return erro('Preencha seu nome.', document.getElementById('fd-nome'));
     if (!d.whatsapp || !telefoneValido(d.whatsapp)) return erro('Preencha o WhatsApp no formato (11)991721313, com DDD.', campoWhats);
     if (!/^\d{6}$/.test(String(d.senha || ''))) return erro('A senha precisa ter exatamente 6 números.', document.getElementById('fd-senha'));
@@ -281,6 +297,8 @@ const anoAtual = new Date().getFullYear();
       preco: modalidade === 'venda' ? Math.round(precoNum * 100) / 100 : null,
       troca_por: modalidade === 'troca' ? d.troca_por.trim() : null,
       entrega,
+      retirada_bairros: entrega.includes('retirada') ? d.retirada_bairros.trim() : null,
+      entrega_academias: entrega.includes('academia') ? d.entrega_academias.trim() : null,
       cidade: d.cidade.trim(),
       uf: d.uf,
       fotos: urls,
