@@ -1,0 +1,305 @@
+---
+// src/components/FormDesapego.astro
+// Formulário "Anunciar no Desapego". Grava em "anuncios_desapego" (entra
+// pendente no painel). A senha vai em texto pro banco, que embaralha antes
+// de guardar (trigger anuncios_desapego_ao_criar). Use só uma vez por página.
+import '../styles/formularios.css';
+import { CATEGORIAS, CONSERVACAO, ENTREGAS, UFS } from '../lib/desapego';
+const anoAtual = new Date().getFullYear();
+---
+<form class="fc" id="form-desapego" novalidate>
+  <p class="fc-legenda">
+    Seu anúncio passa por uma olhadinha da equipe antes de aparecer e fica <strong>30 dias no ar</strong>.
+    Etiquetas: <span class="selo selo--site">No site</span> aparece pra todo mundo,
+    <span class="selo selo--equipe">Só a equipe vê</span> fica só com a gente.
+  </p>
+
+  <div class="fc-campo">
+    <span class="fc-label">O que você quer fazer? <span class="req req--sim">Obrigatório</span></span>
+    <div class="fc-opcoes">
+      <label class="fc-check"><input type="radio" name="modalidade" value="venda" checked /> Vender</label>
+      <label class="fc-check"><input type="radio" name="modalidade" value="troca" /> Trocar</label>
+      <label class="fc-check"><input type="radio" name="modalidade" value="doacao" /> Doar</label>
+    </div>
+  </div>
+
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fd-categoria">Tipo de equipamento <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+      <select id="fd-categoria" name="categoria" required>
+        <option value="">Selecione</option>
+        {CATEGORIAS.map((c) => <option value={c.valor}>{c.rotulo}{c.ajuda ? ` (${c.ajuda})` : ''}</option>)}
+      </select>
+    </div>
+    <div class="fc-campo" id="fd-preco-campo">
+      <label for="fd-preco">Preço (R$) <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+      <input type="text" id="fd-preco" name="preco" inputmode="decimal" placeholder="Ex.: 250" />
+    </div>
+    <div class="fc-campo" id="fd-troca-campo" hidden>
+      <label for="fd-troca">O que você aceita em troca? <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+      <input type="text" id="fd-troca" name="troca_por" maxlength="80" placeholder="Ex.: sapatilha 38, um friend" />
+    </div>
+  </div>
+
+  <div class="fc-campo">
+    <label for="fd-titulo">Título do anúncio <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+    <input type="text" id="fd-titulo" name="titulo" maxlength="80" required placeholder="Ex.: Sapatilha La Sportiva Tarantulace 40" />
+  </div>
+
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fd-marca">Marca e modelo <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
+      <input type="text" id="fd-marca" name="marca_modelo" maxlength="80" placeholder="Ex.: Petzl Corax" />
+    </div>
+    <div class="fc-campo">
+      <label for="fd-tamanho">Tamanho <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
+      <input type="text" id="fd-tamanho" name="tamanho" maxlength="30" placeholder="Ex.: 40, M, 60 m" />
+    </div>
+  </div>
+
+  <div class="fc-campo">
+    <span class="fc-label">Estado de conservação <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></span>
+    <div class="fc-opcoes">
+      {Object.entries(CONSERVACAO).map(([v, r], i) => (
+        <label class="fc-check"><input type="radio" name="conservacao" value={v} checked={i === 2} /> {r}</label>
+      ))}
+    </div>
+  </div>
+
+  <!-- Aparece só pra corda, cadeirinha, mosquetão, freio, fita, capacete, proteção -->
+  <div class="fc-destaque" id="fd-seguranca" hidden>
+    <p class="fd-seg-titulo">⚠️ Equipamento de segurança: conte o histórico</p>
+    <p class="fc-aviso" style="opacity:.85;font-size:.85rem">Quem vai comprar precisa dessas informações pra decidir com segurança. Seja sincero, combinado?</p>
+    <div class="fc-linha">
+      <div class="fc-campo">
+        <label for="fd-ano">Ano de fabricação <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+        <input type="number" id="fd-ano" name="seg_ano_fabricacao" min="1980" max={anoAtual} placeholder={`Ex.: ${anoAtual - 3}`} />
+        <small class="fc-ajuda">Costuma estar numa etiqueta ou gravado na peça.</small>
+      </div>
+      <div class="fc-campo">
+        <span class="fc-label">Já segurou queda forte? <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></span>
+        <div class="fc-opcoes">
+          <label class="fc-check"><input type="radio" name="seg_quedas" value="nao" /> Não</label>
+          <label class="fc-check"><input type="radio" name="seg_quedas" value="sim" /> Sim</label>
+          <label class="fc-check"><input type="radio" name="seg_quedas" value="nao_sei" /> Não sei</label>
+        </div>
+      </div>
+    </div>
+    <div class="fc-campo">
+      <label for="fd-armaz">Como foi usado e guardado? <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
+      <input type="text" id="fd-armaz" name="seg_armazenamento" maxlength="300" placeholder="Ex.: uso em academia 1x por semana, guardado em local seco, longe do sol" />
+    </div>
+  </div>
+
+  <div class="fc-campo">
+    <label for="fd-descricao">Descrição <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
+    <textarea id="fd-descricao" name="descricao" rows="4" maxlength="1500" placeholder="Detalhes, marcas de uso, motivo do desapego, se aceita proposta, se entrega ou só retira..."></textarea>
+  </div>
+
+  <div class="fc-campo">
+    <label for="fd-fotos">Fotos (até 3) <span class="req req--sim">Pelo menos 1</span> <span class="selo selo--site">No site</span></label>
+    <input type="file" id="fd-fotos" name="fotos" accept="image/*" multiple />
+    <small class="fc-ajuda">Foto boa vende mais: luz natural, fundo limpo e uma foto mostrando o desgaste de perto.</small>
+    <div class="fd-previas" id="fd-previas"></div>
+  </div>
+
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fd-cidade">Cidade <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+      <input type="text" id="fd-cidade" name="cidade" maxlength="60" required placeholder="Ex.: São Paulo" />
+    </div>
+    <div class="fc-campo">
+      <label for="fd-uf">UF <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+      <select id="fd-uf" name="uf" required>
+        <option value="">Selecione</option>
+        {UFS.map((uf) => <option value={uf}>{uf}</option>)}
+      </select>
+    </div>
+  </div>
+
+  <div class="fc-campo">
+    <span class="fc-label">Como pode ser a entrega? <span class="req req--sim">Pelo menos 1</span> <span class="selo selo--site">No site</span></span>
+    <div class="fc-opcoes">
+      {Object.entries(ENTREGAS).map(([v, r]) => (
+        <label class="fc-check"><input type="checkbox" name="entrega" value={v} /> {r.charAt(0).toUpperCase() + r.slice(1)}</label>
+      ))}
+    </div>
+  </div>
+
+  <div class="fc-linha">
+    <div class="fc-campo">
+      <label for="fd-nome">Seu nome <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+      <input type="text" id="fd-nome" name="nome" maxlength="60" required placeholder="Pode ser só o primeiro nome" />
+    </div>
+    <div class="fc-campo">
+      <label for="fd-whats">WhatsApp <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
+      <input type="tel" id="fd-whats" name="whatsapp" maxlength="13" inputmode="numeric" required placeholder="(11)991721313" />
+      <small class="fc-ajuda">Aparece no anúncio, num botão pra pessoa te chamar.</small>
+    </div>
+  </div>
+  <div class="fc-campo">
+    <label for="fd-insta">Instagram <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
+    <input type="text" id="fd-insta" name="instagram" maxlength="60" placeholder="@seu.perfil" />
+  </div>
+
+  <div class="fc-destaque">
+    <div class="fc-campo">
+      <label for="fd-senha">Crie uma senha de 6 números <span class="req req--sim">Obrigatório</span> <span class="selo selo--equipe">Só você sabe</span></label>
+      <input type="password" id="fd-senha" name="senha" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required autocomplete="new-password" placeholder="••••••" />
+      <small class="fc-ajuda">Já anunciou antes? Use a mesma senha, assim você vê todos os seus anúncios juntos. <strong>Guarde essa senha.</strong> Com ela (e o seu WhatsApp) você renova o anúncio, marca como vendido ou tira do ar. A gente não manda e-mail nem lembrete, e nem a equipe consegue ver sua senha.</small>
+    </div>
+    <div class="fc-campo">
+      <label for="fd-senha2">Repita a senha <span class="req req--sim">Obrigatório</span></label>
+      <input type="password" id="fd-senha2" name="senha2" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required autocomplete="new-password" placeholder="••••••" />
+    </div>
+  </div>
+
+  <div class="fc-campo">
+    <label for="fd-msg">Mensagem pra equipe Climbeiros <span class="req req--nao">Opcional</span> <span class="selo selo--equipe">Só a equipe vê</span></label>
+    <textarea id="fd-msg" name="mensagem" rows="2" maxlength="1000"></textarea>
+  </div>
+
+  <input type="text" name="site" class="fc-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+  <label class="fc-check fd-aceite">
+    <input type="checkbox" name="aceite" id="fd-aceite" required />
+    <span>Li e entendi o aviso de segurança: o Climbeiros só aproxima as pessoas e não confere nem se responsabiliza pelo equipamento, pela negociação nem pelo pagamento. Tudo é combinado direto entre mim e quem se interessar.</span>
+  </label>
+
+  <button type="submit" class="botao" id="fd-enviar">Enviar anúncio</button>
+  <p class="fc-status" id="fd-status" role="status"></p>
+</form>
+
+<style>
+  .fd-seg-titulo { margin: 0; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .03em; color: var(--laranja); }
+  .fd-previas { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fd-previas img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(42,31,22,.15); }
+  .fd-aceite { padding: 14px; border-radius: 8px; background: rgba(218,115,38,.08); border: 1px solid rgba(218,115,38,.35); }
+</style>
+
+<script>
+  import { supabase } from '../lib/supabase';
+  import { usuarioInstagram } from '../lib/contatos';
+  import { mascaraTelefone, telefoneValido } from '../lib/formularios';
+  import { ehSeguranca, reduzirFoto } from '../lib/desapego';
+
+  const form = document.getElementById('form-desapego') as HTMLFormElement | null;
+  const status = document.getElementById('fd-status')!;
+  const btn = document.getElementById('fd-enviar')!;
+  const selCategoria = document.getElementById('fd-categoria') as HTMLSelectElement;
+  const blocoSeg = document.getElementById('fd-seguranca')!;
+  const campoPreco = document.getElementById('fd-preco-campo')!;
+  const campoTroca = document.getElementById('fd-troca-campo')!;
+  const inputFotos = document.getElementById('fd-fotos') as HTMLInputElement;
+  const previas = document.getElementById('fd-previas')!;
+  const campoWhats = document.getElementById('fd-whats') as HTMLInputElement;
+  mascaraTelefone(campoWhats);
+  // Senha: só números, no máximo 6
+  ['fd-senha', 'fd-senha2'].forEach((id) => {
+    const c = document.getElementById(id) as HTMLInputElement | null;
+    c?.addEventListener('input', () => { c.value = c.value.replace(/\D/g, '').slice(0, 6); });
+  });
+
+  const atualizar = () => {
+    blocoSeg.hidden = !ehSeguranca(selCategoria.value) || !selCategoria.value;
+    const modalidade = (form?.querySelector('input[name="modalidade"]:checked') as HTMLInputElement)?.value;
+    campoPreco.hidden = modalidade !== 'venda';
+    campoTroca.hidden = modalidade !== 'troca';
+  };
+  selCategoria.addEventListener('change', atualizar);
+  form?.querySelectorAll('input[name="modalidade"]').forEach((r) => r.addEventListener('change', atualizar));
+  atualizar();
+
+  inputFotos.addEventListener('change', () => {
+    previas.innerHTML = '';
+    Array.from(inputFotos.files ?? []).slice(0, 3).forEach((f) => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      img.alt = '';
+      previas.appendChild(img);
+    });
+  });
+
+  const erro = (msg: string, campo?: HTMLElement | null) => {
+    status.textContent = msg;
+    campo?.focus();
+  };
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form) return;
+    const d = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+    if (d.site) { status.textContent = 'Recebemos seu anúncio!'; return; } // robô
+
+    const modalidade = d.modalidade || 'venda';
+    const seg = ehSeguranca(d.categoria || '');
+    const precoNum = Number(String(d.preco || '').replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, ''));
+    const fotos = Array.from(inputFotos.files ?? []);
+
+    if (!d.categoria) return erro('Escolha o tipo de equipamento.', selCategoria);
+    if (modalidade === 'venda' && !(precoNum > 0)) return erro('Coloque o preço (ou escolha Trocar ou Doar).', document.getElementById('fd-preco'));
+    if (modalidade === 'troca' && !String(d.troca_por || '').trim()) return erro('Conte o que você aceita em troca.', document.getElementById('fd-troca'));
+    const entrega = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="entrega"]:checked')).map((c) => c.value);
+    if (!String(d.titulo || '').trim()) return erro('Dê um título pro anúncio.', document.getElementById('fd-titulo'));
+    if (seg && !d.seg_ano_fabricacao) return erro('Pra equipamento de segurança, o ano de fabricação é obrigatório.', document.getElementById('fd-ano'));
+    if (seg && !d.seg_quedas) return erro('Conte se o equipamento já segurou queda forte.');
+    if (fotos.length === 0) return erro('Coloque pelo menos uma foto.', inputFotos);
+    if (fotos.length > 3) return erro('São no máximo 3 fotos. Escolha as melhores.', inputFotos);
+    if (!String(d.cidade || '').trim() || !d.uf) return erro('Preencha cidade e UF.', document.getElementById('fd-cidade'));
+    if (entrega.length === 0) return erro('Marque pelo menos uma forma de entrega.');
+    if (!String(d.nome || '').trim()) return erro('Preencha seu nome.', document.getElementById('fd-nome'));
+    if (!d.whatsapp || !telefoneValido(d.whatsapp)) return erro('Preencha o WhatsApp no formato (11)991721313, com DDD.', campoWhats);
+    if (!/^\d{6}$/.test(String(d.senha || ''))) return erro('A senha precisa ter exatamente 6 números.', document.getElementById('fd-senha'));
+    if (d.senha !== d.senha2) return erro('As duas senhas não estão iguais.', document.getElementById('fd-senha2'));
+    if (!d.aceite) return erro('Marque que leu o aviso de segurança.', document.getElementById('fd-aceite'));
+
+    btn.setAttribute('disabled', '');
+    status.textContent = 'Enviando as fotos...';
+
+    const urls: string[] = [];
+    for (const f of fotos) {
+      const blob = await reduzirFoto(f);
+      const ext = blob.type === 'image/jpeg' ? 'jpg' : (f.name.split('.').pop() || 'jpg').toLowerCase();
+      const nome = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('fotos-desapego').upload(nome, blob, { contentType: blob.type || f.type });
+      if (error) {
+        btn.removeAttribute('disabled');
+        return erro('Não consegui enviar uma das fotos. Tente uma foto menor (até 5 MB) ou em JPG.');
+      }
+      urls.push(supabase.storage.from('fotos-desapego').getPublicUrl(nome).data.publicUrl);
+    }
+
+    status.textContent = 'Enviando o anúncio...';
+    const { error } = await supabase.from('anuncios_desapego').insert([{
+      modalidade,
+      categoria: d.categoria,
+      titulo: d.titulo.trim(),
+      marca_modelo: d.marca_modelo?.trim() || null,
+      tamanho: d.tamanho?.trim() || null,
+      conservacao: d.conservacao || 'usado',
+      descricao: d.descricao?.trim() || null,
+      preco: modalidade === 'venda' ? Math.round(precoNum * 100) / 100 : null,
+      troca_por: modalidade === 'troca' ? d.troca_por.trim() : null,
+      entrega,
+      cidade: d.cidade.trim(),
+      uf: d.uf,
+      fotos: urls,
+      nome: d.nome.trim(),
+      whatsapp: d.whatsapp,
+      instagram: usuarioInstagram(d.instagram),
+      seg_ano_fabricacao: seg ? Number(d.seg_ano_fabricacao) : null,
+      seg_quedas: seg ? d.seg_quedas : null,
+      seg_armazenamento: seg ? (d.seg_armazenamento?.trim() || null) : null,
+      mensagem: d.mensagem?.trim() || null,
+      senha_hash: d.senha, // o banco embaralha antes de guardar
+    }]);
+    btn.removeAttribute('disabled');
+    if (error) {
+      return erro('Ops, algo deu errado. Tente de novo ou escreva pra contato@climbeiros.com.br');
+    }
+    form.reset();
+    previas.innerHTML = '';
+    atualizar();
+    status.innerHTML = '<strong>Recebemos seu anúncio! 🧗</strong> Assim que a equipe der uma olhada, ele aparece aqui e fica 30 dias no ar. Pra renovar, marcar como vendido ou tirar do ar, use o botão <strong>"Meus anúncios"</strong> no topo da página, com o seu WhatsApp e a senha que você criou.';
+  });
+</script>
