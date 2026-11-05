@@ -7,7 +7,6 @@
 // Banco: tabela anuncios_desapego + funções desapego_meus_anuncios e
 // desapego_gerenciar ("Claude outputs/desapego.sql").
 import Layout from '../layouts/Layout.astro';
-import PageHero from '../components/PageHero.astro';
 import FormDesapego from '../components/FormDesapego.astro';
 import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
 ---
@@ -15,17 +14,49 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
   titulo="Desapego: equipamento de escalada usado"
   descricao="Compre, troque ou ganhe equipamento de escalada usado direto de quem escala: sapatilhas, cordas, cadeirinhas, mosquetões, crashpads e mais."
 >
-  <PageHero eyebrow="De escalador pra escalador" descricao="Venda, troque ou doe equipamentos de escalada. Anunciar é grátis, e o combinado é direto entre vocês.">
-    Desapego
-  </PageHero>
+  <section class="secao dsp-topo">
+    <div class="container">
+      <div class="topo-grade">
+        <div class="topo-texto">
+          <p class="eyebrow">De escalador pra escalador</p>
+          <h1>Desapego</h1>
+          <p class="topo-lead">
+            Venda, troque ou doe equipamentos de escalada. Anunciar é grátis, e o
+            combinado é direto entre vocês.
+          </p>
+          <div class="dsp-acoes-topo">
+            <a href="#anunciar" class="botao">+ Anunciar um equipamento</a>
+            <button type="button" class="botao botao--secundario" id="dsp-abrir-meus">Meus anúncios</button>
+          </div>
+        </div>
+        <!-- Ilustração: "prateleira" de exemplo + como funciona (as fotos são da página Equipamentos) -->
+        <div class="dsp-ilu" aria-hidden="true">
+          <div class="dsp-ilu-grade">
+            {[
+              ['sapatilha.jpg', 'Venda', 'R$ 500', ''],
+              ['cadeirinha.jpg', 'Troca', 'Troco por…', 'troca'],
+              ['magnesio.jpg', 'Doação', 'Grátis', 'doacao'],
+              ['corda.jpg', 'Venda', 'R$ 450', ''],
+            ].map(([img, tag, preco, tipo]) => (
+              <div class="dsp-ilu-cel">
+                <img src={`/images/equipamentos/${img}`} alt="" loading="eager" />
+                <span class={`dsp-tag ${tipo ? 'dsp-tag--' + tipo : ''}`}>{tag}</span>
+                <span class="dsp-ilu-preco">{preco}</span>
+              </div>
+            ))}
+          </div>
+          <ol class="dsp-ilu-passos">
+            <li><b>1</b> Anuncie</li>
+            <li><b>2</b> Combine no WhatsApp</li>
+            <li><b>3</b> Bora escalar</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <section class="secao">
     <div class="container">
-      <div class="dsp-acoes-topo">
-        <a href="#anunciar" class="botao">+ Anunciar um equipamento</a>
-        <button type="button" class="botao botao--secundario" id="dsp-abrir-meus">Meus anúncios</button>
-      </div>
-
       <div class="caixa-atencao dsp-aviso" id="aviso-seguranca">
         <h3>⚠️ Antes de comprar equipamento usado</h3>
         <!-- Versão curta: só aparece no celular -->
@@ -122,7 +153,21 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
 </Layout>
 
 <style is:global>
-  .dsp-acoes-topo { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+  /* Topo no padrão de Academias / Guias & Cursos, com ilustração à direita */
+  .dsp-topo { padding-bottom: 0; }
+  .dsp-topo .topo-grade { display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
+  .dsp-topo .topo-grade > * { min-width: 0; }
+  .dsp-topo .topo-texto h1 { margin-bottom: 16px; }
+  .dsp-topo .topo-lead { font-size: 1.08rem; line-height: 1.6; color: #4a4033; margin: 0 0 20px; max-width: 600px; }
+  .dsp-acoes-topo { display: flex; gap: 12px; flex-wrap: wrap; }
+  .dsp-ilu { background: var(--creme-claro); border-radius: 14px; padding: 20px; }
+  .dsp-ilu-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .dsp-ilu-cel { position: relative; background: var(--branco); border-radius: 8px; border: 1px solid #e6ddc4; aspect-ratio: 4 / 3; overflow: hidden; }
+  .dsp-ilu-cel img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .dsp-ilu-preco { position: absolute; right: 8px; bottom: 8px; font-family: var(--fonte-display); font-weight: 600; color: var(--verde-escuro); background: rgba(255,253,247,.92); padding: 2px 8px; border-radius: 4px; font-size: .95rem; }
+  .dsp-ilu-passos { list-style: none; margin: 16px 0 0; padding: 0; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .dsp-ilu-passos li { font-size: .88rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .dsp-ilu-passos b { width: 24px; height: 24px; border-radius: 50%; background: var(--laranja); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; }
   .dsp-aviso { margin-bottom: 32px; }
   .dsp-aviso-curto, .dsp-aviso-mais { display: none; }
   .dsp-aviso-mais { background: none; border: 0; padding: 0; margin-top: 8px; color: var(--laranja); text-decoration: underline; cursor: pointer; font-size: .9rem; }
@@ -225,6 +270,9 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
   .dsp-foto-grande { width: auto; max-width: 94vw; padding: 10px; }
   .dsp-foto-grande img { max-width: 90vw; max-height: 82vh; display: block; border-radius: 8px; }
 
+  @media (max-width: 860px) {
+    .dsp-topo .topo-grade { grid-template-columns: 1fr; gap: 28px; }
+  }
   @media (max-width: 560px) {
     .dsp-aviso { padding: 18px 18px; margin-bottom: 24px; }
     .dsp-aviso h3 { font-size: 1.05rem; }
