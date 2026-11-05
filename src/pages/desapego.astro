@@ -1,0 +1,519 @@
+---
+// src/pages/desapego.astro
+// Desapego: anúncios de equipamento usado feitos pela própria comunidade.
+// Diferente do resto do site, os anúncios são lidos do Supabase NO NAVEGADOR,
+// quando a pessoa abre a página. Assim, aprovar, vender ou vencer um anúncio
+// aparece na hora, sem precisar de Redeploy.
+// Banco: tabela anuncios_desapego + funções desapego_meus_anuncios e
+// desapego_gerenciar ("Claude outputs/desapego.sql").
+import Layout from '../layouts/Layout.astro';
+import PageHero from '../components/PageHero.astro';
+import FormDesapego from '../components/FormDesapego.astro';
+import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
+---
+<Layout
+  titulo="Desapego: equipamento de escalada usado"
+  descricao="Compre, troque ou ganhe equipamento de escalada usado direto de quem escala: sapatilhas, cordas, cadeirinhas, mosquetões, crashpads e mais."
+>
+  <PageHero eyebrow="De escalador pra escalador" descricao="Venda, troque ou doe equipamentos de escalada. Anunciar é grátis, e o combinado é direto entre vocês.">
+    Desapego
+  </PageHero>
+
+  <section class="secao">
+    <div class="container">
+      <div class="dsp-acoes-topo">
+        <a href="#anunciar" class="botao">+ Anunciar um equipamento</a>
+        <button type="button" class="botao botao--secundario" id="dsp-abrir-meus">Meus anúncios</button>
+      </div>
+
+      <div class="caixa-atencao dsp-aviso" id="aviso-seguranca">
+        <h3>⚠️ Antes de comprar equipamento usado</h3>
+        <!-- Versão curta: só aparece no celular -->
+        <p class="dsp-aviso-curto">
+          Equipamento usado pode ter <strong>desgaste que não aparece</strong>. O Climbeiros
+          <strong>não confere as peças nem se responsabiliza</strong> pela negociação: tudo é
+          combinado direto com quem anunciou. <strong>Peça pra alguém experiente conferir antes
+          de usar.</strong> Na dúvida, não use.
+        </p>
+        <button type="button" class="dsp-aviso-mais" id="dsp-aviso-mais" aria-expanded="false" aria-controls="dsp-aviso-completo">Ler o aviso completo</button>
+        <ul class="dsp-aviso-completo" id="dsp-aviso-completo">
+          <li><strong>Equipamento de escalada sofre desgaste</strong>, e nem sempre dá pra ver. Corda, cadeirinha, mosquetão, costura, fita, freio, capacete e proteção móvel seguram a sua vida: uma queda forte, sol, umidade, produto químico ou o tempo de fabricação podem comprometer a peça mesmo quando ela parece nova.</li>
+          <li><strong>O Climbeiros só aproxima as pessoas.</strong> A gente não confere os equipamentos e não se responsabiliza pelo estado das peças, pela negociação, pela entrega nem pelo pagamento. Tudo é combinado direto com quem anunciou.</li>
+          <li><strong>Peça ajuda de quem entende antes de usar.</strong> É muito recomendado levar o material pra um guia, instrutor ou alguém experiente da sua academia conferir. Pergunte o ano de fabricação, o histórico de quedas e como foi guardado.</li>
+          <li><strong>Na dúvida, não use.</strong> E desconfie de preço bom demais, pedido de pagamento adiantado ou pressa pra fechar.</li>
+        </ul>
+      </div>
+
+      <div class="dsp-filtros" aria-label="Filtros">
+        <div class="dsp-selects">
+          <label class="dsp-busca">O que você procura?
+            <input type="search" id="dsp-f-busca" placeholder="Ex.: sapatilha 39, corda 60 m, Petzl" />
+          </label>
+          <label>Estado
+            <select id="dsp-f-uf">
+              <option value="">Brasil todo</option>
+              {UFS.map((uf) => <option value={uf}>{uf}</option>)}
+            </select>
+          </label>
+          <label>Entrega
+            <select id="dsp-f-entrega">
+              <option value="">Qualquer uma</option>
+              {Object.entries(ENTREGAS).map(([v, r]) => <option value={v}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+            </select>
+          </label>
+        </div>
+        <div class="dsp-pilulas" role="group" aria-label="Tipo de negócio">
+          <button type="button" class="dsp-pilula" data-modalidade="" aria-pressed="true">Todos</button>
+          <button type="button" class="dsp-pilula" data-modalidade="venda" aria-pressed="false">Venda</button>
+          <button type="button" class="dsp-pilula" data-modalidade="troca" aria-pressed="false">Troca</button>
+          <button type="button" class="dsp-pilula" data-modalidade="doacao" aria-pressed="false">Doação</button>
+        </div>
+        <div class="dsp-chips" role="group" aria-label="Tipo de equipamento">
+          <button type="button" class="dsp-chip" data-categoria="" aria-pressed="true">Todas</button>
+          {CATEGORIAS.map((c) => <button type="button" class="dsp-chip" data-categoria={c.valor} aria-pressed="false" title={c.ajuda}>{c.rotulo}</button>)}
+        </div>
+      </div>
+
+      <p class="dsp-contagem" id="dsp-contagem" aria-live="polite">Carregando anúncios...</p>
+      <div class="dsp-grade" id="dsp-grade"></div>
+      <div class="dsp-vazio" id="dsp-vazio" hidden>
+        <p class="dsp-vazio-emoji">🧗</p>
+        <p id="dsp-vazio-texto">Ainda não tem anúncio por aqui.</p>
+        <a href="#anunciar" class="botao">Seja a primeira pessoa a anunciar</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao secao--creme" id="anunciar">
+    <div class="container dsp-form-container">
+      <p class="eyebrow">Tem algo parado no armário?</p>
+      <h2>Anunciar um equipamento</h2>
+      <p>Leva uns 3 minutos. Depois que a equipe aprovar, seu anúncio fica 30 dias no ar e você mesmo renova, marca como vendido ou tira do ar quando quiser.</p>
+      <FormDesapego />
+    </div>
+  </section>
+
+  <!-- Janela "Meus anúncios" (WhatsApp + senha) -->
+  <dialog class="dsp-dialogo" id="dsp-meus">
+    <form method="dialog" class="dsp-fechar-form"><button class="dsp-fechar" aria-label="Fechar">×</button></form>
+    <h2>Meus anúncios</h2>
+    <form id="dsp-login" class="dsp-login">
+      <p>Entre com o WhatsApp e a senha que você usou ao anunciar.</p>
+      <label>WhatsApp <input type="tel" id="dsp-l-whats" inputmode="numeric" maxlength="13" placeholder="(11)991721313" required /></label>
+      <label>Senha (6 números) <input type="password" id="dsp-l-senha" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="current-password" placeholder="••••••" /></label>
+      <button type="submit" class="botao">Entrar</button>
+      <p class="dsp-msg" id="dsp-l-msg" role="status"></p>
+      <p class="dsp-ajuda">Esqueceu a senha? Fale com a gente pelo <a href="/contato">Contato</a> com o título do anúncio e o seu WhatsApp.</p>
+    </form>
+    <div id="dsp-lista-meus" hidden></div>
+  </dialog>
+
+  <!-- Anúncio completo (abre ao tocar no card) -->
+  <dialog class="dsp-dialogo dsp-detalhe" id="dsp-detalhe" aria-label="Anúncio">
+    <form method="dialog" class="dsp-fechar-form"><button class="dsp-fechar" aria-label="Fechar">×</button></form>
+    <div id="dsp-detalhe-conteudo"></div>
+  </dialog>
+
+  <!-- Foto ampliada -->
+  <dialog class="dsp-dialogo dsp-foto-grande" id="dsp-foto">
+    <form method="dialog" class="dsp-fechar-form"><button class="dsp-fechar" aria-label="Fechar">×</button></form>
+    <img id="dsp-foto-img" alt="" />
+  </dialog>
+</Layout>
+
+<style is:global>
+  .dsp-acoes-topo { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+  .dsp-aviso { margin-bottom: 32px; }
+  .dsp-aviso-curto, .dsp-aviso-mais { display: none; }
+  .dsp-aviso-mais { background: none; border: 0; padding: 0; margin-top: 8px; color: var(--laranja); text-decoration: underline; cursor: pointer; font-size: .9rem; }
+  .dsp-aviso ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; line-height: 1.55; }
+
+  .dsp-filtros { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
+  .dsp-selects { display: flex; gap: 12px; flex-wrap: wrap; }
+  .dsp-selects label { display: flex; flex-direction: column; gap: 6px; font-family: var(--fonte-corpo); font-weight: 600; font-size: .82rem; color: var(--marrom); flex: 1; min-width: 160px; }
+  .dsp-selects .dsp-busca { flex: 2; min-width: 240px; }
+  .dsp-selects select, .dsp-selects input {
+    font-family: var(--fonte-corpo); font-size: .95rem; padding: 10px 12px; border-radius: 6px;
+    border: 1px solid rgba(42,31,22,.3); background: var(--branco); color: var(--marrom); width: 100%;
+  }
+  .dsp-pilulas { display: flex; gap: 8px; flex-wrap: wrap; }
+  .dsp-pilula {
+    font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: .9rem; font-weight: 600;
+    padding: 9px 16px; border-radius: 8px; border: 2px solid var(--verde-escuro);
+    background: var(--branco); color: var(--verde-escuro); cursor: pointer;
+  }
+  .dsp-pilula[aria-pressed="true"] { background: var(--verde-escuro); color: var(--branco); }
+  .dsp-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .dsp-chip {
+    font-family: var(--fonte-corpo); font-size: .88rem; padding: 7px 14px; border-radius: 999px;
+    border: 1px solid rgba(42,31,22,.3); background: var(--branco); color: var(--marrom); cursor: pointer; white-space: nowrap;
+  }
+  .dsp-chip[aria-pressed="true"] { background: var(--creme); border-color: rgba(42,31,22,.45); }
+  .dsp-pilula:focus-visible, .dsp-chip:focus-visible, .dsp-card:focus-visible { outline: 2px solid var(--laranja); outline-offset: 2px; }
+  .dsp-contagem { font-size: .9rem; opacity: .75; margin: 0 0 14px; }
+
+  .dsp-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+  .dsp-card {
+    background: var(--branco); border: 1px solid #e6ddc4; border-radius: 8px; overflow: hidden; text-align: left;
+    display: flex; flex-direction: column; padding: 0; font: inherit; color: inherit; cursor: pointer; position: relative;
+    transition: box-shadow .15s ease, transform .15s ease;
+  }
+  .dsp-card:hover { box-shadow: 0 12px 26px -18px rgba(42,31,22,.55); transform: translateY(-2px); }
+  .dsp-card-foto { position: relative; aspect-ratio: 1 / 1; background: #f3f1ec; border-bottom: 1px solid #e6ddc4; }
+  .dsp-card-foto img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .dsp-tag {
+    position: absolute; top: 10px; left: 10px; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em;
+    font-size: .72rem; font-weight: 600; padding: 4px 9px; border-radius: 4px; background: var(--verde-escuro); color: var(--branco);
+  }
+  .dsp-tag--troca { background: var(--creme); color: var(--marrom); }
+  .dsp-tag--doacao { background: var(--laranja); }
+  .dsp-tag-seg { position: absolute; top: 10px; right: 10px; font-size: .72rem; padding: 3px 8px; border-radius: 4px; background: rgba(255,253,247,.92); border: 1px solid rgba(218,115,38,.5); color: var(--laranja); font-weight: 600; }
+  .dsp-vendido-faixa {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(42,31,22,.55); color: #fff; font-family: var(--fonte-display); font-size: 1.5rem; letter-spacing: .08em;
+  }
+  .dsp-card-corpo { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 4px; }
+  .dsp-preco { font-family: var(--fonte-display); font-size: 1.3rem; font-weight: 600; color: var(--verde-escuro); margin: 0; line-height: 1.2; }
+  .dsp-titulo { font-weight: 700; font-size: .98rem; margin: 0 0 4px; line-height: 1.3; color: var(--marrom); }
+  .dsp-linha { font-size: .85rem; margin: 0; opacity: .78; line-height: 1.4; }
+
+  /* Anúncio completo */
+  .dsp-dialogo.dsp-detalhe { width: min(820px, 94vw); max-height: 92vh; padding: 0; overflow: auto; }
+  .dsp-det { display: grid; grid-template-columns: 1fr 1fr; }
+  .dsp-det-fotos { background: #f3f1ec; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .dsp-det-fotos .dsp-det-principal { width: 100%; aspect-ratio: 1 / 1; object-fit: contain; cursor: zoom-in; border-radius: 6px; }
+  .dsp-det-minis { display: flex; gap: 8px; }
+  .dsp-det-minis button { width: 56px; height: 56px; padding: 0; border: 2px solid transparent; border-radius: 6px; overflow: hidden; cursor: pointer; background: #fff; }
+  .dsp-det-minis button[aria-pressed="true"] { border-color: var(--laranja); }
+  .dsp-det-minis img { width: 100%; height: 100%; object-fit: cover; }
+  .dsp-det-info { padding: 26px 24px 22px; display: flex; flex-direction: column; gap: 10px; }
+  .dsp-det-info h2 { font-size: 1.3rem; margin: 0; text-transform: none; color: var(--marrom); }
+  .dsp-det-info .dsp-preco { font-size: 1.6rem; }
+  .dsp-infos { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .dsp-infos li { font-size: .8rem; background: var(--creme-claro); border-radius: 999px; padding: 3px 10px; }
+  .dsp-seg { font-size: .86rem; background: rgba(218,115,38,.08); border: 1px solid rgba(218,115,38,.4); border-radius: 8px; padding: 10px 12px; line-height: 1.5; }
+  .dsp-seg strong { color: var(--laranja); }
+  .dsp-seg a { color: var(--laranja); }
+  .dsp-desc { font-size: .92rem; line-height: 1.55; margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+  .dsp-quem { font-size: .85rem; opacity: .8; margin: 0; }
+  .dsp-contato { display: flex; gap: 8px; flex-wrap: wrap; }
+  .dsp-contato .botao { padding: 10px 16px; font-size: .9rem; }
+  .dsp-rodape-card { display: flex; justify-content: space-between; gap: 8px; font-size: .78rem; opacity: .7; border-top: 1px dashed #e6ddc4; padding-top: 8px; }
+  .dsp-sou-eu { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
+
+  .dsp-vazio { text-align: center; padding: 40px 16px; border: 2px dashed #e6ddc4; border-radius: 12px; }
+  .dsp-vazio-emoji { font-size: 2.4rem; margin: 0; }
+  .dsp-form-container { max-width: 760px; }
+
+  .dsp-dialogo { border: 0; border-radius: 14px; padding: 26px; width: min(520px, 92vw); background: var(--branco); color: var(--marrom); box-shadow: 0 30px 60px -20px rgba(0,0,0,.5); }
+  .dsp-dialogo::backdrop { background: rgba(42,31,22,.55); }
+  .dsp-dialogo h2 { margin-top: 0; }
+  .dsp-fechar-form { position: absolute; top: 10px; right: 12px; margin: 0; }
+  .dsp-fechar { background: none; border: 0; font-size: 1.8rem; line-height: 1; cursor: pointer; color: var(--marrom); }
+  .dsp-dialogo [hidden], .dsp-vazio[hidden] { display: none !important; }
+  .dsp-login { display: flex; flex-direction: column; gap: 12px; }
+  .dsp-login label { display: flex; flex-direction: column; gap: 4px; font-family: var(--fonte-display); text-transform: uppercase; font-size: .78rem; letter-spacing: .04em; color: var(--verde-escuro); }
+  .dsp-login input { font-family: var(--fonte-corpo); font-size: 1rem; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(42,31,22,.25); text-transform: none; }
+  .dsp-login .botao { align-self: flex-start; }
+  .dsp-msg { margin: 0; font-size: .9rem; color: var(--laranja); min-height: 1.2em; }
+  .dsp-ajuda { font-size: .82rem; opacity: .75; margin: 0; }
+  .dsp-meu { border: 1px solid #e6ddc4; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .dsp-meu h3 { margin: 0; font-size: 1rem; text-transform: none; }
+  .dsp-meu .dsp-situacao { font-size: .85rem; }
+  .dsp-meu .dsp-meu-botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .dsp-meu .botao { padding: 7px 12px; font-size: .85rem; }
+  .dsp-foto-grande { width: auto; max-width: 94vw; padding: 10px; }
+  .dsp-foto-grande img { max-width: 90vw; max-height: 82vh; display: block; border-radius: 8px; }
+
+  @media (max-width: 560px) {
+    .dsp-aviso { padding: 18px 18px; margin-bottom: 24px; }
+    .dsp-aviso h3 { font-size: 1.05rem; }
+    .dsp-aviso-curto { display: block; margin: 0; line-height: 1.5; font-size: .95rem; }
+    .dsp-aviso-mais { display: inline-block; }
+    .dsp-aviso-completo { display: none !important; }
+    .dsp-aviso.aberto .dsp-aviso-completo { display: flex !important; margin-top: 12px; font-size: .92rem; }
+    .dsp-grade { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .dsp-card-corpo { padding: 10px 10px 12px; }
+    .dsp-preco { font-size: 1.1rem; }
+    .dsp-titulo { font-size: .88rem; }
+    .dsp-linha { font-size: .78rem; }
+    .dsp-tag-seg { top: auto; bottom: 8px; right: 8px; }
+    .dsp-chips { flex-wrap: nowrap; overflow-x: auto; margin: 0 -24px; padding: 0 24px 4px; scrollbar-width: none; }
+    .dsp-det { grid-template-columns: 1fr; }
+    .dsp-det-info { padding: 18px 18px 20px; }
+    .dsp-selects label { min-width: 130px; }
+    .dsp-pilulas { gap: 6px; }
+    .dsp-pilula { font-size: .8rem; padding: 7px 11px; }
+  }
+</style>
+
+<script>
+  import { supabase } from '../lib/supabase';
+  import { linkWhatsApp, linkInstagram } from '../lib/contatos';
+  import { mascaraTelefone } from '../lib/formularios';
+  import { categoria, CONSERVACAO, ENTREGAS, MODALIDADES, QUEDAS } from '../lib/desapego';
+
+  type Anuncio = {
+    id: string; categoria: string; titulo: string; marca_modelo: string | null; tamanho: string | null;
+    conservacao: string; descricao: string | null; modalidade: string; preco: number | null; troca_por: string | null;
+    entrega: string[]; cidade: string; uf: string; fotos: string[]; nome: string; whatsapp: string; instagram: string | null;
+    seg_ano_fabricacao: number | null; seg_quedas: string | null; seg_armazenamento: string | null;
+    publicado_em: string; expira_em: string; vendido_em: string | null;
+  };
+
+  const COLUNAS = 'id, categoria, titulo, marca_modelo, tamanho, conservacao, descricao, modalidade, preco, troca_por, entrega, cidade, uf, fotos, nome, whatsapp, instagram, seg_ano_fabricacao, seg_quedas, seg_armazenamento, publicado_em, expira_em, vendido_em';
+
+  const grade = document.getElementById('dsp-grade')!;
+  const contagem = document.getElementById('dsp-contagem')!;
+  const vazio = document.getElementById('dsp-vazio')!;
+  const vazioTexto = document.getElementById('dsp-vazio-texto')!;
+  const fUf = document.getElementById('dsp-f-uf') as HTMLSelectElement;
+  const fEntrega = document.getElementById('dsp-f-entrega') as HTMLSelectElement;
+  const fBusca = document.getElementById('dsp-f-busca') as HTMLInputElement;
+  const pilulas = Array.from(document.querySelectorAll<HTMLButtonElement>('.dsp-pilula'));
+  const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('.dsp-chip'));
+
+  let anuncios: Anuncio[] = [];
+  let modalidade = '';
+  let filtroCategoria = '';
+
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+  const data = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: v % 1 ? 2 : 0 });
+  const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+  function precoTexto(a: Anuncio) {
+    if (a.modalidade === 'doacao') return 'Grátis';
+    if (a.modalidade === 'troca') return a.troca_por ? `Troco por ${a.troca_por}` : 'Aceita troca';
+    return a.preco ? reais(Number(a.preco)) : 'Venda';
+  }
+  function estadoTexto(a: Anuncio) {
+    const base = CONSERVACAO[a.conservacao] ?? '';
+    return categoria(a.categoria).seguranca && a.seg_ano_fabricacao ? `${base}, com histórico informado` : base;
+  }
+  const entregaTexto = (a: Anuncio) => (a.entrega ?? []).map((e) => ENTREGAS[e]).filter(Boolean).join(' ou ');
+
+  function cardHtml(a: Anuncio) {
+    const cat = categoria(a.categoria);
+    const foto = (a.fotos ?? []).filter(Boolean)[0];
+    const lugar = [`${a.cidade}, ${a.uf}`, entregaTexto(a)].filter(Boolean).join(' · ');
+    return `
+      <button type="button" class="dsp-card" data-id="${esc(a.id)}" aria-label="${esc(a.titulo)}: ver anúncio">
+        <div class="dsp-card-foto">
+          ${foto ? `<img src="${esc(foto)}" alt="" loading="lazy">` : ''}
+          <span class="dsp-tag dsp-tag--${esc(a.modalidade)}">${esc(MODALIDADES[a.modalidade])}</span>
+          ${cat.seguranca ? '<span class="dsp-tag-seg" title="Equipamento de segurança">⚠️ Segurança</span>' : ''}
+          ${a.vendido_em ? '<div class="dsp-vendido-faixa">VENDIDO</div>' : ''}
+        </div>
+        <div class="dsp-card-corpo">
+          <p class="dsp-preco">${esc(precoTexto(a))}</p>
+          <p class="dsp-titulo">${esc(a.titulo)}</p>
+          <p class="dsp-linha">${esc(estadoTexto(a))}</p>
+          <p class="dsp-linha">${esc(lugar)}</p>
+        </div>
+      </button>`;
+  }
+
+  function detalheHtml(a: Anuncio) {
+    const cat = categoria(a.categoria);
+    const vendido = !!a.vendido_em;
+    const fotos = (a.fotos ?? []).filter(Boolean);
+    const msg = `Oi, ${a.nome}! Vi seu anúncio "${a.titulo}" no Desapego do Climbeiros. Ainda está disponível?`;
+    const whats = linkWhatsApp(a.whatsapp);
+    const insta = linkInstagram(a.instagram);
+    const infos = [cat.rotulo, CONSERVACAO[a.conservacao], a.tamanho && `Tam. ${a.tamanho}`, a.marca_modelo, `${a.cidade}, ${a.uf}`].filter(Boolean);
+    const seg = cat.seguranca ? `
+      <div class="dsp-seg">
+        <strong>⚠️ Equipamento de segurança.</strong>
+        ${a.seg_ano_fabricacao ? `Fabricado em ${a.seg_ano_fabricacao}. ` : ''}${a.seg_quedas ? esc(QUEDAS[a.seg_quedas]) + '. ' : ''}${a.seg_armazenamento ? 'Uso e armazenamento: ' + esc(a.seg_armazenamento) + '. ' : ''}
+        O Climbeiros não confere o material: peça pra alguém experiente conferir antes de usar. Na dúvida, não use.
+      </div>` : '';
+    return `
+      <div class="dsp-det">
+        <div class="dsp-det-fotos">
+          ${fotos.length ? `<img class="dsp-det-principal" src="${esc(fotos[0])}" alt="${esc(a.titulo)}" data-ampliar>` : ''}
+          ${fotos.length > 1 ? `<div class="dsp-det-minis">${fotos.map((f, i) => `<button type="button" data-foto="${esc(f)}" aria-pressed="${i === 0}" aria-label="Foto ${i + 1}"><img src="${esc(f)}" alt=""></button>`).join('')}</div>` : ''}
+        </div>
+        <div class="dsp-det-info">
+          <span class="dsp-tag dsp-tag--${esc(a.modalidade)}" style="position:static;align-self:flex-start">${vendido ? 'Vendido' : esc(MODALIDADES[a.modalidade])}</span>
+          <p class="dsp-preco">${esc(precoTexto(a))}</p>
+          <h2>${esc(a.titulo)}</h2>
+          <ul class="dsp-infos">${infos.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
+          ${a.entrega?.length ? `<p class="dsp-quem"><strong>Entrega:</strong> ${esc(entregaTexto(a))}</p>` : ''}
+          ${seg}
+          ${a.descricao ? `<p class="dsp-desc">${esc(a.descricao)}</p>` : ''}
+          <p class="dsp-quem">Anunciado por ${esc(a.nome)}</p>
+          ${vendido ? '' : `<div class="dsp-contato">
+            ${whats ? `<a class="botao" href="${esc(whats)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Chamar no WhatsApp</a>` : ''}
+            ${insta ? `<a class="botao botao--secundario" href="${esc(insta)}" target="_blank" rel="noopener">Instagram</a>` : ''}
+          </div>`}
+          <div class="dsp-rodape-card">
+            <span>${vendido ? `Vendido em ${data(a.vendido_em!)}` : `No ar até ${data(a.expira_em)}`}</span>
+            <button type="button" class="dsp-sou-eu" data-sou-eu>Sou quem anunciou</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function filtrar() {
+    const termo = semAcento(fBusca.value.trim());
+    const palavras = termo.split(/\s+/).filter(Boolean);
+    const lista = anuncios.filter((a) => {
+      if (modalidade && a.modalidade !== modalidade) return false;
+      if (filtroCategoria && a.categoria !== filtroCategoria) return false;
+      if (fUf.value && a.uf !== fUf.value) return false;
+      if (fEntrega.value && !(a.entrega ?? []).includes(fEntrega.value)) return false;
+      if (palavras.length) {
+        const texto = semAcento([a.titulo, a.marca_modelo, a.tamanho, a.descricao, a.cidade, a.troca_por, categoria(a.categoria).rotulo, categoria(a.categoria).ajuda].join(' '));
+        if (!palavras.every((p) => texto.includes(p))) return false;
+      }
+      return true;
+    });
+    // Disponíveis primeiro (mais novos no topo); vendidos no fim.
+    lista.sort((x, y) => Number(!!x.vendido_em) - Number(!!y.vendido_em) || y.publicado_em.localeCompare(x.publicado_em));
+    grade.innerHTML = lista.map(cardHtml).join('');
+    const n = lista.filter((a) => !a.vendido_em).length;
+    contagem.textContent = anuncios.length ? `${n} ${n === 1 ? 'anúncio' : 'anúncios'}` : '';
+    vazio.hidden = lista.length > 0;
+    vazioTexto.textContent = anuncios.length ? 'Nenhum anúncio com esses filtros. Tente outro equipamento ou estado.' : 'Ainda não tem anúncio por aqui.';
+  }
+
+  async function carregar() {
+    const { data: linhas, error } = await supabase.from('anuncios_desapego').select(COLUNAS);
+    if (error) { contagem.textContent = 'Não consegui carregar os anúncios agora. Tente recarregar a página.'; return; }
+    anuncios = (linhas ?? []) as Anuncio[];
+    filtrar();
+  }
+
+  const marcar = (grupo: HTMLButtonElement[], ativo: HTMLButtonElement) => grupo.forEach((o) => o.setAttribute('aria-pressed', String(o === ativo)));
+  pilulas.forEach((p) => p.addEventListener('click', () => { modalidade = p.dataset.modalidade ?? ''; marcar(pilulas, p); filtrar(); }));
+  chips.forEach((c) => c.addEventListener('click', () => { filtroCategoria = c.dataset.categoria ?? ''; marcar(chips, c); filtrar(); }));
+  [fUf, fEntrega].forEach((s) => s.addEventListener('change', filtrar));
+  fBusca.addEventListener('input', filtrar);
+
+  // Card -> anúncio completo
+  const dlgDetalhe = document.getElementById('dsp-detalhe') as HTMLDialogElement;
+  const detalhe = document.getElementById('dsp-detalhe-conteudo')!;
+  const dlgFoto = document.getElementById('dsp-foto') as HTMLDialogElement;
+  const imgGrande = document.getElementById('dsp-foto-img') as HTMLImageElement;
+  grade.addEventListener('click', (e) => {
+    const card = (e.target as HTMLElement).closest<HTMLElement>('.dsp-card');
+    const a = card && anuncios.find((x) => x.id === card.dataset.id);
+    if (!a) return;
+    detalhe.innerHTML = detalheHtml(a);
+    dlgDetalhe.showModal();
+    dlgDetalhe.scrollTop = 0;
+  });
+  dlgDetalhe.addEventListener('click', (e) => {
+    const alvo = e.target as HTMLElement;
+    if (alvo === dlgDetalhe) return dlgDetalhe.close(); // clique fora fecha
+    const mini = alvo.closest<HTMLButtonElement>('[data-foto]');
+    if (mini) {
+      detalhe.querySelector<HTMLImageElement>('[data-ampliar]')!.src = mini.dataset.foto!;
+      detalhe.querySelectorAll('[data-foto]').forEach((b) => b.setAttribute('aria-pressed', String(b === mini)));
+      return;
+    }
+    if (alvo.matches('[data-ampliar]')) { imgGrande.src = (alvo as HTMLImageElement).src; dlgFoto.showModal(); return; }
+    if (alvo.matches('[data-sou-eu]')) { dlgDetalhe.close(); abrirMeus(); }
+  });
+
+  // ---- Meus anúncios ----
+  const dlgMeus = document.getElementById('dsp-meus') as HTMLDialogElement;
+  const formLogin = document.getElementById('dsp-login') as HTMLFormElement;
+  const lWhats = document.getElementById('dsp-l-whats') as HTMLInputElement;
+  const lSenha = document.getElementById('dsp-l-senha') as HTMLInputElement;
+  const lMsg = document.getElementById('dsp-l-msg')!;
+  const listaMeus = document.getElementById('dsp-lista-meus')!;
+  mascaraTelefone(lWhats);
+  lSenha.addEventListener('input', () => { lSenha.value = lSenha.value.replace(/\D/g, '').slice(0, 6); });
+
+  function abrirMeus() {
+    formLogin.hidden = false;
+    listaMeus.hidden = true;
+    lMsg.textContent = '';
+    dlgMeus.showModal();
+    lWhats.focus();
+  }
+  document.getElementById('dsp-abrir-meus')!.addEventListener('click', abrirMeus);
+
+  const SITUACAO: Record<string, string> = {
+    aguardando_aprovacao: '⏳ Aguardando aprovação da equipe',
+    no_ar: '✅ No ar',
+    vencido: '⌛ Venceu e saiu do site. Dá pra renovar por até 30 dias depois do vencimento.',
+    vendido: '🎉 Marcado como vendido',
+  };
+
+  type Meu = { id: string; titulo: string; situacao: string; expira_em: string | null; vendido_em: string | null; pode_renovar: boolean };
+
+  function renderMeus(lista: Meu[]) {
+    listaMeus.innerHTML = lista.map((m) => `
+      <div class="dsp-meu" data-id="${esc(m.id)}">
+        <h3>${esc(m.titulo)}</h3>
+        <span class="dsp-situacao">${SITUACAO[m.situacao] ?? ''}${m.situacao === 'no_ar' && m.expira_em ? ` até ${data(m.expira_em)}` : ''}</span>
+        <div class="dsp-meu-botoes">
+          ${m.pode_renovar ? '<button type="button" class="botao" data-acao="renovar">Renovar por 30 dias</button>' : ''}
+          ${m.situacao === 'no_ar' ? '<button type="button" class="botao botao--secundario" data-acao="vendido">Marquei como vendido</button>' : ''}
+          ${m.situacao !== 'vendido' ? '<button type="button" class="botao botao--secundario" data-acao="remover">Tirar do ar</button>' : ''}
+        </div>
+      </div>`).join('') + '<p class="dsp-msg" id="dsp-acao-msg" role="status"></p>';
+    formLogin.hidden = true;
+    listaMeus.hidden = false;
+  }
+
+  async function entrar() {
+    const { data: lista, error } = await supabase.rpc('desapego_meus_anuncios', { p_whatsapp: lWhats.value, p_senha: lSenha.value });
+    if (error) {
+      lMsg.textContent = /travado/.test(error.message)
+        ? 'Muitas tentativas erradas: o anúncio foi travado por segurança. Fale com a gente pelo Contato que a gente destrava.'
+        : 'Não consegui conferir agora. Tente de novo em instantes.';
+      return false;
+    }
+    if (!lista || lista.length === 0) {
+      lMsg.textContent = 'Não achei anúncio com esse WhatsApp e essa senha. Confira e tente de novo.';
+      return false;
+    }
+    renderMeus(lista as Meu[]);
+    return true;
+  }
+
+  formLogin.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    lMsg.textContent = 'Conferindo...';
+    await entrar();
+  });
+
+  const RESPOSTAS: Record<string, string> = {
+    renovado: 'Pronto! Seu anúncio ficou mais 30 dias no ar.',
+    vendido: 'Que bom! 🎉 O anúncio fica com o selo VENDIDO por 7 dias e depois sai sozinho.',
+    removido: 'Anúncio tirado do ar.',
+    senha_errada: 'Senha errada.',
+    travado: 'Anúncio travado por muitas tentativas erradas. Fale com a gente pelo Contato.',
+    prazo_acabou: 'Esse anúncio venceu há mais de 30 dias. Faça um anúncio novo, por favor.',
+  };
+
+  listaMeus.addEventListener('click', async (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-acao]');
+    if (!b) return;
+    const acao = b.dataset.acao!;
+    if (acao === 'remover' && !confirm('Tirar este anúncio do ar? Depois não dá pra voltar.')) return;
+    const id = b.closest<HTMLElement>('.dsp-meu')!.dataset.id!;
+    b.disabled = true;
+    const { data: r, error } = await supabase.rpc('desapego_gerenciar', { p_id: id, p_whatsapp: lWhats.value, p_senha: lSenha.value, p_acao: acao });
+    const msg = error ? 'Não consegui concluir agora. Tente de novo.' : (RESPOSTAS[String(r)] ?? 'Feito.');
+    await entrar();
+    const alvo = document.getElementById('dsp-acao-msg');
+    if (alvo) alvo.textContent = msg;
+    carregar();
+  });
+
+  // Aviso de segurança no celular: versão curta + "Ler o aviso completo"
+  const avisoBtn = document.getElementById('dsp-aviso-mais')!;
+  avisoBtn.addEventListener('click', () => {
+    const caixa = document.getElementById('aviso-seguranca')!;
+    const aberto = caixa.classList.toggle('aberto');
+    avisoBtn.setAttribute('aria-expanded', String(aberto));
+    avisoBtn.textContent = aberto ? 'Mostrar menos' : 'Ler o aviso completo';
+  });
+
+  carregar();
+</script>
