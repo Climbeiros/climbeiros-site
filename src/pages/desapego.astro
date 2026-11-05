@@ -217,6 +217,9 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     background: rgba(42,31,22,.55); color: #fff; font-family: var(--fonte-display); font-size: 1.5rem; letter-spacing: .08em;
   }
+  .dsp-de { font-size: .72em; font-weight: 500; color: var(--marrom); opacity: .55; margin-right: 4px; }
+  .dsp-pct { font-size: .6em; background: var(--laranja); color: #fff; padding: 2px 7px; border-radius: 4px; vertical-align: middle; }
+  .dsp-tag-baixou { position: absolute; left: 10px; bottom: 10px; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .03em; font-size: .7rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; background: var(--laranja); color: #fff; }
   .dsp-card-corpo { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 4px; }
   .dsp-preco { font-family: var(--fonte-display); font-size: 1.3rem; font-weight: 600; color: var(--verde-escuro); margin: 0; line-height: 1.2; }
   .dsp-titulo { font-weight: 700; font-size: .98rem; margin: 0 0 4px; line-height: 1.3; color: var(--marrom); }
@@ -305,13 +308,13 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
 
   type Anuncio = {
     id: string; categoria: string; titulo: string; marca_modelo: string | null; tamanho: string | null;
-    conservacao: string; descricao: string | null; modalidade: string; preco: number | null; troca_por: string | null;
+    conservacao: string; descricao: string | null; modalidade: string; preco: number | null; preco_original: number | null; editado_em: string | null; troca_por: string | null;
     entrega: string[]; retirada_bairros: string | null; entrega_academias: string | null; cidade: string; uf: string; fotos: string[]; nome: string; whatsapp: string; instagram: string | null;
     seg_ano_fabricacao: number | null; seg_quedas: string | null; seg_armazenamento: string | null;
     publicado_em: string; expira_em: string; vendido_em: string | null;
   };
 
-  const COLUNAS = 'id, categoria, titulo, marca_modelo, tamanho, conservacao, descricao, modalidade, preco, troca_por, entrega, retirada_bairros, entrega_academias, cidade, uf, fotos, nome, whatsapp, instagram, seg_ano_fabricacao, seg_quedas, seg_armazenamento, publicado_em, expira_em, vendido_em';
+  const COLUNAS = 'id, categoria, titulo, marca_modelo, tamanho, conservacao, descricao, modalidade, preco, preco_original, editado_em, troca_por, entrega, retirada_bairros, entrega_academias, cidade, uf, fotos, nome, whatsapp, instagram, seg_ano_fabricacao, seg_quedas, seg_armazenamento, publicado_em, expira_em, vendido_em';
 
   const grade = document.getElementById('dsp-grade')!;
   const contagem = document.getElementById('dsp-contagem')!;
@@ -337,6 +340,13 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
     if (a.modalidade === 'troca') return a.troca_por ? `Troco por ${a.troca_por}` : 'Aceita troca';
     return a.preco ? reais(Number(a.preco)) : 'Venda';
   }
+  const baixou = (a: Anuncio) => a.modalidade === 'venda' && a.preco != null && a.preco_original != null && Number(a.preco_original) > Number(a.preco);
+  // Preço em HTML: na venda com preço reduzido, mostra o antigo riscado ("de R$ 600 por R$ 500")
+  function precoHtml(a: Anuncio, comPercentual = false) {
+    if (!baixou(a)) return esc(precoTexto(a));
+    const pct = Math.round((1 - Number(a.preco) / Number(a.preco_original)) * 100);
+    return `<s class="dsp-de" aria-label="antes ${esc(reais(Number(a.preco_original)))}">${esc(reais(Number(a.preco_original)))}</s> ${esc(reais(Number(a.preco)))}${comPercentual && pct > 0 ? ` <span class="dsp-pct">−${pct}%</span>` : ''}`;
+  }
   function estadoTexto(a: Anuncio) {
     const base = CONSERVACAO[a.conservacao] ?? '';
     return categoria(a.categoria).seguranca && a.seg_ano_fabricacao ? `${base}, com histórico informado` : base;
@@ -359,10 +369,11 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
           ${foto ? `<img src="${esc(foto)}" alt="" loading="lazy">` : ''}
           <span class="dsp-tag dsp-tag--${esc(a.modalidade)}">${esc(MODALIDADES[a.modalidade])}</span>
           ${cat.seguranca ? '<span class="dsp-tag-seg" title="Equipamento de segurança">⚠️ Segurança</span>' : ''}
+          ${baixou(a) && !a.vendido_em ? '<span class="dsp-tag-baixou">↓ Baixou o preço</span>' : ''}
           ${a.vendido_em ? '<div class="dsp-vendido-faixa">VENDIDO</div>' : ''}
         </div>
         <div class="dsp-card-corpo">
-          <p class="dsp-preco">${esc(precoTexto(a))}</p>
+          <p class="dsp-preco">${precoHtml(a)}</p>
           <p class="dsp-titulo">${esc(a.titulo)}</p>
           <p class="dsp-linha">${esc(estadoTexto(a))}</p>
           <p class="dsp-linha">${esc(lugar)}</p>
@@ -392,7 +403,8 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
         </div>
         <div class="dsp-det-info">
           <span class="dsp-tag dsp-tag--${esc(a.modalidade)}" style="position:static;align-self:flex-start">${vendido ? 'Vendido' : esc(MODALIDADES[a.modalidade])}</span>
-          <p class="dsp-preco">${esc(precoTexto(a))}</p>
+          <p class="dsp-preco">${precoHtml(a, true)}</p>
+          ${baixou(a) ? '<p class="dsp-quem" style="color:var(--laranja);font-weight:600;margin-top:-4px">↓ Baixou o preço</p>' : ''}
           <h2>${esc(a.titulo)}</h2>
           <ul class="dsp-infos">${infos.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
           ${a.entrega?.length ? `<div class="dsp-entrega"><strong>Entrega</strong><ul>${entregaDetalhe(a).map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>` : ''}
@@ -499,7 +511,8 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
     vendido: '🎉 Marcado como vendido',
   };
 
-  type Meu = { id: string; titulo: string; situacao: string; expira_em: string | null; vendido_em: string | null; pode_renovar: boolean };
+  type Meu = { id: string; titulo: string; situacao: string; expira_em: string | null; vendido_em: string | null; pode_renovar: boolean; dados: Record<string, any> };
+  let meus: Meu[] = [];
 
   function renderMeus(lista: Meu[]) {
     listaMeus.innerHTML = lista.map((m) => `
@@ -507,8 +520,9 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
         <h3>${esc(m.titulo)}</h3>
         <span class="dsp-situacao">${SITUACAO[m.situacao] ?? ''}${m.situacao === 'no_ar' && m.expira_em ? ` até ${data(m.expira_em)}` : ''}</span>
         <div class="dsp-meu-botoes">
+          ${m.situacao !== 'vendido' ? '<button type="button" class="botao botao--secundario" data-acao="editar">✏️ Editar</button>' : ''}
           ${m.pode_renovar ? '<button type="button" class="botao" data-acao="renovar">Renovar por 30 dias</button>' : ''}
-          ${m.situacao === 'no_ar' ? '<button type="button" class="botao botao--secundario" data-acao="vendido">Marquei como vendido</button>' : ''}
+          ${m.situacao === 'no_ar' ? '<button type="button" class="botao botao--secundario" data-acao="vendido">Marcar como vendido</button>' : ''}
           ${m.situacao !== 'vendido' ? '<button type="button" class="botao botao--secundario" data-acao="remover">Tirar do ar</button>' : ''}
         </div>
       </div>`).join('') + '<p class="dsp-msg" id="dsp-acao-msg" role="status"></p>';
@@ -528,7 +542,8 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
       lMsg.textContent = 'Não achei anúncio com esse WhatsApp e essa senha. Confira e tente de novo.';
       return false;
     }
-    renderMeus(lista as Meu[]);
+    meus = lista as Meu[];
+    renderMeus(meus);
     return true;
   }
 
@@ -551,6 +566,13 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-acao]');
     if (!b) return;
     const acao = b.dataset.acao!;
+    if (acao === 'editar') {
+      const m = meus.find((x) => x.id === b.closest<HTMLElement>('.dsp-meu')!.dataset.id);
+      if (!m) return;
+      dlgMeus.close();
+      window.dispatchEvent(new CustomEvent('desapego:editar', { detail: { id: m.id, whatsapp: lWhats.value, senha: lSenha.value, dados: m.dados } }));
+      return;
+    }
     if (acao === 'remover' && !confirm('Tirar este anúncio do ar? Depois não dá pra voltar.')) return;
     const id = b.closest<HTMLElement>('.dsp-meu')!.dataset.id!;
     b.disabled = true;
@@ -571,5 +593,6 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
     avisoBtn.textContent = aberto ? 'Mostrar menos' : 'Ler o aviso completo';
   });
 
+  window.addEventListener('desapego:atualizar', () => carregar());
   carregar();
 </script>
