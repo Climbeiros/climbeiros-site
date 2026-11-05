@@ -240,6 +240,8 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
   .dsp-seg strong { color: var(--laranja); }
   .dsp-seg a { color: var(--laranja); }
   .dsp-desc { font-size: .92rem; line-height: 1.55; margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+  .dsp-entrega { font-size: .88rem; }
+  .dsp-entrega ul { margin: 4px 0 0; padding-left: 18px; line-height: 1.5; }
   .dsp-quem { font-size: .85rem; opacity: .8; margin: 0; }
   .dsp-contato { display: flex; gap: 8px; flex-wrap: wrap; }
   .dsp-contato .botao { padding: 10px 16px; font-size: .9rem; }
@@ -304,12 +306,12 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
   type Anuncio = {
     id: string; categoria: string; titulo: string; marca_modelo: string | null; tamanho: string | null;
     conservacao: string; descricao: string | null; modalidade: string; preco: number | null; troca_por: string | null;
-    entrega: string[]; cidade: string; uf: string; fotos: string[]; nome: string; whatsapp: string; instagram: string | null;
+    entrega: string[]; retirada_bairros: string | null; entrega_academias: string | null; cidade: string; uf: string; fotos: string[]; nome: string; whatsapp: string; instagram: string | null;
     seg_ano_fabricacao: number | null; seg_quedas: string | null; seg_armazenamento: string | null;
     publicado_em: string; expira_em: string; vendido_em: string | null;
   };
 
-  const COLUNAS = 'id, categoria, titulo, marca_modelo, tamanho, conservacao, descricao, modalidade, preco, troca_por, entrega, cidade, uf, fotos, nome, whatsapp, instagram, seg_ano_fabricacao, seg_quedas, seg_armazenamento, publicado_em, expira_em, vendido_em';
+  const COLUNAS = 'id, categoria, titulo, marca_modelo, tamanho, conservacao, descricao, modalidade, preco, troca_por, entrega, retirada_bairros, entrega_academias, cidade, uf, fotos, nome, whatsapp, instagram, seg_ano_fabricacao, seg_quedas, seg_armazenamento, publicado_em, expira_em, vendido_em';
 
   const grade = document.getElementById('dsp-grade')!;
   const contagem = document.getElementById('dsp-contagem')!;
@@ -340,6 +342,12 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
     return categoria(a.categoria).seguranca && a.seg_ano_fabricacao ? `${base}, com histórico informado` : base;
   }
   const entregaTexto = (a: Anuncio) => (a.entrega ?? []).map((e) => ENTREGAS[e]).filter(Boolean).join(' ou ');
+  // Versão completa, pro anúncio aberto: "retirada em Pinheiros · levo na academia: Casa de Pedra"
+  const entregaDetalhe = (a: Anuncio) => (a.entrega ?? []).map((e) => {
+    if (e === 'retirada' && a.retirada_bairros) return `retirada em ${a.retirada_bairros}`;
+    if (e === 'academia' && a.entrega_academias) return `levo na academia: ${a.entrega_academias}`;
+    return ENTREGAS[e];
+  }).filter(Boolean);
 
   function cardHtml(a: Anuncio) {
     const cat = categoria(a.categoria);
@@ -387,7 +395,7 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
           <p class="dsp-preco">${esc(precoTexto(a))}</p>
           <h2>${esc(a.titulo)}</h2>
           <ul class="dsp-infos">${infos.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
-          ${a.entrega?.length ? `<p class="dsp-quem"><strong>Entrega:</strong> ${esc(entregaTexto(a))}</p>` : ''}
+          ${a.entrega?.length ? `<div class="dsp-entrega"><strong>Entrega</strong><ul>${entregaDetalhe(a).map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>` : ''}
           ${seg}
           ${a.descricao ? `<p class="dsp-desc">${esc(a.descricao)}</p>` : ''}
           <p class="dsp-quem">Anunciado por ${esc(a.nome)}</p>
@@ -412,7 +420,7 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
       if (fUf.value && a.uf !== fUf.value) return false;
       if (fEntrega.value && !(a.entrega ?? []).includes(fEntrega.value)) return false;
       if (palavras.length) {
-        const texto = semAcento([a.titulo, a.marca_modelo, a.tamanho, a.descricao, a.cidade, a.troca_por, categoria(a.categoria).rotulo, categoria(a.categoria).ajuda].join(' '));
+        const texto = semAcento([a.titulo, a.marca_modelo, a.tamanho, a.descricao, a.cidade, a.troca_por, a.retirada_bairros, a.entrega_academias, categoria(a.categoria).rotulo, categoria(a.categoria).ajuda].join(' '));
         if (!palavras.every((p) => texto.includes(p))) return false;
       }
       return true;
