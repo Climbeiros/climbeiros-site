@@ -8,6 +8,12 @@ import { CATEGORIAS, CONSERVACAO, ENTREGAS, UFS } from '../lib/desapego';
 const anoAtual = new Date().getFullYear();
 ---
 <form class="fc" id="form-desapego" novalidate>
+  <!-- Aparece só quando a pessoa clica em "Editar" no "Meus anúncios" -->
+  <div class="fd-editando" id="fd-editando" hidden>
+    <p><strong>✏️ Editando: <span id="fd-editando-titulo"></span></strong></p>
+    <p>Mudou <strong>só o preço</strong>? Atualiza no site na hora. Se mudar outra coisa (título, fotos, descrição...), o anúncio passa de novo pela equipe e sai do ar até ser aprovado.</p>
+    <button type="button" class="botao botao--secundario" id="fd-cancelar-edicao">Cancelar edição</button>
+  </div>
   <p class="fc-legenda">
     Seu anúncio passa por uma olhadinha da equipe antes de aparecer e fica <strong>30 dias no ar</strong>.
     Etiquetas: <span class="selo selo--site">No site</span> aparece pra todo mundo,
@@ -99,6 +105,7 @@ const anoAtual = new Date().getFullYear();
   <div class="fc-campo">
     <label for="fd-fotos">Fotos (até 3) <span class="req req--sim">Pelo menos 1</span> <span class="selo selo--site">No site</span></label>
     <input type="file" id="fd-fotos" name="fotos" accept="image/*" multiple />
+    <small class="fc-ajuda" id="fd-fotos-ajuda-edicao" hidden><strong>Fotos atuais abaixo.</strong> Pra trocar, escolha novas fotos: elas substituem as atuais.</small>
     <small class="fc-ajuda">Foto boa vende mais: luz natural, fundo limpo e uma foto mostrando o desgaste de perto.</small>
     <div class="fd-previas" id="fd-previas"></div>
   </div>
@@ -151,7 +158,7 @@ const anoAtual = new Date().getFullYear();
     <input type="text" id="fd-insta" name="instagram" maxlength="60" placeholder="@seu.perfil" />
   </div>
 
-  <div class="fc-destaque">
+  <div class="fc-destaque" id="fd-bloco-senha">
     <div class="fc-campo">
       <label for="fd-senha">Crie uma senha de 6 números <span class="req req--sim">Obrigatório</span> <span class="selo selo--equipe">Só você sabe</span></label>
       <input type="password" id="fd-senha" name="senha" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required autocomplete="new-password" placeholder="••••••" />
@@ -163,7 +170,7 @@ const anoAtual = new Date().getFullYear();
     </div>
   </div>
 
-  <div class="fc-campo">
+  <div class="fc-campo" id="fd-msg-campo">
     <label for="fd-msg">Mensagem pra equipe Climbeiros <span class="req req--nao">Opcional</span> <span class="selo selo--equipe">Só a equipe vê</span></label>
     <textarea id="fd-msg" name="mensagem" rows="2" maxlength="1000"></textarea>
   </div>
@@ -183,6 +190,9 @@ const anoAtual = new Date().getFullYear();
   .fd-seg-titulo { margin: 0; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .03em; color: var(--laranja); }
   .fd-previas { display: flex; gap: 8px; flex-wrap: wrap; }
   .fd-previas img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(42,31,22,.15); }
+  .fd-editando { background: var(--branco); border: 2px solid var(--laranja); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .fd-editando p { margin: 0; }
+  .fd-editando .botao { align-self: flex-start; margin-top: 4px; }
   .fd-aceite { padding: 14px; border-radius: 8px; background: rgba(218,115,38,.08); border: 1px solid rgba(218,115,38,.35); }
 </style>
 
@@ -226,6 +236,7 @@ const anoAtual = new Date().getFullYear();
 
   inputFotos.addEventListener('change', () => {
     previas.innerHTML = '';
+    if (edicao && !(inputFotos.files?.length)) return mostrarFotosAtuais();
     Array.from(inputFotos.files ?? []).slice(0, 3).forEach((f) => {
       const img = document.createElement('img');
       img.src = URL.createObjectURL(f);
@@ -233,6 +244,72 @@ const anoAtual = new Date().getFullYear();
       previas.appendChild(img);
     });
   });
+
+  // ---- Modo edição (vem do "Meus anúncios" na página) ----
+  type Edicao = { id: string; whatsapp: string; senha: string; fotos: string[] };
+  let edicao: Edicao | null = null;
+  const bannerEdicao = document.getElementById('fd-editando')!;
+  const blocoSenha = document.getElementById('fd-bloco-senha')!;
+  const campoMsg = document.getElementById('fd-msg-campo')!;
+  const ajudaFotosEdicao = document.getElementById('fd-fotos-ajuda-edicao')!;
+
+  const mostrarFotosAtuais = () => {
+    previas.innerHTML = '';
+    (edicao?.fotos ?? []).forEach((url) => {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = '';
+      previas.appendChild(img);
+    });
+  };
+
+  function sairDaEdicao() {
+    edicao = null;
+    form?.reset();
+    previas.innerHTML = '';
+    bannerEdicao.hidden = true;
+    blocoSenha.hidden = false;
+    campoMsg.hidden = false;
+    ajudaFotosEdicao.hidden = true;
+    campoWhats.disabled = false;
+    btn.textContent = 'Enviar anúncio';
+    atualizar();
+  }
+
+  function entrarNaEdicao(det: { id: string; whatsapp: string; senha: string; dados: Record<string, any> }) {
+    if (!form) return;
+    form.reset();
+    const v = det.dados ?? {};
+    edicao = { id: det.id, whatsapp: det.whatsapp, senha: det.senha, fotos: v.fotos ?? [] };
+    const set = (nome: string, valor: unknown) => {
+      const el = form.elements.namedItem(nome) as HTMLInputElement | HTMLSelectElement | null;
+      if (el && 'value' in el) el.value = valor == null ? '' : String(valor);
+    };
+    ['categoria', 'titulo', 'marca_modelo', 'tamanho', 'descricao', 'troca_por', 'retirada_bairros',
+     'entrega_academias', 'cidade', 'uf', 'nome', 'seg_ano_fabricacao', 'seg_armazenamento'].forEach((n) => set(n, v[n]));
+    set('preco', v.preco != null ? String(Number(v.preco)).replace('.', ',') : '');
+    set('instagram', v.instagram ? '@' + v.instagram : '');
+    campoWhats.value = det.whatsapp;
+    campoWhats.disabled = true;
+    const marcar = (nome: string, valor: unknown) => form.querySelectorAll<HTMLInputElement>(`input[name="${nome}"]`)
+      .forEach((r) => { r.checked = Array.isArray(valor) ? valor.includes(r.value) : r.value === valor; });
+    marcar('modalidade', v.modalidade);
+    marcar('conservacao', v.conservacao);
+    marcar('seg_quedas', v.seg_quedas);
+    marcar('entrega', v.entrega ?? []);
+    document.getElementById('fd-editando-titulo')!.textContent = v.titulo ?? '';
+    bannerEdicao.hidden = false;
+    blocoSenha.hidden = true;
+    campoMsg.hidden = true;
+    ajudaFotosEdicao.hidden = false;
+    btn.textContent = 'Salvar alterações';
+    status.textContent = '';
+    atualizar();
+    mostrarFotosAtuais();
+    document.getElementById('anunciar')?.scrollIntoView({ behavior: 'smooth' });
+  }
+  window.addEventListener('desapego:editar', (e) => entrarNaEdicao((e as CustomEvent).detail));
+  document.getElementById('fd-cancelar-edicao')!.addEventListener('click', () => { sairDaEdicao(); status.textContent = ''; });
 
   const erro = (msg: string, campo?: HTMLElement | null) => {
     status.textContent = msg;
@@ -257,20 +334,22 @@ const anoAtual = new Date().getFullYear();
     if (!String(d.titulo || '').trim()) return erro('Dê um título pro anúncio.', document.getElementById('fd-titulo'));
     if (seg && !d.seg_ano_fabricacao) return erro('Pra equipamento de segurança, o ano de fabricação é obrigatório.', document.getElementById('fd-ano'));
     if (seg && !d.seg_quedas) return erro('Conte se o equipamento já segurou queda forte.');
-    if (fotos.length === 0) return erro('Coloque pelo menos uma foto.', inputFotos);
+    if (fotos.length === 0 && !edicao) return erro('Coloque pelo menos uma foto.', inputFotos);
     if (fotos.length > 3) return erro('São no máximo 3 fotos. Escolha as melhores.', inputFotos);
     if (!String(d.cidade || '').trim() || !d.uf) return erro('Preencha cidade e UF.', document.getElementById('fd-cidade'));
     if (entrega.length === 0) return erro('Marque pelo menos uma forma de entrega.');
     if (entrega.includes('retirada') && !String(d.retirada_bairros || '').trim()) return erro('Conte o bairro (ou bairros) onde a pessoa pode retirar.', document.getElementById('fd-bairros'));
     if (entrega.includes('academia') && !String(d.entrega_academias || '').trim()) return erro('Conte em qual academia (ou academias) você pode entregar.', document.getElementById('fd-academias'));
     if (!String(d.nome || '').trim()) return erro('Preencha seu nome.', document.getElementById('fd-nome'));
-    if (!d.whatsapp || !telefoneValido(d.whatsapp)) return erro('Preencha o WhatsApp no formato (11)991721313, com DDD.', campoWhats);
-    if (!/^\d{6}$/.test(String(d.senha || ''))) return erro('A senha precisa ter exatamente 6 números.', document.getElementById('fd-senha'));
-    if (d.senha !== d.senha2) return erro('As duas senhas não estão iguais.', document.getElementById('fd-senha2'));
+    if (!edicao) {
+      if (!d.whatsapp || !telefoneValido(d.whatsapp)) return erro('Preencha o WhatsApp no formato (11)991721313, com DDD.', campoWhats);
+      if (!/^\d{6}$/.test(String(d.senha || ''))) return erro('A senha precisa ter exatamente 6 números.', document.getElementById('fd-senha'));
+      if (d.senha !== d.senha2) return erro('As duas senhas não estão iguais.', document.getElementById('fd-senha2'));
+    }
     if (!d.aceite) return erro('Marque que leu o aviso de segurança.', document.getElementById('fd-aceite'));
 
     btn.setAttribute('disabled', '');
-    status.textContent = 'Enviando as fotos...';
+    if (fotos.length) status.textContent = 'Enviando as fotos...';
 
     const urls: string[] = [];
     for (const f of fotos) {
@@ -285,8 +364,8 @@ const anoAtual = new Date().getFullYear();
       urls.push(supabase.storage.from('fotos-desapego').getPublicUrl(nome).data.publicUrl);
     }
 
-    status.textContent = 'Enviando o anúncio...';
-    const { error } = await supabase.from('anuncios_desapego').insert([{
+    status.textContent = edicao ? 'Salvando...' : 'Enviando o anúncio...';
+    const campos = {
       modalidade,
       categoria: d.categoria,
       titulo: d.titulo.trim(),
@@ -301,13 +380,44 @@ const anoAtual = new Date().getFullYear();
       entrega_academias: entrega.includes('academia') ? d.entrega_academias.trim() : null,
       cidade: d.cidade.trim(),
       uf: d.uf,
-      fotos: urls,
+      fotos: urls.length ? urls : (edicao?.fotos ?? []),
       nome: d.nome.trim(),
-      whatsapp: d.whatsapp,
       instagram: usuarioInstagram(d.instagram),
       seg_ano_fabricacao: seg ? Number(d.seg_ano_fabricacao) : null,
       seg_quedas: seg ? d.seg_quedas : null,
       seg_armazenamento: seg ? (d.seg_armazenamento?.trim() || null) : null,
+    };
+
+    if (edicao) {
+      const { data: r, error: erroEd } = await supabase.rpc('desapego_editar', {
+        p_id: edicao.id, p_whatsapp: edicao.whatsapp, p_senha: edicao.senha, p_campos: campos,
+      });
+      btn.removeAttribute('disabled');
+      if (erroEd) {
+        const msg = /Informe|Coloque|precisa/.test(erroEd.message) ? erroEd.message + '.' : 'Ops, não consegui salvar. Tente de novo.';
+        return erro(msg);
+      }
+      const RESP: Record<string, string> = {
+        preco_atualizado: '<strong>Preço atualizado!</strong> Já está valendo no site.',
+        editado_volta_aprovacao: '<strong>Alterações salvas!</strong> Como você mudou mais que o preço, o anúncio passa de novo pela equipe e volta pro site assim que for aprovado.',
+        editado_pendente: '<strong>Alterações salvas!</strong> O anúncio continua aguardando a aprovação da equipe.',
+        sem_mudancas: 'Nada mudou no anúncio.',
+        senha_errada: 'Senha errada. Entre de novo pelo "Meus anúncios".',
+        travado: 'Anúncio travado por muitas tentativas erradas. Fale com a gente pelo Contato.',
+        ja_vendido: 'Esse anúncio já foi marcado como vendido.',
+        prazo_acabou: 'Esse anúncio venceu há mais de 30 dias. Faça um anúncio novo, por favor.',
+        nao_encontrado: 'Não achei esse anúncio.',
+      };
+      const texto = RESP[String(r)] ?? 'Feito.';
+      sairDaEdicao();
+      status.innerHTML = texto;
+      window.dispatchEvent(new CustomEvent('desapego:atualizar'));
+      return;
+    }
+
+    const { error } = await supabase.from('anuncios_desapego').insert([{
+      ...campos,
+      whatsapp: d.whatsapp,
       mensagem: d.mensagem?.trim() || null,
       senha_hash: d.senha, // o banco embaralha antes de guardar
     }]);
