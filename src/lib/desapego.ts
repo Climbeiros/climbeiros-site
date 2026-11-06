@@ -52,18 +52,74 @@ export function ehSeguranca(valor: string) {
 }
 
 // Diminui a foto no navegador antes de subir (fotos de celular têm 3–8 MB).
-// Lado maior até 1600 px, JPEG ~82%. Se não der pra converter, sobe a original.
-export async function reduzirFoto(arquivo: File, ladoMaximo = 1600): Promise<Blob> {
+// Lado maior até 1600 px, em JPEG. Tenta 3 jeitos de abrir a foto, porque
+// alguns navegadores (Safari do iPhone, principalmente) falham no primeiro:
+// 1) createImageBitmap respeitando a rotação da foto; 2) createImageBitmap simples;
+// 3) <img> comum. Só se os três falharem é que sobe a original.
+type Imagem = { fonte: CanvasImageSource; largura: number; altura: number; liberar: () => void };
+
+async function abrirImagem(arquivo: Blob): Promise<Imagem | null> {
+  if (typeof createImageBitmap === 'function') {
+    for (const opcoes of [{ imageOrientation: 'from-image' }, undefined]) {
+      try {
+        const bm = opcoes
+          ? await createImageBitmap(arquivo, opcoes as ImageBitmapOptions)
+          : await createImageBitmap(arquivo);
+        if (bm.width > 0 && bm.height > 0) {
+          return { fonte: bm, largura: bm.width, altura: bm.height, liberar: () => bm.close?.() };
+        }
+      } catch { /* tenta o próximo jeito */ }
+    }
+  }
   try {
-    const bitmap = await createImageBitmap(arquivo);
-    const escala = Math.min(1, ladoMaximo / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(bitmap.width * escala);
-    canvas.height = Math.round(bitmap.height * escala);
-    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, 'image/jpeg', 0.82));
-    return blob ?? arquivo;
+    const url = URL.createObjectURL(arquivo);
+    const img = new Image();
+    img.src = url;
+    await new Promise<void>((ok, erro) => {
+      img.onload = () => ok();
+      img.onerror = () => erro(new Error('imagem'));
+    });
+    if (img.naturalWidth > 0) {
+      return { fonte: img, largura: img.naturalWidth, altura: img.naturalHeight, liberar: () => URL.revokeObjectURL(url) };
+    }
+    URL.revokeObjectURL(url);
+  } catch { /* não deu */ }
+  return null;
+}
+
+async function canvasParaJpeg(canvas: HTMLCanvasElement, qualidade: number): Promise<Blob | null> {
+  const blob = await new Promise<Blob | null>((ok) => {
+    try { canvas.toBlob(ok, 'image/jpeg', qualidade); } catch { ok(null); }
+  });
+  if (blob && blob.size > 0) return blob;
+  try {
+    // Plano B: alguns navegadores devolvem null no toBlob
+    return await (await fetch(canvas.toDataURL('image/jpeg', qualidade))).blob();
   } catch {
+    return null;
+  }
+}
+
+export async function reduzirFoto(arquivo: File, ladoMaximo = 1600): Promise<Blob> {
+  const imagem = await abrirImagem(arquivo);
+  if (!imagem) return arquivo;
+  try {
+    // Até 2 tentativas: se ainda passar de ~900 KB, reduz mais e comprime mais.
+    for (const [lado, qualidade] of [[ladoMaximo, 0.82], [1280, 0.72]] as const) {
+      const escala = Math.min(1, lado / Math.max(imagem.largura, imagem.altura));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(imagem.largura * escala));
+      canvas.height = Math.max(1, Math.round(imagem.altura * escala));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return arquivo;
+      ctx.drawImage(imagem.fonte, 0, 0, canvas.width, canvas.height);
+      const blob = await canvasParaJpeg(canvas, qualidade);
+      canvas.width = canvas.height = 0; // libera memória (importante no iPhone)
+      if (blob && blob.size <= 900 * 1024) return blob;
+      if (blob && lado === 1280) return blob;
+    }
     return arquivo;
+  } finally {
+    imagem.liberar();
   }
 }
