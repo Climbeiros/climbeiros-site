@@ -244,6 +244,10 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
   .dsp-seg a { color: var(--laranja); }
   .dsp-desc { font-size: .92rem; line-height: 1.55; margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
   .dsp-entrega { font-size: .88rem; }
+  .dsp-entrega { background: var(--creme-claro); border-radius: 8px; padding: 12px 14px; }
+  .dsp-entrega > strong { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: .78rem; color: var(--verde-escuro); }
+  .dsp-local { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; font-weight: 700; font-size: 1.05rem; color: var(--verde-escuro); }
+  .dsp-local svg { flex-shrink: 0; color: var(--laranja); }
   .dsp-entrega ul { margin: 4px 0 0; padding-left: 18px; line-height: 1.5; }
   .dsp-quem { font-size: .85rem; opacity: .8; margin: 0; }
   .dsp-contato { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -357,7 +361,7 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
     if (e === 'retirada' && a.retirada_bairros) return `retirada em ${a.retirada_bairros}`;
     if (e === 'academia' && a.entrega_academias) return `levo na academia: ${a.entrega_academias}`;
     return ENTREGAS[e];
-  }).filter(Boolean);
+  }).filter(Boolean).map((t) => t.charAt(0).toUpperCase() + t.slice(1));
 
   function cardHtml(a: Anuncio) {
     const cat = categoria(a.categoria);
@@ -388,7 +392,7 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
     const msg = `Oi, ${a.nome}! Vi seu anúncio "${a.titulo}" no Desapego do Climbeiros. Ainda está disponível?`;
     const whats = linkWhatsApp(a.whatsapp);
     const insta = linkInstagram(a.instagram);
-    const infos = [cat.rotulo, CONSERVACAO[a.conservacao], a.tamanho && `Tam. ${a.tamanho}`, a.marca_modelo, `${a.cidade}, ${a.uf}`].filter(Boolean);
+    const infos = [cat.rotulo, CONSERVACAO[a.conservacao], a.tamanho && `Tam. ${a.tamanho}`, a.marca_modelo].filter(Boolean);
     const seg = cat.seguranca ? `
       <div class="dsp-seg">
         <strong>⚠️ Equipamento de segurança.</strong>
@@ -407,7 +411,11 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
           ${baixou(a) ? '<p class="dsp-quem" style="color:var(--laranja);font-weight:600;margin-top:-4px">↓ Baixou o preço</p>' : ''}
           <h2>${esc(a.titulo)}</h2>
           <ul class="dsp-infos">${infos.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
-          ${a.entrega?.length ? `<div class="dsp-entrega"><strong>Entrega</strong><ul>${entregaDetalhe(a).map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>` : ''}
+          <div class="dsp-entrega">
+            <strong>Onde e como pegar</strong>
+            <p class="dsp-local"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>${esc(a.cidade)}, ${esc(a.uf)}</p>
+            ${a.entrega?.length ? `<ul>${entregaDetalhe(a).map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+          </div>
           ${seg}
           ${a.descricao ? `<p class="dsp-desc">${esc(a.descricao)}</p>` : ''}
           <p class="dsp-quem">Anunciado por ${esc(a.nome)}</p>
