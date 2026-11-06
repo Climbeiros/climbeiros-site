@@ -353,7 +353,12 @@ const anoAtual = new Date().getFullYear();
 
     const urls: string[] = [];
     for (const f of fotos) {
+      status.textContent = `Preparando a foto ${urls.length + 1} de ${fotos.length}...`;
       const blob = await reduzirFoto(f);
+      if (blob.size > 5 * 1024 * 1024) {
+        btn.removeAttribute('disabled');
+        return erro('Uma das fotos é grande demais (mais de 5 MB) e não consegui diminuir. Tente tirar um print da foto ou escolher outra.', inputFotos);
+      }
       const ext = blob.type === 'image/jpeg' ? 'jpg' : (f.name.split('.').pop() || 'jpg').toLowerCase();
       const nome = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from('fotos-desapego').upload(nome, blob, { contentType: blob.type || f.type });
