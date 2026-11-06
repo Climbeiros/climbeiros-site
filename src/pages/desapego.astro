@@ -573,7 +573,9 @@ import { CATEGORIAS, ENTREGAS, UFS } from '../lib/desapego';
       window.dispatchEvent(new CustomEvent('desapego:editar', { detail: { id: m.id, whatsapp: lWhats.value, senha: lSenha.value, dados: m.dados } }));
       return;
     }
-    if (acao === 'remover' && !confirm('Tirar este anúncio do ar? Depois não dá pra voltar.')) return;
+    const tituloMeu = b.closest<HTMLElement>('.dsp-meu')?.querySelector('h3')?.textContent ?? 'este anúncio';
+    if (acao === 'vendido' && !confirm(`Marcar "${tituloMeu}" como vendido?\n\nDepois não dá pra desfazer: o anúncio fica 7 dias com o selo VENDIDO e sai do site. Não dá mais pra editar nem renovar.`)) return;
+    if (acao === 'remover' && !confirm(`Tirar "${tituloMeu}" do ar?\n\nDepois não dá pra voltar.`)) return;
     const id = b.closest<HTMLElement>('.dsp-meu')!.dataset.id!;
     b.disabled = true;
     const { data: r, error } = await supabase.rpc('desapego_gerenciar', { p_id: id, p_whatsapp: lWhats.value, p_senha: lSenha.value, p_acao: acao });
