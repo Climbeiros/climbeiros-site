@@ -452,7 +452,14 @@ const numerosGuias = [
       <label>Senha ou código (6 números) <input type="password" id="gp-senha" inputmode="numeric" maxlength="6" required autocomplete="current-password" placeholder="••••••" /></label>
       <button type="submit" class="botao">Entrar</button>
       <p class="gp-msg" id="gp-msg" role="status"></p>
-      <p class="gp-ajuda">Não tem senha nem código, ou esqueceu? Fale com a gente pelo <a href="/contato">Contato</a> ou pelo Instagram que a gente te manda um código novo.</p>
+      <p class="gp-ajuda"><button type="button" class="gp-link" id="gp-abrir-esqueci">Esqueci a senha</button></p>
+    </form>
+    <form id="gp-esqueci" class="gp-form" hidden>
+      <p>Sem problema! Digite o WhatsApp do seu cadastro. A equipe vai te mandar uma senha provisória por lá, e com ela você cria uma senha nova. Sua senha atual continua valendo até lá.</p>
+      <label>WhatsApp <input type="tel" id="gp-esq-whats" inputmode="numeric" maxlength="13" placeholder="(11)991721313" required autocomplete="tel" /></label>
+      <button type="submit" class="botao">Pedir nova senha</button>
+      <p class="gp-msg" id="gp-esq-msg" role="status"></p>
+      <p class="gp-ajuda">Trocou de número ou não recebeu? Fale com a gente pelo <a href="/contato">Contato</a> ou pelo Instagram. · <button type="button" class="gp-link" id="gp-voltar-login">Voltar</button></p>
     </form>
     <form id="gp-nova" class="gp-form" hidden>
       <p>Oi, <strong id="gp-nova-nome"></strong>! É o seu primeiro acesso: crie uma senha de 6 números pra usar daqui pra frente.</p>
@@ -712,15 +719,21 @@ const numerosGuias = [
   const MOTIVOS: Record<string, string> = {
     nao_encontrado: 'Não achei guia aprovado com esse WhatsApp. Confira o número (com DDD) ou fale com a gente.',
     senha_errada: 'A senha (ou o código) não confere. Confira e tente de novo.',
-    sem_acesso: 'Seu perfil ainda não tem senha. Fale com a gente pelo Contato ou pelo Instagram que a gente te manda um código.',
+    sem_acesso: 'Seu perfil ainda não tem senha. Clique em "Esqueci a senha" que a equipe te manda uma senha provisória pelo WhatsApp.',
     travado: 'Muitas tentativas erradas: o acesso foi travado por segurança. Fale com a gente pelo Contato que a gente destrava.',
     senha_invalida: 'A senha precisa ter exatamente 6 números.',
   };
+
+  const formEsqueci = document.getElementById('gp-esqueci') as HTMLFormElement | null;
+  const esqWhats = document.getElementById('gp-esq-whats') as HTMLInputElement | null;
+  const esqMsg = document.getElementById('gp-esq-msg');
+  mascaraTelefone(esqWhats);
 
   function abrir() {
     if (!dlg || !formLogin || !formNova) return;
     formLogin.hidden = false;
     formNova.hidden = true;
+    if (formEsqueci) formEsqueci.hidden = true;
     if (msg) msg.textContent = '';
     if (senha) senha.value = '';
     dlg.showModal();
@@ -756,6 +769,31 @@ const numerosGuias = [
     abrirEdicao(r, senha.value);
   });
 
+  // "Esqueci a senha": cria um pedido no painel; a equipe manda a senha provisória pelo WhatsApp.
+  document.getElementById('gp-abrir-esqueci')?.addEventListener('click', () => {
+    if (!formLogin || !formEsqueci) return;
+    formLogin.hidden = true;
+    formEsqueci.hidden = false;
+    if (esqWhats) esqWhats.value = whats?.value || '';
+    if (esqMsg) esqMsg.textContent = '';
+    esqWhats?.focus();
+  });
+  document.getElementById('gp-voltar-login')?.addEventListener('click', () => {
+    if (!formLogin || !formEsqueci) return;
+    formEsqueci.hidden = true;
+    formLogin.hidden = false;
+  });
+  formEsqueci?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!esqMsg || !esqWhats) return;
+    if (esqWhats.value.replace(/\D/g, '').length < 10) { esqMsg.textContent = 'Digite o WhatsApp com DDD.'; return; }
+    esqMsg.textContent = 'Enviando...';
+    const { error } = await supabase.rpc('guia_pedir_senha', { p_whatsapp: esqWhats.value });
+    esqMsg.textContent = error
+      ? 'Não consegui enviar agora. Tente de novo em instantes.'
+      : 'Pedido recebido! Se esse WhatsApp estiver no cadastro de um guia, a equipe vai te mandar uma senha provisória por lá em breve.';
+  });
+
   formNova?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!msgNova || !nova1 || !nova2 || !whats || !senha) return;
@@ -788,6 +826,7 @@ const numerosGuias = [
   .gp-form .botao { align-self: flex-start; }
   .gp-msg { color: var(--laranja); font-weight: 600; min-height: 1em; }
   .gp-ajuda { font-size: .88rem; color: rgba(42,31,22,.75); }
+  .gp-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--laranja); text-decoration: underline; cursor: pointer; }
 
   .vazio { text-align: center; color: #5f5344; margin: 40px 0; font-size: 1.1rem; }
   .guides { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: 26px; margin-top: 48px; }
