@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import { getSiteConfig } from '../lib/supabase';
 const config = await getSiteConfig();
 const texto = config.sobre_texto ||
-  'Os Climbeiros nasceu da vontade de um grupo de amigos de reunir, num só lugar, tudo que a comunidade de escalada no Brasil precisa: onde treinar, onde aprender, quais vias vale a pena pegar e quem são as marcas que realmente apoiam quem escala.';
+  'O Climbeiros nasceu da vontade de um grupo de amigos de reunir, num só lugar, tudo que a comunidade de escalada no Brasil precisa: onde treinar, onde aprender, quais vias vale a pena pegar e quem são as marcas que realmente apoiam quem escala.';
 
 // Fotos da página ficam no Supabase Storage, bucket "fotos", com nomes começando por "sobre-"
 // (versões menores das fotos da galeria). Pra trocar uma foto, suba outra com o mesmo nome
