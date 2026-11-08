@@ -1,6 +1,6 @@
 ---
 // Menu do site (opção 6 + 3 botões no celular, escolhida pelas sócias em 08/11/2026).
-// Computador: 3 botões (Escalar, Comunidade, Os Climbeiros) na barra, cada um abre a sua lista.
+// Computador: 3 botões (Escalar, Comunidade, Os Climbeiros) na barra, todos em creme; cada um abre a sua lista.
 // Celular: o ☰ abre os 3 grupos (Escalar, Comunidade, Os Climbeiros); cada grupo abre a sua lista.
 // Ícones: Tabler Icons (licença MIT), copiados como SVG.
 
@@ -177,7 +177,6 @@ const grupoAtivo = (itens: Item[]) => itens.some((i) => ativo(i.href));
     white-space: nowrap;
   }
   .header__dd-btn svg { width: 22px; height: 22px; }
-  .header__dd-btn--comunidade { color: var(--amarelo); }
   .header__dd-btn:hover { color: var(--creme); }
   .header__dd-btn--ativo { border-bottom-color: currentColor; }
   .header__dd-btn .header__seta { font-size: 0.8em; transition: transform 0.2s; }
@@ -267,7 +266,6 @@ const grupoAtivo = (itens: Item[]) => itens.some((i) => ativo(i.href));
       cursor: pointer;
       text-align: left;
     }
-    .header__grupo-btn--comunidade { color: var(--amarelo); }
     .header__grupo-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
     .header__seta { margin-left: auto; transition: transform 0.2s; }
     .header__grupo-btn[aria-expanded="true"] .header__seta { transform: rotate(180deg); }
