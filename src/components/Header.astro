@@ -138,15 +138,17 @@ const grupoAtivo = (itens: Item[]) => itens.some((i) => ativo(i.href));
     z-index: 50;
     box-shadow: 0 2px 12px rgba(0,0,0,0.15);
   }
-  .header__linha {
+  /* ".header .header__linha" (e não só ".header__linha") pra vencer o padding
+     da classe .container do global.css, que vem depois e zerava este espaço. */
+  .header .header__linha {
     display: flex;
     align-items: center;
     gap: 24px;
-    padding-top: 12px;
-    padding-bottom: 12px;
+    padding-top: 16px;
+    padding-bottom: 16px;
   }
   .header__marca { flex-shrink: 0; }
-  .header__logo { height: 52px; width: auto; display: block; }
+  .header__logo { height: 54px; width: auto; display: block; }
 
   /* ---------- Computador ---------- */
   .header__nav { flex: 1; min-width: 0; }
@@ -228,6 +230,7 @@ const grupoAtivo = (itens: Item[]) => itens.some((i) => ativo(i.href));
     .header__nav { display: none; }
     .header__linha { justify-content: space-between; }
     .header__logo { height: 48px; }
+    .header .header__linha { padding-top: 12px; padding-bottom: 12px; }
     .header__menu-btn {
       display: block;
       background: none;
