@@ -140,6 +140,7 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
             valores com o próprio guia.
           </p>
           <a class="topo-link" href="#seja-guia">É guia? Apareça aqui →</a>
+          <button type="button" class="topo-link topo-link--editar" data-abrir-editar>Já está aqui? Editar meu perfil →</button>
           {temSeloIndica && (
             <p class="selo-nota" title={textoSeloIndica}>
               <img src="/selo-climbeiros-indica.png" alt="" aria-hidden="true" />
@@ -412,10 +413,32 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
         <h2>É guia/instrutor e quer aparecer aqui?</h2>
         <p>Se você é guia/instrutor de escalada ou montanhismo e quer fazer parte da nossa
           rede, preencha abaixo, é gratuito! A gente adora conhecer gente boa da vertical.</p>
+        <p class="beguide-editar">Já está no site? <button type="button" data-abrir-editar>Edite o seu perfil</button> com o seu WhatsApp e a sua senha.</p>
         <FormGuia />
       </div>
     </div>
   </section>
+
+  <!-- Janela "Editar meu perfil" (WhatsApp + senha, ou código de primeiro acesso) -->
+  <dialog class="gp-dialogo" id="gp-dialogo" aria-labelledby="gp-titulo">
+    <form method="dialog" class="gp-fechar-form"><button class="gp-fechar" aria-label="Fechar">×</button></form>
+    <h2 id="gp-titulo">Editar meu perfil</h2>
+    <form id="gp-login" class="gp-form">
+      <p>Entre com o WhatsApp do seu cadastro e a sua senha. Primeira vez aqui? Use o código de 6 números que a gente te mandou.</p>
+      <label>WhatsApp <input type="tel" id="gp-whats" inputmode="numeric" maxlength="13" placeholder="(11)991721313" required autocomplete="tel" /></label>
+      <label>Senha ou código (6 números) <input type="password" id="gp-senha" inputmode="numeric" maxlength="6" required autocomplete="current-password" placeholder="••••••" /></label>
+      <button type="submit" class="botao">Entrar</button>
+      <p class="gp-msg" id="gp-msg" role="status"></p>
+      <p class="gp-ajuda">Não tem senha nem código, ou esqueceu? Fale com a gente pelo <a href="/contato">Contato</a> ou pelo Instagram que a gente te manda um código novo.</p>
+    </form>
+    <form id="gp-nova" class="gp-form" hidden>
+      <p>Oi, <strong id="gp-nova-nome"></strong>! É o seu primeiro acesso: crie uma senha de 6 números pra usar daqui pra frente.</p>
+      <label>Nova senha <input type="password" id="gp-nova-senha" inputmode="numeric" maxlength="6" required autocomplete="new-password" placeholder="••••••" /></label>
+      <label>Repita a senha <input type="password" id="gp-nova-senha2" inputmode="numeric" maxlength="6" required autocomplete="new-password" placeholder="••••••" /></label>
+      <button type="submit" class="botao">Criar senha e editar</button>
+      <p class="gp-msg" id="gp-nova-msg" role="status"></p>
+    </form>
+  </dialog>
   <!-- Foto ampliada do guia (abre ao clicar na foto do card) -->
   <dialog class="foto-modal" id="foto-modal" aria-label="Foto do guia">
     <button type="button" class="foto-fechar" id="foto-fechar" aria-label="Fechar">×</button>
@@ -645,7 +668,104 @@ const cidadesDisponiveis = [...cidadesMap.values()].sort((a, b) => a.nome.locale
     });
   });
 </script>
+<script>
+  // "Editar meu perfil": confere WhatsApp + senha (ou código de primeiro acesso)
+  // e manda os dados pro formulário de guia (FormGuia), que entra no modo edição.
+  import { supabase } from '../lib/supabase';
+  import { mascaraTelefone } from '../lib/formularios';
+
+  const dlg = document.getElementById('gp-dialogo') as HTMLDialogElement | null;
+  const formLogin = document.getElementById('gp-login') as HTMLFormElement | null;
+  const formNova = document.getElementById('gp-nova') as HTMLFormElement | null;
+  const whats = document.getElementById('gp-whats') as HTMLInputElement | null;
+  const senha = document.getElementById('gp-senha') as HTMLInputElement | null;
+  const nova1 = document.getElementById('gp-nova-senha') as HTMLInputElement | null;
+  const nova2 = document.getElementById('gp-nova-senha2') as HTMLInputElement | null;
+  const msg = document.getElementById('gp-msg');
+  const msgNova = document.getElementById('gp-nova-msg');
+  mascaraTelefone(whats);
+  [senha, nova1, nova2].forEach((c) => c?.addEventListener('input', () => { c.value = c.value.replace(/\D/g, '').slice(0, 6); }));
+
+  const MOTIVOS: Record<string, string> = {
+    nao_encontrado: 'Não achei guia aprovado com esse WhatsApp. Confira o número (com DDD) ou fale com a gente.',
+    senha_errada: 'A senha (ou o código) não confere. Confira e tente de novo.',
+    sem_acesso: 'Seu perfil ainda não tem senha. Fale com a gente pelo Contato ou pelo Instagram que a gente te manda um código.',
+    travado: 'Muitas tentativas erradas: o acesso foi travado por segurança. Fale com a gente pelo Contato que a gente destrava.',
+    senha_invalida: 'A senha precisa ter exatamente 6 números.',
+  };
+
+  function abrir() {
+    if (!dlg || !formLogin || !formNova) return;
+    formLogin.hidden = false;
+    formNova.hidden = true;
+    if (msg) msg.textContent = '';
+    if (senha) senha.value = '';
+    dlg.showModal();
+    whats?.focus();
+  }
+  document.querySelectorAll('[data-abrir-editar]').forEach((b) => b.addEventListener('click', abrir));
+
+  function abrirEdicao(r: any, senhaUsada: string) {
+    dlg?.close();
+    window.dispatchEvent(new CustomEvent('guia:editar', {
+      detail: { whatsapp: whats?.value || '', senha: senhaUsada, guia: r.guia, edicaoPendente: !!r.edicao_pendente },
+    }));
+  }
+
+  formLogin?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!msg || !whats || !senha) return;
+    if (!/^\d{6}$/.test(senha.value)) { msg.textContent = MOTIVOS.senha_invalida; return; }
+    msg.textContent = 'Conferindo...';
+    const { data: r, error } = await supabase.rpc('guia_entrar', { p_whatsapp: whats.value, p_senha: senha.value });
+    if (error || !r) { msg.textContent = 'Não consegui conferir agora. Tente de novo em instantes.'; return; }
+    if (!r.ok) { msg.textContent = MOTIVOS[r.motivo] ?? MOTIVOS.senha_errada; return; }
+    msg.textContent = '';
+    if (r.primeiro_acesso) {
+      const nome = document.getElementById('gp-nova-nome');
+      if (nome) nome.textContent = String(r.nome || '').split(' ')[0];
+      if (formLogin) formLogin.hidden = true;
+      if (formNova) formNova.hidden = false;
+      if (msgNova) msgNova.textContent = '';
+      nova1?.focus();
+      return;
+    }
+    abrirEdicao(r, senha.value);
+  });
+
+  formNova?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!msgNova || !nova1 || !nova2 || !whats || !senha) return;
+    if (!/^\d{6}$/.test(nova1.value)) { msgNova.textContent = MOTIVOS.senha_invalida; return; }
+    if (nova1.value !== nova2.value) { msgNova.textContent = 'As duas senhas não são iguais.'; return; }
+    msgNova.textContent = 'Salvando...';
+    const { data: r, error } = await supabase.rpc('guia_criar_senha', {
+      p_whatsapp: whats.value, p_codigo: senha.value, p_senha_nova: nova1.value,
+    });
+    if (error || !r) { msgNova.textContent = 'Não consegui salvar agora. Tente de novo em instantes.'; return; }
+    if (!r.ok) { msgNova.textContent = MOTIVOS[r.motivo] ?? MOTIVOS.senha_errada; return; }
+    abrirEdicao(r, nova1.value);
+  });
+</script>
+
 <style>
+  .topo-link--editar { display: block; margin-top: 8px; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+  .beguide-editar { margin: 0 0 18px; }
+  .beguide-editar button { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--laranja); text-decoration: underline; cursor: pointer; }
+  .gp-dialogo { border: 0; border-radius: 14px; padding: 26px; width: min(480px, 92vw); background: #fffdf7; color: var(--marrom); box-shadow: 0 30px 60px -20px rgba(0,0,0,.5); }
+  .gp-dialogo::backdrop { background: rgba(42,31,22,.55); }
+  .gp-dialogo h2 { margin: 0 0 10px; }
+  .gp-fechar-form { position: absolute; top: 10px; right: 12px; margin: 0; }
+  .gp-fechar { background: none; border: 0; font-size: 1.8rem; line-height: 1; cursor: pointer; color: var(--marrom); }
+  .gp-form { display: flex; flex-direction: column; gap: 12px; }
+  .gp-form[hidden] { display: none; }
+  .gp-form p { margin: 0; }
+  .gp-form label { display: flex; flex-direction: column; gap: 4px; font-family: var(--fonte-display); text-transform: uppercase; font-size: .78rem; letter-spacing: .04em; color: var(--verde-escuro); }
+  .gp-form input { font-family: var(--fonte-corpo); font-size: 1rem; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(42,31,22,.25); text-transform: none; }
+  .gp-form .botao { align-self: flex-start; }
+  .gp-msg { color: var(--laranja); font-weight: 600; min-height: 1em; }
+  .gp-ajuda { font-size: .88rem; color: rgba(42,31,22,.75); }
+
   .vazio { text-align: center; color: #5f5344; margin: 40px 0; font-size: 1.1rem; }
   .guides { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: 26px; margin-top: 48px; }
   .guide { background: var(--branco); border: 1px solid #e6ddc4; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .25s; }
