@@ -222,7 +222,12 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
               <div class="ac-guias">
                 {blocoPrincipal.itens.map((n) => (
                   <a href={n.href} class="ac-guia">
-                    <span class="ac-guia__avatar" aria-hidden="true">{iniciais(n.titulo)}</span>
+                    <span class="ac-guia__avatar" aria-hidden="true">
+                      {iniciais(n.titulo)}
+                      {n.foto && (
+                        <img src={n.foto} alt="" loading="lazy" decoding="async" onerror="this.remove()" />
+                      )}
+                    </span>
                     <span>
                       <strong>{n.titulo}</strong>
                       {n.texto && <span class="ac-guia__texto">{n.texto}</span>}
@@ -450,7 +455,9 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
   .ac-guias { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
   .ac-guia { display: flex; gap: 10px; padding: 10px; border-radius: 10px; background: var(--branco, #fffdf7); color: var(--marrom); }
   .ac-guia:hover { text-decoration: none; background: var(--creme-claro); }
-  .ac-guia__avatar { flex: none; width: 42px; height: 42px; border-radius: 50%; background: var(--verde); color: var(--creme); display: flex; align-items: center; justify-content: center; font-family: var(--fonte-display); font-size: .95rem; }
+  .ac-guia__avatar { flex: none; width: 42px; height: 42px; border-radius: 50%; background: var(--verde); color: var(--creme); display: flex; align-items: center; justify-content: center; font-family: var(--fonte-display); font-size: .95rem; position: relative; overflow: hidden; }
+  /* Foto do guia por cima das iniciais; se a foto não abrir, ela some e as iniciais aparecem. */
+  .ac-guia__avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; }
   .ac-guia strong { display: block; font-size: .95rem; line-height: 1.25; }
   .ac-guia__texto { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: .85rem; color: #5c4e3e; }
   @media (max-width: 760px) {
