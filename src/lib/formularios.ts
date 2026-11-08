@@ -2,12 +2,14 @@
 // Pedacinhos usados por todos os formulários de cadastro.
 
 // Máscara de telefone: só dígitos, no formato (11)991721313.
+// O ")" só entra a partir do 3º número. Antes ele entrava já com 2 números, e aí
+// apagar o ")" fazia ele voltar na hora: não dava pra corrigir o DDD (bug de 08/11/2026).
 export function mascaraTelefone(campo: HTMLInputElement | null) {
   campo?.addEventListener('input', () => {
     const numeros = campo.value.replace(/\D/g, '').slice(0, 11);
     let formatado = '';
     if (numeros.length > 0) formatado = '(' + numeros.slice(0, 2);
-    if (numeros.length >= 2) formatado += ')' + numeros.slice(2);
+    if (numeros.length > 2) formatado += ')' + numeros.slice(2);
     campo.value = formatado;
   });
 }
