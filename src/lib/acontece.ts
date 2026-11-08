@@ -35,6 +35,7 @@ export type Novidade = {
   texto: string | null;
   href: string;
   data: string;      // data ISO de quando entrou no site
+  foto?: string | null; // foto do guia (foto_url), mostrada no lugar das iniciais
 };
 
 const MESES = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
@@ -138,7 +139,7 @@ export async function getNovidades(limite = 10): Promise<Novidade[]> {
     ),
     // Só os campos públicos do guia (a lista já vem filtrada: só aprovados).
     buscar<{ nome: string; cidade: string | null; uf: string | null; especialidades_lista: string[] | null; criado_em: string }>(
-      supabase.from('inscricoes_guias').select('nome, cidade, uf, especialidades_lista, criado_em').order('criado_em', { ascending: false }).limit(limite)
+      supabase.from('inscricoes_guias').select('nome, cidade, uf, especialidades_lista, foto_url, criado_em').order('criado_em', { ascending: false }).limit(limite)
     ),
     buscar<{ nome: string; local: string | null; enviado_em: string }>(
       supabase.from('fotos_galeria').select('nome, local, enviado_em').eq('aprovado', true).order('enviado_em', { ascending: false }).limit(limite)
@@ -165,6 +166,8 @@ export async function getNovidades(limite = 10): Promise<Novidade[]> {
       tipo: 'Novo guia', titulo: g.nome,
       texto: [lugar(g.cidade, g.uf), (g.especialidades_lista ?? []).slice(0, 2).join(', ')].filter(Boolean).join(' · ') || null,
       href: '/cursos', data: g.criado_em,
+      // .heic/.heif (formato do iPhone) não abre na maioria dos navegadores: fica com as iniciais.
+      foto: g.foto_url && !/\.(heic|heif)(\?|$)/i.test(g.foto_url) ? g.foto_url : null,
     })),
     ...fotos.filter((f) => f.enviado_em).map((f) => ({
       tipo: 'Galeria', titulo: f.local ? `Foto nova: ${f.local}` : 'Foto nova da comunidade', texto: `Mandada por ${f.nome}`,
