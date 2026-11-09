@@ -246,30 +246,47 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
                     <h3>{b.titulo} <span class="ac-bloco__conta">{b.total}</span></h3>
                     <a href={b.href} class="ac-bloco__ver">Ver →</a>
                   </header>
-                  {b.itens.map((n) => (
-                    <div class={`ac-bloco__item${n.logo !== undefined || n.mapa ? ' ac-bloco__item--midia' : ''}`}>
-                      {n.logo !== undefined && (
-                        <span class="ac-bloco__logo" aria-hidden="true">
-                          {iniciais(n.titulo)}
-                          {n.logo && <img src={n.logo} alt="" loading="lazy" decoding="async" onerror="this.remove()" />}
-                        </span>
-                      )}
-                      <div class="ac-bloco__info">
-                        <a href={n.href} class="ac-bloco__titulo">{n.titulo}</a>
-                        {n.texto && <p>{n.texto}</p>}
-                        <time datetime={n.data}>{dataCurta(n.data)}</time>
-                      </div>
-                      {n.mapa && (
-                        <a href={n.mapa.google} class="ac-mapa" target="_blank" rel="noopener" aria-label={`Ver ${n.titulo} no Google Maps`} style={`width:${n.mapa.largura}px;height:${n.mapa.altura}px`}>
-                          {n.mapa.tiles.map((t) => (
-                            <img src={t.src} alt="" loading="lazy" decoding="async" width="256" height="256" style={`left:${t.x}px;top:${t.y}px`} />
-                          ))}
-                          <svg class="ac-mapa__pino" viewBox="0 0 24 32" aria-hidden="true"><path d="M12 0C5.4 0 0 5.3 0 11.8 0 20.6 12 32 12 32s12-11.4 12-20.2C24 5.3 18.6 0 12 0z" fill="#da7326" stroke="#fff" stroke-width="2"/><circle cx="12" cy="11.5" r="4.2" fill="#fff"/></svg>
-                          <span class="ac-mapa__credito">© OpenStreetMap</span>
-                        </a>
-                      )}
+                  {b.chave === 'academia' || b.chave === 'local' ? (
+                    <div class="ac-cards">
+                      {b.itens.map((n) => (
+                        <div class="ac-card">
+                          {n.mapa ? (
+                            <a href={n.mapa.google} class="ac-card__topo ac-mapa" target="_blank" rel="noopener" aria-label={`Ver ${n.titulo} no Google Maps`}>
+                              <span class="ac-mapa__tiles" style={`--w:${n.mapa.largura}px;--h:${n.mapa.altura}px`}>
+                                {n.mapa.tiles.map((t) => (
+                                  <img src={t.src} alt="" loading="lazy" decoding="async" width="256" height="256" style={`left:${t.x}px;top:${t.y}px`} />
+                                ))}
+                              </span>
+                              <svg class="ac-mapa__pino" viewBox="0 0 24 32" aria-hidden="true"><path d="M12 0C5.4 0 0 5.3 0 11.8 0 20.6 12 32 12 32s12-11.4 12-20.2C24 5.3 18.6 0 12 0z" fill="#da7326" stroke="#fff" stroke-width="2"/><circle cx="12" cy="11.5" r="4.2" fill="#fff"/></svg>
+                              <span class="ac-mapa__credito">© OpenStreetMap</span>
+                            </a>
+                          ) : (
+                            <a href={n.href} class="ac-card__topo ac-card__topo--logo" tabindex="-1" aria-hidden="true">
+                              <span class="ac-bloco__logo">
+                                {iniciais(n.titulo)}
+                                {n.logo && <img src={n.logo} alt="" loading="lazy" decoding="async" onerror="this.remove()" />}
+                              </span>
+                            </a>
+                          )}
+                          <div class="ac-card__info">
+                            <a href={n.href} class="ac-bloco__titulo">{n.titulo}</a>
+                            {n.texto && <p>{n.texto}</p>}
+                            <time datetime={n.data}>{dataCurta(n.data)}</time>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <Fragment>
+                      {b.itens.map((n) => (
+                        <div class="ac-bloco__item">
+                          <a href={n.href} class="ac-bloco__titulo">{n.titulo}</a>
+                          {n.texto && <p>{n.texto}</p>}
+                          <time datetime={n.data}>{dataCurta(n.data)}</time>
+                        </div>
+                      ))}
+                    </Fragment>
+                  )}
                 </div>
               ))}
             </div>
@@ -468,16 +485,21 @@ const blocosLado = blocos.filter((b) => b.chave !== 'guia');
   .ac-bloco__titulo { font-weight: 700; color: var(--marrom); }
   .ac-bloco__titulo:hover { color: var(--laranja); text-decoration: none; }
   .ac-bloco__item p { margin: 2px 0 0; font-size: .9rem; color: #5c4e3e; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  /* Logo da academia e mini mapa do local nas Novidades */
-  .ac-bloco__item--midia { display: flex; align-items: center; gap: 12px; }
-  .ac-bloco__info { flex: 1; min-width: 0; }
-  .ac-bloco__logo { flex: none; width: 48px; height: 48px; border-radius: 10px; border: 1px solid #eadfbf; background: var(--verde); color: var(--creme); display: flex; align-items: center; justify-content: center; font-family: var(--fonte-display); font-size: .95rem; position: relative; overflow: hidden; }
+  /* Academias e novos locais: cartões com logo ou mini mapa em cima */
+  .ac-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .ac-card { display: flex; flex-direction: column; border: 1px solid #eadfbf; border-radius: 12px; overflow: hidden; background: var(--branco, #fffdf7); }
+  .ac-card:hover { box-shadow: 0 0 0 2px var(--laranja); }
+  .ac-card__topo { display: block; height: 110px; position: relative; }
+  .ac-card__topo--logo { background: var(--creme-claro); display: flex; align-items: center; justify-content: center; }
+  .ac-card__info { padding: 10px 12px 12px; }
+  .ac-card__info p { margin: 2px 0 0; font-size: .88rem; color: #5c4e3e; }
+  .ac-bloco__logo { flex: none; width: 80px; height: 80px; border-radius: 12px; background: var(--verde); color: var(--creme); display: flex; align-items: center; justify-content: center; font-family: var(--fonte-display); font-size: 1.4rem; position: relative; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
   .ac-bloco__logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; }
-  .ac-mapa { flex: none; position: relative; overflow: hidden; border-radius: 10px; border: 1px solid #eadfbf; background: #e8e4d8; }
-  .ac-mapa img { position: absolute; width: 256px; height: 256px; max-width: none; }
-  .ac-mapa__pino { position: absolute; left: 50%; top: 50%; width: 22px; height: 29px; transform: translate(-50%, -100%); filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+  .ac-mapa { overflow: hidden; background: #e8e4d8; }
+  .ac-mapa__tiles { position: absolute; left: 50%; top: 50%; width: var(--w); height: var(--h); margin-left: calc(var(--w) / -2); margin-top: calc(var(--h) / -2); }
+  .ac-mapa__tiles img { position: absolute; width: 256px; height: 256px; max-width: none; }
+  .ac-mapa__pino { position: absolute; left: 50%; top: 50%; width: 24px; height: 32px; transform: translate(-50%, -100%); filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
   .ac-mapa__credito { position: absolute; right: 0; bottom: 0; padding: 0 4px; font-size: 8px; line-height: 13px; background: rgba(255,255,255,.75); color: #444; }
-  .ac-mapa:hover { box-shadow: 0 0 0 2px var(--laranja); }
   .ac-nov time { display: block; font-size: .78rem; opacity: .7; margin-top: 2px; }
   .ac-guias { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
   .ac-guia { display: flex; gap: 10px; padding: 10px; border-radius: 10px; background: var(--branco, #fffdf7); color: var(--marrom); }
