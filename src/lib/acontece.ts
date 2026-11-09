@@ -129,26 +129,33 @@ const PAGINAS_NOVAS: Novidade[] = [
   },
 ];
 
-export async function getNovidades(limite = 10): Promise<Novidade[]> {
+// limite: quantas novidades no máximo (no total e por tabela).
+// dias: se informado, só conta como novidade o que entrou nos últimos `dias` dias
+// (contados no momento do build; o redeploy diário das 06h07 mantém a janela em dia).
+export async function getNovidades(limite = 10, dias?: number): Promise<Novidade[]> {
+  const desde = dias ? new Date(Date.now() - dias * 86400000).toISOString() : null;
+  // Aplica o corte de data na consulta, pra o limite não esconder itens dentro da janela.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recentes = (q: any, col: string) => (desde ? q.gte(col, desde) : q);
   const [locais, academias, guias, fotos, artigos, parceiros] = await Promise.all([
     buscar<{ nome: string; slug: string | null; cidade: string | null; estado: string | null; criado_em: string }>(
-      supabase.from('locais').select('nome, slug, cidade, estado, criado_em').order('criado_em', { ascending: false }).limit(limite)
+      recentes(supabase.from('locais').select('nome, slug, cidade, estado, criado_em'), 'criado_em').order('criado_em', { ascending: false }).limit(limite)
     ),
     buscar<{ nome: string; cidade: string | null; estado: string | null; criado_em: string }>(
-      supabase.from('academias').select('nome, cidade, estado, criado_em').order('criado_em', { ascending: false }).limit(limite)
+      recentes(supabase.from('academias').select('nome, cidade, estado, criado_em'), 'criado_em').order('criado_em', { ascending: false }).limit(limite)
     ),
     // Só os campos públicos do guia (a lista já vem filtrada: só aprovados).
     buscar<{ nome: string; cidade: string | null; uf: string | null; especialidades_lista: string[] | null; criado_em: string }>(
-      supabase.from('inscricoes_guias').select('nome, cidade, uf, especialidades_lista, foto_url, criado_em').order('criado_em', { ascending: false }).limit(limite)
+      recentes(supabase.from('inscricoes_guias').select('nome, cidade, uf, especialidades_lista, foto_url, criado_em'), 'criado_em').order('criado_em', { ascending: false }).limit(limite)
     ),
     buscar<{ nome: string; local: string | null; enviado_em: string }>(
-      supabase.from('fotos_galeria').select('nome, local, enviado_em').eq('aprovado', true).order('enviado_em', { ascending: false }).limit(limite)
+      recentes(supabase.from('fotos_galeria').select('nome, local, enviado_em').eq('aprovado', true), 'enviado_em').order('enviado_em', { ascending: false }).limit(limite)
     ),
     buscar<{ titulo: string; slug: string; categoria: string | null; resumo: string | null; publicado_em: string }>(
-      supabase.from('artigos').select('titulo, slug, categoria, resumo, publicado_em').in('categoria', ['escalada101', 'crux']).order('publicado_em', { ascending: false }).limit(limite)
+      recentes(supabase.from('artigos').select('titulo, slug, categoria, resumo, publicado_em').in('categoria', ['escalada101', 'crux']), 'publicado_em').order('publicado_em', { ascending: false }).limit(limite)
     ),
     buscar<{ nome_marca: string; descricao: string | null; criado_em: string }>(
-      supabase.from('parceiros').select('nome_marca, descricao, criado_em').order('criado_em', { ascending: false }).limit(limite)
+      recentes(supabase.from('parceiros').select('nome_marca, descricao, criado_em'), 'criado_em').order('criado_em', { ascending: false }).limit(limite)
     ),
   ]);
 
@@ -184,6 +191,7 @@ export async function getNovidades(limite = 10): Promise<Novidade[]> {
   ];
 
   return itens
+    .filter((n) => !desde || new Date(n.data).getTime() >= Date.parse(desde))
     .sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0))
     .slice(0, limite);
 }
