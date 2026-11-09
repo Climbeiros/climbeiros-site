@@ -193,7 +193,7 @@ export async function getNovidades(limite = 10, dias?: number): Promise<Novidade
     ...locais.filter((l) => l.criado_em).map((l) => ({
       tipo: 'Novo local', titulo: l.nome, texto: lugar(l.cidade, l.estado),
       href: l.slug ? `/rotas/${l.slug}` : '/rotas', data: l.criado_em,
-      mapa: l.latitude != null && l.longitude != null ? miniMapa(l.latitude, l.longitude) : null,
+      mapa: l.latitude != null && l.longitude != null ? miniMapa(l.latitude, l.longitude, 11, 320, 110) : null,
     })),
     ...academias.filter((a) => a.criado_em).map((a) => ({
       tipo: 'Academia', titulo: a.nome, texto: lugar(a.cidade, a.estado), href: '/academias', data: a.criado_em,
