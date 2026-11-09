@@ -13,7 +13,7 @@ import { getSiteConfig } from '../lib/supabase';
 import { getAgenda, getNovidades, partesData, dataCurta, diaSemana, fimDoEvento } from '../lib/acontece';
 import { linkGoogle, linkIcs, quandoCurto } from '../lib/calendario';
 
-const [agenda, novidades, config] = await Promise.all([getAgenda(), getNovidades(40), getSiteConfig()]);
+const [agenda, novidades, config] = await Promise.all([getAgenda(), getNovidades(200, 20), getSiteConfig()]);
 const linkWhatsApp = config.whatsapp_comunidade || '';
 
 const nomeOrganizador: Record<string, string> = {
