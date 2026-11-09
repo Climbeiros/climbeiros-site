@@ -9,7 +9,7 @@
 // linha visível aqui (RLS filtra processado=true e rejeitado=false). Site
 // estático: depois de aprovar, é preciso um novo deploy na Vercel pra aparecer
 // aqui (o painel já dispara isso sozinho).
-import { linkInstagram, linkWhatsApp } from "../../../lib/contatos";
+import { linkInstagram, linkWhatsApp, linkWhatsAppComMensagem, mensagemGuia } from "../../../lib/contatos";
 import Layout from '../../../layouts/Layout.astro';
 import { supabase, mesAno } from '../../../lib/supabase';
 import type {
@@ -258,7 +258,7 @@ const jsonLdLocal = local
                     <span class="guia-item__espec"> · {g.especialidades_lista.join(', ')}</span>
                   )}
                   <div class="guia-item__contato">
-                    {linkWhatsApp(g.telefone) && <a href={linkWhatsApp(g.telefone)} target="_blank" rel="noopener">WhatsApp</a>}
+                    {linkWhatsApp(g.telefone) && <a href={linkWhatsAppComMensagem(g.telefone, mensagemGuia(g))} target="_blank" rel="noopener">WhatsApp</a>}
                     {linkInstagram(g.instagram) && <a href={linkInstagram(g.instagram)} target="_blank" rel="noopener">Instagram</a>}
                   </div>
                 </li>
