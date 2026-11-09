@@ -36,7 +36,35 @@ export type Novidade = {
   href: string;
   data: string;      // data ISO de quando entrou no site
   foto?: string | null; // foto do guia (foto_url), mostrada no lugar das iniciais
+  logo?: string | null; // logo da academia (imagem_url)
+  mapa?: MiniMapa | null; // mini mapa do local novo
 };
+
+// Mini mapa (recorte de tiles do OpenStreetMap, os mesmos do mapa de Rotas)
+// centrado no ponto, montado no build. O clique abre o Google Maps.
+export type MiniMapa = {
+  largura: number;
+  altura: number;
+  tiles: { src: string; x: number; y: number }[];
+  google: string;
+};
+
+export function miniMapa(lat: number, lng: number, zoom = 11, largura = 132, altura = 96): MiniMapa {
+  const n = 2 ** zoom;
+  const px = ((lng + 180) / 360) * n * 256;
+  const rad = (lat * Math.PI) / 180;
+  const py = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n * 256;
+  const x0 = px - largura / 2;
+  const y0 = py - altura / 2;
+  const tiles: MiniMapa['tiles'] = [];
+  for (let tx = Math.floor(x0 / 256); tx <= Math.floor((x0 + largura - 1) / 256); tx++) {
+    for (let ty = Math.floor(y0 / 256); ty <= Math.floor((y0 + altura - 1) / 256); ty++) {
+      const wx = ((tx % n) + n) % n;
+      tiles.push({ src: `https://tile.openstreetmap.org/${zoom}/${wx}/${ty}.png`, x: Math.round(tx * 256 - x0), y: Math.round(ty * 256 - y0) });
+    }
+  }
+  return { largura, altura, tiles, google: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` };
+}
 
 const MESES = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
@@ -138,11 +166,11 @@ export async function getNovidades(limite = 10, dias?: number): Promise<Novidade
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recentes = (q: any, col: string) => (desde ? q.gte(col, desde) : q);
   const [locais, academias, guias, fotos, artigos, parceiros] = await Promise.all([
-    buscar<{ nome: string; slug: string | null; cidade: string | null; estado: string | null; criado_em: string }>(
-      recentes(supabase.from('locais').select('nome, slug, cidade, estado, criado_em'), 'criado_em').order('criado_em', { ascending: false }).limit(limite)
+    buscar<{ nome: string; slug: string | null; cidade: string | null; estado: string | null; latitude: number | null; longitude: number | null; criado_em: string }>(
+      recentes(supabase.from('locais').select('nome, slug, cidade, estado, latitude, longitude, criado_em'), 'criado_em').order('criado_em', { ascending: false }).limit(limite)
     ),
-    buscar<{ nome: string; cidade: string | null; estado: string | null; criado_em: string }>(
-      recentes(supabase.from('academias').select('nome, cidade, estado, criado_em'), 'criado_em').order('criado_em', { ascending: false }).limit(limite)
+    buscar<{ nome: string; cidade: string | null; estado: string | null; imagem_url: string | null; criado_em: string }>(
+      recentes(supabase.from('academias').select('nome, cidade, estado, imagem_url, criado_em'), 'criado_em').order('criado_em', { ascending: false }).limit(limite)
     ),
     // Só os campos públicos do guia (a lista já vem filtrada: só aprovados).
     buscar<{ nome: string; cidade: string | null; uf: string | null; especialidades_lista: string[] | null; criado_em: string }>(
@@ -165,9 +193,11 @@ export async function getNovidades(limite = 10, dias?: number): Promise<Novidade
     ...locais.filter((l) => l.criado_em).map((l) => ({
       tipo: 'Novo local', titulo: l.nome, texto: lugar(l.cidade, l.estado),
       href: l.slug ? `/rotas/${l.slug}` : '/rotas', data: l.criado_em,
+      mapa: l.latitude != null && l.longitude != null ? miniMapa(l.latitude, l.longitude) : null,
     })),
     ...academias.filter((a) => a.criado_em).map((a) => ({
       tipo: 'Academia', titulo: a.nome, texto: lugar(a.cidade, a.estado), href: '/academias', data: a.criado_em,
+      logo: a.imagem_url || null,
     })),
     ...guias.filter((g) => g.criado_em).map((g) => ({
       tipo: 'Novo guia', titulo: g.nome,
