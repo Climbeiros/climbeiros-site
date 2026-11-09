@@ -31,3 +31,30 @@ export function linkWhatsApp(valor: string | null | undefined): string | null {
   if (n.length === 10 || n.length === 11) n = '55' + n;
   return `https://wa.me/${n}`;
 }
+
+// Mensagem pronta quando alguém chama um guia no WhatsApp (08/11/2026).
+// Sem cupom: "Oi, Henrique! Vi seu perfil no site do Climbeiros e queria saber mais sobre escalar com você."
+// Com cupom: a mesma frase + "Vi também o cupom CODIGO (benefício). Posso usar?"
+// (o benefício entre parênteses só aparece se o guia preencheu a descrição do cupom).
+type GuiaMensagem = {
+  nome?: string | null;
+  cupom_codigo?: string | null;
+  cupom_desc?: string | null;
+};
+export function mensagemGuia(g: GuiaMensagem): string {
+  const primeiroNome = String(g.nome || '').trim().split(/\s+/)[0] || '';
+  const oi = primeiroNome ? `Oi, ${primeiroNome}!` : 'Oi!';
+  let msg = `${oi} Vi seu perfil no site do Climbeiros e queria saber mais sobre escalar com você.`;
+  const codigo = String(g.cupom_codigo || '').trim();
+  if (codigo) {
+    const desc = String(g.cupom_desc || '').trim().replace(/[.\s]+$/, '');
+    msg += ` Vi também o cupom ${codigo}${desc ? ` (${desc})` : ''}. Posso usar?`;
+  }
+  return msg;
+}
+
+// Link do WhatsApp já com a mensagem pronta (ou null se não houver número).
+export function linkWhatsAppComMensagem(valor: string | null | undefined, mensagem: string): string | null {
+  const link = linkWhatsApp(valor);
+  return link ? `${link}?text=${encodeURIComponent(mensagem)}` : null;
+}
