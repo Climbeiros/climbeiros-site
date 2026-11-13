@@ -8,6 +8,21 @@
 // Cursos), a página dispara o evento "guia:editar" com os dados dele. O formulário
 // vem preenchido e, ao enviar, chama guia_enviar_edicao (a edição espera aprovação
 // na tabela edicoes_guias). O WhatsApp fica travado, porque é o login.
+//
+// Novo visual (13/11/2026):
+// - 4 blocos que abrem e fecham (Quem é você / Sua atuação / Seu card no site /
+//   Só pra equipe), cada um mostrando no título o que falta.
+// - Rascunho salvo sozinho no navegador (localStorage). Senha e foto não entram no
+//   rascunho. Ao voltar, o formulário pergunta se quer continuar de onde parou.
+//   Cadastro novo e edição têm rascunhos separados (a edição, um por WhatsApp).
+// - "Visualizar meu perfil" nos blocos 1 a 3 mostra o card como vai ficar no site.
+// - "Revisar e enviar" mostra o card completo + "Quero fazer ajustes" / "Está certo,
+//   pode enviar".
+// - Locais em caixinhas com busca (antes era lista com Ctrl/Cmd).
+// - Saiu o campo "Melhor contato para divulgarmos" (a equipe decide). A coluna
+//   contato_pref continua no banco; o formulário só não manda mais nada pra ela.
+// O card da prévia copia o visual do card de Guias & Cursos (src/pages/cursos.astro).
+// Mudou o card lá? Ajuste também as classes "fgc-" aqui embaixo.
 import { supabase } from '../lib/supabase';
 import '../styles/formularios.css';
 
@@ -26,137 +41,221 @@ for (const l of locais ?? []) {
 
 const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','Escalada indoor','Montanhismo','Alpinismo','Escalada em gelo','Trekking','Canionismo','Escalada móvel','Escalada em fendas','Escalada artificial','Bigwall','Curso de autoresgate'];
+
+const iconeOlho = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 ---
-<form class="fc" id="form-guia">
+<form class="fc" id="form-guia" novalidate>
   <div class="fg-editando" id="fg-editando" hidden>
     <p><strong>Editando o perfil de <span id="fg-editando-nome"></span></strong></p>
-    <p>Mude o que quiser e clique em "Enviar alterações". A equipe confere antes de aparecer no site; até lá, seu perfil atual continua no ar.</p>
+    <p>Mude o que quiser e clique em "Revisar e enviar". A equipe confere antes de aparecer no site; até lá, seu perfil atual continua no ar.</p>
     <p id="fg-editando-pendente" hidden>Você já tem uma alteração esperando aprovação. Se enviar de novo, esta nova substitui a anterior.</p>
-    <button type="button" class="fg-cancelar" id="fg-cancelar-edicao">Cancelar edição</button>
+    <button type="button" class="fg-link" id="fg-cancelar-edicao">Cancelar edição</button>
   </div>
-  <p class="fc-legenda" id="fg-legenda">Só <strong>nome</strong>, <strong>e-mail</strong>, <strong>WhatsApp</strong> e <strong>senha</strong> são obrigatórios; o resto é opcional, mas quanto mais completo, melhor fica o seu card. Fique de olho também nas etiquetas: <span class="selo selo--site">No site</span> aparece pra todo mundo, <span class="selo selo--equipe">Só a equipe vê</span> fica só com a gente.</p>
-  <div class="fc-linha">
-    <div class="fc-campo">
-      <label for="fg-nome">Nome <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <input type="text" id="fg-nome" name="nome" required />
+
+  <div class="fg-retomar" id="fg-retomar" hidden>
+    <p><strong>Você tem um rascunho salvo</strong> (<span id="fg-retomar-quando"></span>). Quer continuar de onde parou?</p>
+    <button type="button" class="botao" id="fg-retomar-sim">Continuar</button>
+    <button type="button" class="botao botao--secundario" id="fg-retomar-nao">Começar do zero</button>
+  </div>
+
+  <!-- BLOCO 1 -->
+  <details class="fg-bloco" data-bloco="1" open>
+    <summary>
+      <span class="fg-bloco-num">1</span>
+      <span class="fg-bloco-tit"><strong>Quem é você</strong><small>Seus contatos e o acesso pra editar o perfil depois</small></span>
+      <span class="fg-bloco-status"></span><span class="fg-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fg-bloco-corpo">
+      <div class="fc-linha">
+        <div class="fc-campo">
+          <label for="fg-nome">Nome <span class="req req--sim">Obrigatório</span></label>
+          <input type="text" id="fg-nome" name="nome" required data-conta />
+        </div>
+        <div class="fc-campo">
+          <label for="fg-email">E-mail <span class="req req--sim">Obrigatório</span></label>
+          <input type="email" id="fg-email" name="email" required data-conta />
+        </div>
+      </div>
+      <div class="fc-linha">
+        <div class="fc-campo">
+          <label for="fg-telefone">WhatsApp <span class="req req--sim">Obrigatório</span></label>
+          <input type="tel" id="fg-telefone" name="telefone" placeholder="(11)991721313" maxlength="13" inputmode="numeric" required data-conta />
+          <small class="fc-ajuda" id="fg-telefone-ajuda">É com ele (e a senha abaixo) que você entra depois pra editar seu perfil.</small>
+        </div>
+        <div class="fc-campo">
+          <label for="fg-instagram">Instagram</label>
+          <input type="text" id="fg-instagram" name="instagram" placeholder="@seu.perfil" data-conta />
+        </div>
+      </div>
+      <div class="fc-campo" id="fg-senha-campo">
+        <label for="fg-senha">Crie uma senha de 6 números <span class="req req--sim">Obrigatório</span></label>
+        <input type="password" id="fg-senha" name="senha" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="new-password" placeholder="••••••" required data-conta data-nao-salvar />
+        <div class="fg-senha-info">
+          <p class="fg-senha-tit">Pra que serve a senha?</p>
+          <ul>
+            <li><strong>Pra você editar seu perfil sozinho</strong> depois que ele entrar no ar: trocar foto, atualizar cursos, mudar o cupom… É só entrar com seu WhatsApp + esta senha em "Edite o seu perfil".</li>
+            <li><strong>Toda alteração passa por revisão da equipe Climbeiros</strong> antes de aparecer no site. Até lá, seu perfil atual continua no ar.</li>
+            <li>Ninguém vê essa senha, nem a gente. Por segurança, ela não fica salva no rascunho.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="fc-linha">
+        <div class="fc-campo">
+          <label for="fg-cidade">Cidade</label>
+          <input type="text" id="fg-cidade" name="cidade" placeholder="Ex.: São Paulo" data-conta />
+        </div>
+        <div class="fc-campo">
+          <label for="fg-uf">UF</label>
+          <select id="fg-uf" name="uf" data-conta>
+            <option value="">Selecione</option>
+            {UFS.map((uf) => <option value={uf}>{uf}</option>)}
+          </select>
+        </div>
+      </div>
+      <div class="fg-bloco-rodape">
+        <button type="button" class="fg-ver" data-ver-perfil><Fragment set:html={iconeOlho} />Visualizar meu perfil</button>
+        <button type="button" class="fg-link" data-proximo>Próximo bloco →</button>
+      </div>
     </div>
-    <div class="fc-campo">
-      <label for="fg-email">E-mail <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <input type="email" id="fg-email" name="email" required />
+  </details>
+
+  <!-- BLOCO 2 -->
+  <details class="fg-bloco" data-bloco="2">
+    <summary>
+      <span class="fg-bloco-num">2</span>
+      <span class="fg-bloco-tit"><strong>Sua atuação</strong><small>O que você ensina e onde</small></span>
+      <span class="fg-bloco-status"></span><span class="fg-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fg-bloco-corpo">
+      <div class="fc-campo" data-conta-grupo>
+        <span class="fc-label">Especialidades</span>
+        <div class="fc-opcoes">
+          {ESPECIALIDADES.map((esp) => (
+            <label class="fc-check"><input type="checkbox" name="especialidade" value={esp} /> {esp}</label>
+          ))}
+        </div>
+        <input type="text" id="fg-espec-outra" name="especialidade_outra" placeholder="Outra especialidade (opcional)" />
+      </div>
+      <div class="fc-campo">
+        <label for="fg-certificacao">Certificação</label>
+        <input type="text" id="fg-certificacao" name="certificacao" placeholder="Ex.: Guia CANMOD, AGB, instrutor de ginásio..." data-conta />
+      </div>
+      <div class="fc-campo" data-conta-grupo>
+        <label for="fg-locais-busca">Em quais locais você atua?</label>
+        <input type="search" id="fg-locais-busca" placeholder="Busque pelo nome do local" autocomplete="off" />
+        <div class="fg-locais-lista" id="fg-locais-lista">
+          {Array.from(locaisPorEstado.entries()).map(([estado, lista]) => (
+            <div class="fg-locais-uf">
+              <p class="fg-locais-uf-tit">{estado}</p>
+              {lista.map((l) => (
+                <label class="fc-check"><input type="checkbox" name="locais_ids" value={l.id} data-nome={l.nome} /> {l.nome}</label>
+              ))}
+            </div>
+          ))}
+          <p class="fg-locais-nada" id="fg-locais-nada" hidden>Nenhum local com esse nome. Escreva no campo abaixo que a gente cadastra.</p>
+        </div>
+        <div class="fg-chips" id="fg-locais-chips"></div>
+        <small class="fc-ajuda">Marque quantos quiser. Usamos isso pra te mostrar na página de cada local.</small>
+      </div>
+      <div class="fc-campo">
+        <label for="fg-locais-outro">Atua em algum local que não está na lista?</label>
+        <textarea id="fg-locais-outro" name="locais_outro" rows="2" placeholder="Escreva aqui o nome do local, cidade e estado. Ainda estamos cadastrando as rotas do site, então é normal seu local não aparecer ainda."></textarea>
+        <small class="fc-ajuda">Não achar seu local na lista não trava sua inscrição. A gente usa essa informação pra saber quais locais cadastrar em seguida.</small>
+      </div>
+      <div class="fg-bloco-rodape">
+        <button type="button" class="fg-ver" data-ver-perfil><Fragment set:html={iconeOlho} />Visualizar meu perfil</button>
+        <button type="button" class="fg-link" data-proximo>Próximo bloco →</button>
+      </div>
     </div>
-  </div>
-  <div class="fc-linha">
-    <div class="fc-campo">
-      <label for="fg-telefone">WhatsApp <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <input type="tel" id="fg-telefone" name="telefone" placeholder="(11)991721313" maxlength="13" inputmode="numeric" required />
-      <small class="fc-ajuda" id="fg-telefone-ajuda">É com ele (e a senha abaixo) que você entra depois pra editar seu perfil.</small>
+  </details>
+
+  <!-- BLOCO 3 -->
+  <details class="fg-bloco" data-bloco="3">
+    <summary>
+      <span class="fg-bloco-num">3</span>
+      <span class="fg-bloco-tit"><strong>Seu card no site</strong><small>Foto, apresentação, cursos e cupom</small></span>
+      <span class="fg-bloco-status"></span><span class="fg-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fg-bloco-corpo">
+      <div class="fc-campo">
+        <label for="fg-foto">Foto</label>
+        <p class="fg-foto-atual" id="fg-foto-atual" hidden><img id="fg-foto-atual-img" alt="" /> <span>Sua foto atual. Escolha outra só se quiser trocar.</span></p>
+        <input type="file" id="fg-foto" name="foto" accept="image/png, image/jpeg, image/webp" data-conta data-nao-salvar />
+        <small class="fc-ajuda">Até 5 MB. A foto não fica no rascunho: se sair da página, escolha de novo.</small>
+      </div>
+      <div class="fc-campo">
+        <label for="fg-bio">Sobre você</label>
+        <textarea id="fg-bio" name="bio" rows="3" placeholder="Conte um pouco sobre sua experiência" data-conta></textarea>
+      </div>
+      <div class="fc-campo">
+        <label for="fg-cursos">Cursos oferecidos</label>
+        <textarea id="fg-cursos" name="cursos_oferecidos" rows="4" placeholder="Conte quais cursos você oferece: o nível, onde acontece, próximas datas, valor e o link ou contato pra inscrição." data-conta></textarea>
+        <small class="fc-ajuda">Um curso por linha ou parágrafo. Não oferece cursos? Pode deixar em branco.</small>
+      </div>
+      <label class="fc-check">
+        <input type="checkbox" name="tem_cupom" id="fg-tem-cupom" data-conta />
+        Quero oferecer um cupom de desconto para a comunidade Climbeiros
+      </label>
+      <div class="fc-destaque" id="fg-cupom-campos" hidden>
+        <div class="fc-campo">
+          <label for="fg-cupom">Código do cupom <span class="req req--sim">Obrigatório</span></label>
+          <input type="text" id="fg-cupom" name="cupom_codigo" placeholder="Ex.: GUIA10" />
+        </div>
+        <div class="fc-campo">
+          <label for="fg-cupomdesc">Qual é o benefício? <span class="req req--sim">Obrigatório</span></label>
+          <textarea id="fg-cupomdesc" name="cupom_desc" rows="3" placeholder="Ex.: 10% de desconto na primeira aula avulsa, ou 1 dia grátis no curso de 2 dias"></textarea>
+          <small class="fc-ajuda">Aparece embaixo do código no seu card, pra pessoa saber o que ganha usando o cupom.</small>
+        </div>
+      </div>
+      <div class="fg-bloco-rodape">
+        <button type="button" class="fg-ver" data-ver-perfil><Fragment set:html={iconeOlho} />Visualizar meu perfil</button>
+        <button type="button" class="fg-link" data-proximo>Próximo bloco →</button>
+      </div>
     </div>
-    <div class="fc-campo">
-      <label for="fg-instagram">Instagram <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-      <input type="text" id="fg-instagram" name="instagram" placeholder="@seu.perfil" />
+  </details>
+
+  <!-- BLOCO 4 -->
+  <details class="fg-bloco" data-bloco="4">
+    <summary>
+      <span class="fg-bloco-num">4</span>
+      <span class="fg-bloco-tit"><strong>Só pra equipe</strong><small>Não aparece no site · opcional</small></span>
+      <span class="fg-bloco-status"></span><span class="fg-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fg-bloco-corpo">
+      <div class="fc-campo">
+        <label for="fg-msg">Mensagem pra equipe Climbeiros</label>
+        <textarea id="fg-msg" name="mensagem" rows="3" placeholder="Algo que só a gente precise saber" data-conta></textarea>
+      </div>
     </div>
+  </details>
+
+  <div class="fg-rascunho" id="fg-rascunho" hidden>
+    <span class="fg-rascunho-ponto"></span><span id="fg-rascunho-txt">Rascunho salvo</span>
+    <button type="button" class="fg-link" id="fg-rascunho-apagar">Apagar rascunho</button>
   </div>
-  <div class="fc-campo" id="fg-senha-campo">
-    <label for="fg-senha">Crie uma senha de 6 números <span class="req req--sim">Obrigatório</span></label>
-    <input type="password" id="fg-senha" name="senha" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="new-password" placeholder="••••••" required />
-    <small class="fc-ajuda">Pra você mesmo atualizar seu perfil quando quiser (foto, cursos, cupom...). Ninguém vê essa senha, nem a gente.</small>
-  </div>
-  <div class="fc-linha">
-    <div class="fc-campo">
-      <label for="fg-cidade">Cidade <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-      <input type="text" id="fg-cidade" name="cidade" placeholder="Ex.: São Paulo" />
-    </div>
-    <div class="fc-campo">
-      <label for="fg-uf">UF <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-      <select id="fg-uf" name="uf">
-        <option value="">Selecione</option>
-        {UFS.map((uf) => <option value={uf}>{uf}</option>)}
-      </select>
-    </div>
-  </div>
-  <div class="fc-campo">
-    <span class="fc-label">Melhor contato para divulgarmos <span class="req req--nao">Opcional</span> <span class="selo selo--equipe">Só a equipe vê</span></span>
-    <div class="fc-opcoes">
-      <label class="fc-check"><input type="checkbox" name="pref" value="WhatsApp" /> WhatsApp</label>
-      <label class="fc-check"><input type="checkbox" name="pref" value="Instagram" /> Instagram</label>
-    </div>
-  </div>
-  <div class="fc-campo">
-    <span class="fc-label">Especialidades <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></span>
-    <div class="fc-opcoes">
-      {ESPECIALIDADES.map((esp) => (
-        <label class="fc-check"><input type="checkbox" name="especialidade" value={esp} /> {esp}</label>
-      ))}
-    </div>
-    <input type="text" id="fg-espec-outra" name="especialidade_outra" placeholder="Outra especialidade (opcional)" />
-  </div>
-  <div class="fc-campo">
-    <label for="fg-certificacao">Certificação <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-    <input type="text" id="fg-certificacao" name="certificacao" placeholder="Ex.: Guia CANMOD, AGB, instrutor de ginásio..." />
-  </div>
-  <div class="fc-campo">
-    <label for="fg-foto">Foto <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-    <p class="fg-foto-atual" id="fg-foto-atual" hidden><img id="fg-foto-atual-img" alt="" /> <span>Sua foto atual. Escolha outra só se quiser trocar.</span></p>
-    <input type="file" id="fg-foto" name="foto" accept="image/png, image/jpeg, image/webp" />
-    <small class="fc-ajuda">Até 5 MB.</small>
-  </div>
-  <div class="fc-campo">
-    <label for="fg-locais">Em quais locais você atua? <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-    <select id="fg-locais" name="locais_ids" multiple size="6">
-      {Array.from(locaisPorEstado.entries()).map(([estado, lista]) => (
-        <optgroup label={estado}>
-          {lista.map((l) => <option value={l.id}>{l.nome}</option>)}
-        </optgroup>
-      ))}
-    </select>
-    <small class="fc-ajuda">Segure Ctrl (ou Cmd no Mac) pra selecionar mais de um local. Usamos isso pra te mostrar na página de cada local.</small>
-  </div>
-  <div class="fc-campo">
-    <label for="fg-locais-outro">Atua em algum local que não está na lista? <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-    <textarea id="fg-locais-outro" name="locais_outro" rows="2" placeholder="Escreva aqui o nome do local, cidade e estado. Ainda estamos cadastrando as rotas do site, então é normal seu local não aparecer ainda."></textarea>
-    <small class="fc-ajuda">Não precisa se preocupar em não achar seu local na lista acima, isso não trava sua inscrição. A gente usa essa informação pra saber quais locais cadastrar em seguida.</small>
-  </div>
-  <div class="fc-campo">
-    <label for="fg-bio">Sobre você <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-    <textarea id="fg-bio" name="bio" rows="3" placeholder="Conte um pouco sobre sua experiência"></textarea>
-  </div>
-  <div class="fc-campo">
-    <label for="fg-cursos">Cursos oferecidos <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-    <textarea id="fg-cursos" name="cursos_oferecidos" rows="4" placeholder="Conte quais cursos você oferece: o nível, onde acontece, próximas datas, valor e o link ou contato pra inscrição."></textarea>
-    <small class="fc-ajuda">Um curso por linha ou parágrafo. Não oferece cursos? Pode deixar em branco.</small>
-  </div>
-  <div class="fc-campo">
-    <label for="fg-msg">Mensagem pra equipe Climbeiros <span class="req req--nao">Opcional</span> <span class="selo selo--equipe">Só a equipe vê</span></label>
-    <textarea id="fg-msg" name="mensagem" rows="3" placeholder="Algo que só a gente precise saber"></textarea>
-  </div>
-  <label class="fc-check">
-    <input type="checkbox" name="tem_cupom" id="fg-tem-cupom" />
-    Quero oferecer um cupom de desconto para a comunidade Climbeiros
-  </label>
-  <div class="fc-destaque" id="fg-cupom-campos" hidden>
-    <div class="fc-campo">
-      <label for="fg-cupom">Código do cupom <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <input type="text" id="fg-cupom" name="cupom_codigo" placeholder="Ex.: GUIA10" />
-    </div>
-    <div class="fc-campo">
-      <label for="fg-cupomdesc">Qual é o benefício? <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <textarea id="fg-cupomdesc" name="cupom_desc" rows="3" placeholder="Ex.: 10% de desconto na primeira aula avulsa, ou 1 dia grátis no curso de 2 dias"></textarea>
-      <small class="fc-ajuda">Aparece embaixo do código no seu card, pra pessoa saber o que ganha usando o cupom.</small>
-    </div>
-  </div>
-  <button type="submit" class="botao" id="fg-enviar">Enviar inscrição</button>
+  <button type="submit" class="botao" id="fg-enviar">Revisar e enviar</button>
   <p class="fc-status" id="fg-status" role="status"></p>
 </form>
 
-<!-- Revisão antes de enviar (08/11/2026): mostra um resumo do que foi preenchido
-     e só envia quando o guia clica em "Está tudo certo, enviar". -->
-<dialog class="fg-rev" id="fg-revisao" aria-labelledby="fg-rev-titulo">
+<!-- "Visualizar meu perfil": o card como vai ficar em Guias & Cursos -->
+<dialog class="fg-janela fg-janela--ver" id="fg-ver" aria-labelledby="fg-ver-titulo">
+  <div class="fg-ver-topo">
+    <p id="fg-ver-titulo">É assim que seu card aparece em <strong>Guias &amp; Cursos</strong></p>
+    <button type="button" class="fg-fechar" id="fg-ver-fechar" aria-label="Fechar">×</button>
+  </div>
+  <div id="fg-ver-card"></div>
+  <p class="fg-ver-dica">Campos em branco não aparecem no card. Quanto mais completo, melhor.</p>
+</dialog>
+
+<!-- Revisão antes de enviar: card completo + confirmação -->
+<dialog class="fg-janela fg-janela--rev" id="fg-revisao" aria-labelledby="fg-rev-titulo">
   <h2 id="fg-rev-titulo">Confere antes de enviar?</h2>
   <p class="fg-rev-intro" id="fg-rev-intro"></p>
-  <div id="fg-rev-conteudo"></div>
+  <div id="fg-rev-card"></div>
+  <div id="fg-rev-extra"></div>
   <form method="dialog" class="fg-rev-botoes">
-    <button type="submit" value="corrigir" class="botao botao--secundario">Corrigir</button>
-    <button type="submit" value="enviar" class="botao" id="fg-rev-enviar">Está tudo certo, enviar</button>
+    <button type="submit" value="corrigir" class="botao botao--secundario">Quero fazer ajustes</button>
+    <button type="submit" value="enviar" class="botao">Está certo, pode enviar</button>
   </form>
 </dialog>
 
@@ -170,13 +269,25 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
   const btn = document.getElementById('fg-enviar');
   const campoTelefone = document.getElementById('fg-telefone') as HTMLInputElement | null;
   const campoSenha = document.getElementById('fg-senha') as HTMLInputElement | null;
+  const campoFoto = document.getElementById('fg-foto') as HTMLInputElement | null;
+  const blocos = form ? Array.from(form.querySelectorAll<HTMLDetailsElement>('.fg-bloco')) : [];
   mascaraTelefone(campoTelefone);
   campoSenha?.addEventListener('input', () => { campoSenha.value = campoSenha.value.replace(/\D/g, '').slice(0, 6); });
 
-  const chkCupom = document.getElementById('fg-tem-cupom') as HTMLInputElement | null;
-  const camposCupom = document.getElementById('fg-cupom-campos');
-  const campoCupom = document.getElementById('fg-cupom') as HTMLInputElement | null;
-  const campoCupomDesc = document.getElementById('fg-cupomdesc') as HTMLTextAreaElement | null;
+  function campo<T extends HTMLElement>(id: string) { return document.getElementById(id) as T | null; }
+  function valor(nome: string): string {
+    const el = form?.elements.namedItem(nome) as HTMLInputElement | null;
+    return el && 'value' in el ? String(el.value || '').trim() : '';
+  }
+  function marcados(nome: string): HTMLInputElement[] {
+    return form ? Array.from(form.querySelectorAll<HTMLInputElement>(`input[name="${nome}"]:checked`)) : [];
+  }
+
+  // ---------- Cupom ----------
+  const chkCupom = campo<HTMLInputElement>('fg-tem-cupom');
+  const camposCupom = campo('fg-cupom-campos');
+  const campoCupom = campo<HTMLInputElement>('fg-cupom');
+  const campoCupomDesc = campo<HTMLTextAreaElement>('fg-cupomdesc');
   function atualizarCupom() {
     if (!chkCupom) return;
     if (camposCupom) camposCupom.hidden = !chkCupom.checked;
@@ -186,26 +297,209 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
   }
   chkCupom?.addEventListener('change', atualizarCupom);
 
-  // ---------- Modo edição ----------
-  type DadosGuia = Record<string, any>;
-  let edicao: { whatsapp: string; senha: string } | null = null;
-  let original: DadosGuia = {};   // perfil como está no ar (pra revisão mostrar só o que mudou)
-  const caixaEditando = document.getElementById('fg-editando');
-  const legenda = document.getElementById('fg-legenda');
-  const campoSenhaBloco = document.getElementById('fg-senha-campo');
-  const ajudaTelefone = document.getElementById('fg-telefone-ajuda');
-  const fotoAtual = document.getElementById('fg-foto-atual');
-  const fotoAtualImg = document.getElementById('fg-foto-atual-img') as HTMLImageElement | null;
+  // ---------- Blocos: o que falta em cada um ----------
+  function preenchido(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): boolean {
+    if (el instanceof HTMLInputElement && el.type === 'checkbox') return el.checked;
+    if (el instanceof HTMLInputElement && el.type === 'file') return !!(el.files && el.files.length) || (!!edicao && !!original.foto_url);
+    return String(el.value || '').trim() !== '';
+  }
+  function obrigatoriosVazios(raiz: ParentNode) {
+    return Array.from(raiz.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[required]'))
+      .filter((el) => !el.closest('[hidden]') && !preenchido(el));
+  }
+  function atualizarBlocos() {
+    for (const b of blocos) {
+      const campos = Array.from(b.querySelectorAll<HTMLInputElement>('[data-conta]')).filter((el) => !el.closest('[hidden]'));
+      const grupos = Array.from(b.querySelectorAll('[data-conta-grupo]'));
+      const total = campos.length + grupos.length;
+      let feitos = campos.filter(preenchido).length;
+      grupos.forEach((g) => {
+        const temMarcado = !!g.querySelector('input[type="checkbox"]:checked');
+        const temTexto = Array.from(g.querySelectorAll<HTMLInputElement>('input[type="text"]')).some((i) => i.value.trim());
+        if (temMarcado || temTexto) feitos++;
+      });
+      const falta = obrigatoriosVazios(b).length;
+      const st = b.querySelector('.fg-bloco-status');
+      if (st) {
+        if (falta) st.textContent = falta === 1 ? 'Falta 1 obrigatório' : `Faltam ${falta} obrigatórios`;
+        else st.textContent = feitos === total ? '✓ Completo' : `${feitos} de ${total}`;
+      }
+      b.classList.toggle('fg-bloco--completo', !falta && feitos === total);
+    }
+  }
+  function abrirBloco(b: HTMLDetailsElement | null | undefined, rolar = true) {
+    if (!b) return;
+    blocos.forEach((x) => { if (x !== b) x.open = false; });
+    b.open = true;
+    if (rolar) b.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  form?.querySelectorAll<HTMLButtonElement>('[data-proximo]').forEach((bt) => bt.addEventListener('click', () => {
+    const atual = bt.closest<HTMLDetailsElement>('.fg-bloco');
+    abrirBloco(blocos[blocos.indexOf(atual!) + 1]);
+  }));
 
-  function campo<T extends HTMLElement>(id: string) { return document.getElementById(id) as T | null; }
-  function preencher(id: string, valor: unknown) {
-    const el = campo<HTMLInputElement>(id);
-    if (el) el.value = valor == null ? '' : String(valor);
+  // ---------- Locais: busca + etiquetas ----------
+  const buscaLocais = campo<HTMLInputElement>('fg-locais-busca');
+  const listaLocais = campo('fg-locais-lista');
+  const semLocais = campo('fg-locais-nada');
+  const sem = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  buscaLocais?.addEventListener('input', () => {
+    const t = sem(buscaLocais.value.trim());
+    let algum = false;
+    listaLocais?.querySelectorAll<HTMLElement>('.fg-locais-uf').forEach((grupo) => {
+      let visiveis = 0;
+      grupo.querySelectorAll<HTMLElement>('.fc-check').forEach((l) => {
+        const mostra = !t || sem(l.textContent || '').includes(t);
+        l.hidden = !mostra;
+        if (mostra) visiveis++;
+      });
+      grupo.hidden = !visiveis;
+      if (visiveis) algum = true;
+    });
+    if (semLocais) semLocais.hidden = algum;
+  });
+  // A busca não é dado do formulário: não deixa o Enter enviar nem o rascunho guardar
+  buscaLocais?.addEventListener('keydown', (e) => { if (e.key === 'Enter') e.preventDefault(); });
+  function locaisEscolhidos() {
+    return marcados('locais_ids').map((i) => ({ id: i.value, nome: i.dataset.nome || '' }));
+  }
+  function atualizarChips() {
+    const chips = campo('fg-locais-chips');
+    chips?.replaceChildren(...locaisEscolhidos().map((l) => {
+      const s = document.createElement('span');
+      s.textContent = l.nome;
+      return s;
+    }));
   }
 
-  function entrarNaEdicao(det: { whatsapp: string; senha: string; guia: DadosGuia; edicaoPendente?: boolean }) {
+  // ---------- Modo edição (variáveis usadas pelo rascunho e pela revisão) ----------
+  type DadosGuia = Record<string, any>;
+  let edicao: { whatsapp: string; senha: string } | null = null;
+  let original: DadosGuia = {};   // perfil como está no ar (pra revisão saber o que mudou)
+
+  // ---------- Rascunho automático ----------
+  const CHAVE_NOVO = 'climbeiros:rascunho:guia';
+  const chaveRascunho = () => edicao ? `climbeiros:rascunho:guia-edicao:${edicao.whatsapp.replace(/\D/g, '')}` : CHAVE_NOVO;
+  const rascunho = {
+    ler(chave: string): { quando: number; dados: Record<string, any> } | null {
+      try { return JSON.parse(localStorage.getItem(chave) || 'null'); } catch { return null; }
+    },
+    gravar(chave: string, v: unknown) {
+      try { localStorage.setItem(chave, JSON.stringify(v)); return true; } catch { return false; }
+    },
+    apagar(chave: string) { try { localStorage.removeItem(chave); } catch { /* sem localStorage */ } },
+  };
+  const barraRascunho = campo('fg-rascunho');
+  const textoRascunho = campo('fg-rascunho-txt');
+  const caixaRetomar = campo('fg-retomar');
+  const hora = (ts: number) => new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  function coletarRascunho() {
+    const dados: Record<string, any> = {};
+    form?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input, textarea, select').forEach((el) => {
+      if (!el.name || el.hasAttribute('data-nao-salvar') || el.type === 'search' || el.type === 'file') return;
+      if (el instanceof HTMLInputElement && el.type === 'checkbox') {
+        if (!dados[el.name]) dados[el.name] = [];
+        if (el.checked) dados[el.name].push(el.value);
+      } else if (!(el instanceof HTMLInputElement && el.readOnly)) {
+        dados[el.name] = el.value;
+      }
+    });
+    return dados;
+  }
+  function aplicarRascunho(dados: Record<string, any>) {
+    form?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input, textarea, select').forEach((el) => {
+      if (!el.name || !(el.name in dados) || el.hasAttribute('data-nao-salvar')) return;
+      if (el instanceof HTMLInputElement && el.type === 'checkbox') el.checked = (dados[el.name] || []).includes(el.value);
+      else if (!(el instanceof HTMLInputElement && el.readOnly)) el.value = dados[el.name] ?? '';
+    });
+    atualizarTudo();
+  }
+  let timerRascunho: ReturnType<typeof setTimeout> | undefined;
+  function salvarRascunhoDepois() {
+    if (!barraRascunho || !textoRascunho) return;
+    barraRascunho.hidden = false;
+    barraRascunho.classList.add('fg-rascunho--salvando');
+    textoRascunho.textContent = 'Salvando rascunho...';
+    clearTimeout(timerRascunho);
+    timerRascunho = setTimeout(() => {
+      const agora = Date.now();
+      const ok = rascunho.gravar(chaveRascunho(), { quando: agora, dados: coletarRascunho() });
+      barraRascunho.classList.remove('fg-rascunho--salvando');
+      textoRascunho.textContent = ok ? `Rascunho salvo às ${hora(agora)} neste aparelho` : 'Este navegador não deixa salvar rascunho';
+    }, 700);
+  }
+  function esconderRascunho() {
+    clearTimeout(timerRascunho);
+    if (barraRascunho) barraRascunho.hidden = true;
+    if (caixaRetomar) caixaRetomar.hidden = true;
+  }
+  // Mostra "Quer continuar de onde parou?" se houver rascunho pra esta chave
+  function oferecerRascunho() {
+    if (!caixaRetomar) return;
+    const salvo = rascunho.ler(chaveRascunho());
+    caixaRetomar.hidden = !(salvo && salvo.dados);
+    if (salvo && salvo.dados) {
+      const d = new Date(salvo.quando);
+      const quando = campo('fg-retomar-quando');
+      if (quando) quando.textContent = `${d.toLocaleDateString('pt-BR')} às ${hora(salvo.quando)}`;
+    }
+  }
+  campo('fg-retomar-sim')?.addEventListener('click', () => {
+    const salvo = rascunho.ler(chaveRascunho());
+    if (salvo?.dados) aplicarRascunho(salvo.dados);
+    if (caixaRetomar) caixaRetomar.hidden = true;
+    if (barraRascunho && textoRascunho && salvo) {
+      barraRascunho.hidden = false;
+      textoRascunho.textContent = `Rascunho salvo às ${hora(salvo.quando)} neste aparelho`;
+    }
+    if (status) status.textContent = edicao
+      ? 'Rascunho recuperado. Se tinha escolhido uma foto nova, escolha de novo.'
+      : 'Rascunho recuperado. A senha e a foto precisam ser preenchidas de novo.';
+  });
+  campo('fg-retomar-nao')?.addEventListener('click', () => {
+    rascunho.apagar(chaveRascunho());
+    if (caixaRetomar) caixaRetomar.hidden = true;
+  });
+  campo('fg-rascunho-apagar')?.addEventListener('click', () => {
+    rascunho.apagar(chaveRascunho());
+    if (edicao) {
+      // Volta pro perfil como está no ar
+      entrarNaEdicao({ whatsapp: edicao.whatsapp, senha: edicao.senha, guia: original, edicaoPendente: !campo('fg-editando-pendente')?.hidden }, false);
+    } else {
+      form?.reset();
+      atualizarTudo();
+    }
+    esconderRascunho();
+    if (status) status.textContent = 'Rascunho apagado.';
+  });
+
+  function atualizarTudo() { atualizarCupom(); atualizarChips(); atualizarBlocos(); }
+  form?.addEventListener('input', (e) => {
+    if ((e.target as HTMLElement).id === 'fg-locais-busca') return;
+    atualizarChips(); atualizarBlocos(); salvarRascunhoDepois();
+  });
+  form?.addEventListener('change', (e) => {
+    if ((e.target as HTMLElement).id === 'fg-locais-busca') return;
+    atualizarChips(); atualizarBlocos(); salvarRascunhoDepois();
+  });
+
+  // ---------- Entrar / sair do modo edição ----------
+  const caixaEditando = campo('fg-editando');
+  const campoSenhaBloco = campo('fg-senha-campo');
+  const ajudaTelefone = campo('fg-telefone-ajuda');
+  const fotoAtual = campo('fg-foto-atual');
+  const fotoAtualImg = campo<HTMLImageElement>('fg-foto-atual-img');
+
+  function preencher(id: string, v: unknown) {
+    const el = campo<HTMLInputElement>(id);
+    if (el) el.value = v == null ? '' : String(v);
+  }
+
+  function entrarNaEdicao(det: { whatsapp: string; senha: string; guia: DadosGuia; edicaoPendente?: boolean }, perguntarRascunho = true) {
     if (!form) return;
     form.reset();
+    esconderRascunho();
     edicao = { whatsapp: det.whatsapp, senha: det.senha };
     const g = det.guia || {};
     original = g;
@@ -221,9 +515,6 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
     preencher('fg-cursos', g.cursos_oferecidos);
     if (campoTelefone) { campoTelefone.value = g.telefone || det.whatsapp; campoTelefone.readOnly = true; }
 
-    const prefs = String(g.contato_pref || '').split(',').map((p) => p.trim());
-    form.querySelectorAll<HTMLInputElement>('input[name="pref"]').forEach((el) => { el.checked = prefs.includes(el.value); });
-
     const espec: string[] = Array.isArray(g.especialidades_lista) ? g.especialidades_lista : [];
     const caixas = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="especialidade"]'));
     caixas.forEach((el) => { el.checked = espec.includes(el.value); });
@@ -231,13 +522,11 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
     preencher('fg-espec-outra', espec.filter((e) => !conhecidas.has(e)).join(', '));
 
     const locais = new Set((Array.isArray(g.locais_ids) ? g.locais_ids : []).map(String));
-    const sel = campo<HTMLSelectElement>('fg-locais');
-    if (sel) Array.from(sel.options).forEach((o) => { o.selected = locais.has(o.value); });
+    form.querySelectorAll<HTMLInputElement>('input[name="locais_ids"]').forEach((el) => { el.checked = locais.has(el.value); });
 
     if (chkCupom) chkCupom.checked = !!(g.cupom_codigo && String(g.cupom_codigo).trim());
     preencher('fg-cupom', g.cupom_codigo);
     preencher('fg-cupomdesc', g.cupom_desc);
-    atualizarCupom();
 
     if (fotoAtual && fotoAtualImg) {
       fotoAtual.hidden = !g.foto_url;
@@ -247,44 +536,155 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
     if (campoSenhaBloco) campoSenhaBloco.hidden = true;
     if (campoSenha) campoSenha.required = false;
     if (ajudaTelefone) ajudaTelefone.textContent = 'O WhatsApp é o seu login e não muda por aqui. Precisa trocar? Fale com a gente pelo Contato.';
-    if (legenda) legenda.hidden = true;
     if (caixaEditando) caixaEditando.hidden = false;
     const nomeEl = campo('fg-editando-nome');
     if (nomeEl) nomeEl.textContent = g.nome || '';
     const pendente = campo('fg-editando-pendente');
     if (pendente) pendente.hidden = !det.edicaoPendente;
-    if (btn) btn.textContent = 'Enviar alterações';
     if (status) status.textContent = '';
-    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    atualizarTudo();
+    if (perguntarRascunho) {
+      oferecerRascunho();
+      abrirBloco(blocos[0], false);
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   function sairDaEdicao() {
     edicao = null;
     original = {};
     form?.reset();
-    atualizarCupom();
+    esconderRascunho();
     if (campoTelefone) campoTelefone.readOnly = false;
     if (campoSenhaBloco) campoSenhaBloco.hidden = false;
     if (campoSenha) campoSenha.required = true;
     if (ajudaTelefone) ajudaTelefone.textContent = 'É com ele (e a senha abaixo) que você entra depois pra editar seu perfil.';
-    if (legenda) legenda.hidden = false;
     if (caixaEditando) caixaEditando.hidden = true;
     if (fotoAtual) fotoAtual.hidden = true;
-    if (btn) btn.textContent = 'Enviar inscrição';
+    atualizarTudo();
+    abrirBloco(blocos[0], false);
+    oferecerRascunho();
   }
 
   window.addEventListener('guia:editar', (ev) => entrarNaEdicao((ev as CustomEvent).detail));
-  document.getElementById('fg-cancelar-edicao')?.addEventListener('click', () => {
+  campo('fg-cancelar-edicao')?.addEventListener('click', () => {
     sairDaEdicao();
     if (status) status.textContent = '';
   });
 
-  // ---------- Revisão antes de enviar ----------
-  type Linha = { rotulo: string; valor: string; foto?: string; mudou?: boolean };
-  const janelaRev = document.getElementById('fg-revisao') as HTMLDialogElement | null;
-  const revConteudo = document.getElementById('fg-rev-conteudo');
-  const revIntro = document.getElementById('fg-rev-intro');
+  // ---------- Card (mesmo visual de Guias & Cursos) ----------
+  let fotoTemp = '';
+  function el(tag: string, cls?: string, texto?: string) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (texto != null) e.textContent = texto;
+    return e;
+  }
+  function secao(rotulo: string, ...filhos: Node[]) {
+    const d = el('div');
+    d.append(el('div', 'fgc-lbl', rotulo), ...filhos);
+    return d;
+  }
+  function especialidadesEscolhidas(): string[] {
+    const lista = marcados('especialidade').map((i) => i.value);
+    valor('especialidade_outra').split(',').map((x) => x.trim()).filter(Boolean)
+      .forEach((x) => { if (!lista.includes(x)) lista.push(x); });
+    return lista;
+  }
+  function montarCard(): HTMLElement {
+    const art = el('article', 'fgc');
+    const head = el('div', 'fgc-head');
+    const nome = valor('nome') || 'Seu nome';
+    if (fotoTemp) { URL.revokeObjectURL(fotoTemp); fotoTemp = ''; }
+    const arquivo = campoFoto?.files?.[0];
+    const fotoUrl = arquivo ? (fotoTemp = URL.createObjectURL(arquivo)) : (edicao ? original.foto_url : '');
+    if (fotoUrl) {
+      const img = el('img', 'fgc-foto') as HTMLImageElement;
+      img.src = fotoUrl; img.alt = nome;
+      head.append(img);
+    } else {
+      head.append(el('div', 'fgc-foto fgc-foto--iniciais', nome.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join('')));
+    }
+    const info = el('div', 'fgc-info');
+    info.append(el('h3', '', nome));
+    const base = [valor('cidade'), valor('uf')].filter(Boolean).join(' · ');
+    if (base) info.append(el('div', 'fgc-base', '📍 ' + base));
+    head.append(info);
+    art.append(head);
 
+    const corpo = el('div', 'fgc-corpo');
+    let algum = false;
+    if (valor('bio')) { corpo.append(secao('Sobre', el('p', 'fgc-texto', valor('bio')))); algum = true; }
+    const espec = especialidadesEscolhidas();
+    if (espec.length) {
+      const chips = el('div', 'fgc-chips');
+      espec.forEach((x) => chips.append(el('span', 'fgc-chip', x)));
+      corpo.append(secao('Especialidades', chips)); algum = true;
+    }
+    const locs = locaisEscolhidos().map((l) => l.nome);
+    if (locs.length || valor('locais_outro')) {
+      const filhos: Node[] = [];
+      if (locs.length) filhos.push(el('p', 'fgc-locais', locs.join(' · ')));
+      if (valor('locais_outro')) {
+        const p = el('p', 'fgc-locais fgc-locais--outros');
+        if (locs.length) p.append(el('strong', '', 'Também: '));
+        p.append(valor('locais_outro'));
+        filhos.push(p);
+      }
+      corpo.append(secao('Atua em', ...filhos)); algum = true;
+    }
+    if (valor('cursos_oferecidos')) { corpo.append(secao('Cursos oferecidos', el('p', 'fgc-texto', valor('cursos_oferecidos')))); algum = true; }
+    if (valor('certificacao')) {
+      const p = el('p', 'fgc-cert');
+      p.append(el('strong', '', 'Certificações: '), valor('certificacao'));
+      corpo.append(p); algum = true;
+    }
+    if (chkCupom?.checked && valor('cupom_codigo')) {
+      const c = el('div', 'fgc-cupom');
+      const topo = el('div', 'fgc-cupom-topo');
+      topo.append(el('span', 'fgc-cupom-lbl', 'Cupom Climbeiros'), el('span', 'fgc-cupom-codigo', valor('cupom_codigo')));
+      c.append(topo);
+      if (valor('cupom_desc')) c.append(el('p', 'fgc-cupom-desc', valor('cupom_desc')));
+      corpo.append(c); algum = true;
+    }
+    if (!algum) corpo.append(el('p', 'fgc-vazio', 'Preencha os blocos 2 e 3 pra o seu card ganhar conteúdo.'));
+
+    const contato = el('div', 'fgc-contato');
+    if (campoTelefone?.value) {
+      const a = el('span', 'fgc-btn fgc-btn--ic fgc-wa'); a.title = 'WhatsApp';
+      a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Z"/></svg>';
+      contato.append(a);
+    }
+    const ig = usuarioInstagram(valor('instagram'));
+    if (ig) {
+      const a = el('span', 'fgc-btn fgc-ig');
+      a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/></svg>';
+      a.append(el('span', '', '@' + ig));
+      contato.append(a);
+    }
+    if (valor('email')) {
+      const a = el('span', 'fgc-btn fgc-btn--ic fgc-em'); a.title = 'E-mail';
+      a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+      contato.append(a);
+    }
+    if (contato.children.length) corpo.append(contato);
+    art.append(corpo);
+    return art;
+  }
+
+  // ---------- Visualizar meu perfil ----------
+  const janelaVer = campo<HTMLDialogElement>('fg-ver');
+  form?.querySelectorAll('[data-ver-perfil]').forEach((b) => b.addEventListener('click', () => {
+    if (!janelaVer || typeof janelaVer.showModal !== 'function') return;
+    campo('fg-ver-card')?.replaceChildren(montarCard());
+    janelaVer.showModal();
+    janelaVer.scrollTop = 0;
+  }));
+  campo('fg-ver-fechar')?.addEventListener('click', () => janelaVer?.close());
+  janelaVer?.addEventListener('click', (e) => { if (e.target === janelaVer) janelaVer.close(); });
+
+  // ---------- Revisão antes de enviar ----------
+  const janelaRev = campo<HTMLDialogElement>('fg-revisao');
   function txt(v: unknown): string {
     if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean).join(', ');
     return v == null ? '' : String(v).trim();
@@ -296,167 +696,125 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
     }
     return txt(a) === txt(b);
   }
-
-  function montarBloco(titulo: string, selo: string, linhas: Linha[]): HTMLElement | null {
-    if (!linhas.length) return null;
-    const bloco = document.createElement('section');
-    bloco.className = 'fg-rev-bloco';
-    if (selo === 'selo--equipe') bloco.classList.add('fg-rev-bloco--equipe');
-    const h = document.createElement('h3');
-    h.textContent = titulo;
-    bloco.appendChild(h);
-    const dl = document.createElement('dl');
-    for (const l of linhas) {
-      const dt = document.createElement('dt');
-      dt.textContent = l.rotulo;
-      const dd = document.createElement('dd');
-      if (l.foto) {
-        const img = document.createElement('img');
-        img.src = l.foto;
-        img.alt = 'Sua foto';
-        img.className = 'fg-rev-foto';
-        dd.appendChild(img);
-      } else if (l.valor) {
-        dd.textContent = l.valor;
-      } else {
-        dd.textContent = 'Em branco';
-        dd.className = 'fg-rev-vazio';
-      }
-      dl.append(dt, dd);
+  function caixaConfira(titulo: string, linhas: [string, string][]): HTMLElement {
+    const s = el('section', 'fg-rev-bloco');
+    s.append(el('h3', '', titulo));
+    const dl = el('dl');
+    for (const [rot, v] of linhas) {
+      const dd = el('dd', v ? '' : 'fg-rev-vazio', v || 'Em branco');
+      dl.append(el('dt', '', rot), dd);
     }
-    bloco.appendChild(dl);
-    return bloco;
+    s.append(dl);
+    return s;
   }
 
-  function revisar(
-    perfil: Record<string, any>,
-    extra: { telefone: string; locaisNomes: string[]; mensagem: string; arquivoFoto: File | null },
-  ): Promise<boolean> {
+  function revisar(perfil: Record<string, any>, extra: { telefone: string; mensagem: string; fotoNova: boolean }): Promise<boolean> {
     // Navegador muito antigo sem <dialog>: envia como antes
-    if (!janelaRev || !revConteudo || typeof janelaRev.showModal !== 'function') return Promise.resolve(true);
+    if (!janelaRev || typeof janelaRev.showModal !== 'function') return Promise.resolve(true);
+    const intro = campo('fg-rev-intro');
+    const linhas: [string, string][] = [['WhatsApp (seu login)', extra.telefone], ['E-mail', txt(perfil.email)]];
+    if (extra.mensagem) linhas.push(['Mensagem pra equipe', extra.mensagem]);
 
-    const fotoNova = extra.arquivoFoto ? URL.createObjectURL(extra.arquivoFoto) : '';
-    const cupom = perfil.cupom_codigo ? `${perfil.cupom_codigo}: ${txt(perfil.cupom_desc)}` : '';
-
-    // Cada linha: rótulo, valor mostrado e se mudou em relação ao perfil no ar
-    const site: Linha[] = [
-      { rotulo: 'Nome', valor: txt(perfil.nome), mudou: !iguais(perfil.nome, original.nome) },
-      { rotulo: 'E-mail', valor: txt(perfil.email), mudou: !iguais(perfil.email, original.email) },
-      { rotulo: 'WhatsApp', valor: extra.telefone, mudou: false },
-      { rotulo: 'Instagram', valor: perfil.instagram ? '@' + String(perfil.instagram).replace(/^@/, '') : '', mudou: !iguais(perfil.instagram, String(original.instagram || '').replace(/^@/, '')) },
-      { rotulo: 'Cidade', valor: [txt(perfil.cidade), txt(perfil.uf)].filter(Boolean).join(' · '), mudou: !iguais(perfil.cidade, original.cidade) || !iguais(perfil.uf, original.uf) },
-      { rotulo: 'Especialidades', valor: txt(perfil.especialidades_lista), mudou: !iguais(perfil.especialidades_lista, original.especialidades_lista) },
-      { rotulo: 'Certificação', valor: txt(perfil.certificacao), mudou: !iguais(perfil.certificacao, original.certificacao) },
-      { rotulo: 'Foto', valor: '', foto: fotoNova || (edicao ? original.foto_url : '') || undefined, mudou: !!fotoNova },
-      { rotulo: 'Locais onde atua', valor: extra.locaisNomes.join(', '), mudou: !iguais(perfil.locais_ids, original.locais_ids) },
-      { rotulo: 'Outros locais', valor: txt(perfil.locais_interesse), mudou: !iguais(perfil.locais_interesse, original.locais_interesse) },
-      { rotulo: 'Sobre você', valor: txt(perfil.bio), mudou: !iguais(perfil.bio, original.bio) },
-      { rotulo: 'Cursos oferecidos', valor: txt(perfil.cursos_oferecidos), mudou: !iguais(perfil.cursos_oferecidos, original.cursos_oferecidos) },
-      { rotulo: 'Cupom', valor: cupom, mudou: !iguais(perfil.cupom_codigo, original.cupom_codigo) || !iguais(perfil.cupom_desc, original.cupom_desc) },
-    ];
-    const equipe: Linha[] = [
-      { rotulo: 'Melhor contato pra divulgar', valor: txt(perfil.contato_pref), mudou: !iguais(perfil.contato_pref, original.contato_pref) },
-      { rotulo: 'Mensagem pra equipe', valor: extra.mensagem, mudou: !!extra.mensagem },
-    ];
-
-    let mostrarSite = site;
-    let mostrarEquipe = equipe;
     if (edicao) {
-      // Editando: mostra só o que mudou. Se nada mudou, deixa o banco responder "nada mudou".
-      mostrarSite = site.filter((l) => l.mudou);
-      mostrarEquipe = equipe.filter((l) => l.mudou);
-      if (!mostrarSite.length && !mostrarEquipe.length) return Promise.resolve(true);
-      if (revIntro) revIntro.textContent = 'Estas são as mudanças que você fez. Dá uma lida com calma, principalmente nos textos: erro de digitação aparece no site do jeitinho que foi escrito. Se estiver tudo certo, é só enviar pra equipe aprovar.';
-    } else {
-      if (revIntro) revIntro.textContent = 'É assim que seu perfil vai aparecer no site. Dá uma lida com calma, principalmente em "Sobre você" e nos cursos: erro de digitação aparece no site do jeitinho que foi escrito. Os campos "Em branco" são opcionais, mas deixam seu card mais completo.';
+      const nomes: [string, boolean][] = [
+        ['Nome', !iguais(perfil.nome, original.nome)],
+        ['E-mail', !iguais(perfil.email, original.email)],
+        ['Instagram', !iguais(perfil.instagram, String(original.instagram || '').replace(/^@/, ''))],
+        ['Cidade', !iguais(perfil.cidade, original.cidade) || !iguais(perfil.uf, original.uf)],
+        ['Especialidades', !iguais(perfil.especialidades_lista, original.especialidades_lista)],
+        ['Certificação', !iguais(perfil.certificacao, original.certificacao)],
+        ['Foto', extra.fotoNova],
+        ['Locais', !iguais(perfil.locais_ids, original.locais_ids) || !iguais(perfil.locais_interesse, original.locais_interesse)],
+        ['Sobre você', !iguais(perfil.bio, original.bio)],
+        ['Cursos', !iguais(perfil.cursos_oferecidos, original.cursos_oferecidos)],
+        ['Cupom', !iguais(perfil.cupom_codigo, original.cupom_codigo) || !iguais(perfil.cupom_desc, original.cupom_desc)],
+      ];
+      const mudou = nomes.filter(([, m]) => m).map(([n]) => n);
+      // Nada mudou (nem mensagem): deixa o banco responder "nada mudou", como antes
+      if (!mudou.length && !extra.mensagem) return Promise.resolve(true);
+      linhas.unshift(['O que você mudou', mudou.join(', ') || 'Só a mensagem pra equipe']);
+      if (intro) intro.textContent = 'É assim que seu card vai ficar depois que a equipe aprovar. Dá uma lida com calma: erro de digitação aparece no site do jeitinho que foi escrito.';
+    } else if (intro) {
+      intro.textContent = 'É assim que seu card vai aparecer em Guias & Cursos. Dá uma lida com calma, principalmente em "Sobre você" e nos cursos: erro de digitação aparece no site do jeitinho que foi escrito.';
     }
 
-    revConteudo.replaceChildren();
-    const b1 = montarBloco(edicao ? 'O que muda no site' : 'Vai aparecer no site', 'selo--site', mostrarSite);
-    const b2 = montarBloco('Só a equipe vê (não aparece no site)', 'selo--equipe', mostrarEquipe);
-    if (b1) revConteudo.appendChild(b1);
-    if (b2) revConteudo.appendChild(b2);
-
+    campo('fg-rev-card')?.replaceChildren(montarCard());
+    campo('fg-rev-extra')?.replaceChildren(caixaConfira('Confira também', linhas));
     janelaRev.returnValue = '';
     janelaRev.showModal();
     janelaRev.scrollTop = 0;
     return new Promise((resolve) => {
-      janelaRev.addEventListener('close', () => {
-        if (fotoNova) URL.revokeObjectURL(fotoNova);
-        resolve(janelaRev.returnValue === 'enviar');
-      }, { once: true });
+      janelaRev.addEventListener('close', () => resolve(janelaRev.returnValue === 'enviar'), { once: true });
     });
   }
 
   // ---------- Envio ----------
+  function avisar(texto: string, alvo?: HTMLElement | null) {
+    if (status) status.textContent = texto;
+    if (alvo) {
+      abrirBloco(alvo.closest<HTMLDetailsElement>('.fg-bloco'), false);
+      alvo.focus();
+    }
+  }
+
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!status || !btn || !form) return;
-    const dados = Object.fromEntries(new FormData(form).entries()) as Record<string, any>;
-    if (!dados.nome || !dados.email) {
-      status.textContent = 'Por favor, preencha ao menos nome e e-mail.';
+
+    // Primeiro obrigatório vazio: abre o bloco certo e põe o cursor no campo
+    const faltando = obrigatoriosVazios(form)[0] as HTMLElement | undefined;
+    if (faltando) {
+      const rotulo = faltando.closest('.fc-campo')?.querySelector('label')?.childNodes[0]?.textContent?.trim() || 'um campo obrigatório';
+      const bloco = faltando.closest('.fg-bloco')?.querySelector('strong')?.textContent || '';
+      avisar(`Falta preencher "${rotulo}"${bloco ? ` no bloco "${bloco}"` : ''}.`, faltando);
       return;
     }
     const telefone = campoTelefone?.value || '';
     if (!edicao) {
-      if (!telefone || !telefoneValido(telefone)) {
-        status.textContent = 'Preencha o WhatsApp no formato (11)991721313, com DDD e 9 números. Ele é o seu login pra editar o perfil depois.';
-        campoTelefone?.focus();
+      if (!telefoneValido(telefone)) {
+        avisar('Preencha o WhatsApp no formato (11)991721313, com DDD e 9 números. Ele é o seu login pra editar o perfil depois.', campoTelefone);
         return;
       }
       if (!/^\d{6}$/.test(campoSenha?.value || '')) {
-        status.textContent = 'Crie uma senha com 6 números. Com ela você edita seu perfil depois.';
-        campoSenha?.focus();
+        avisar('Crie uma senha com 6 números. Com ela você edita seu perfil depois.', campoSenha);
         return;
       }
     }
-    const temCupom = !!chkCupom?.checked;
-    if (temCupom && (!String(dados.cupom_codigo || '').trim() || !String(dados.cupom_desc || '').trim())) {
-      status.textContent = 'Você marcou que quer oferecer um cupom: preencha o código e qual é o benefício (ou desmarque a opção).';
-      (String(dados.cupom_codigo || '').trim() ? campoCupomDesc : campoCupom)?.focus();
+    const emailEl = campo<HTMLInputElement>('fg-email');
+    if (emailEl && !emailEl.checkValidity()) {
+      avisar('Confira o e-mail: parece que falta alguma coisa (ex.: nome@email.com).', emailEl);
       return;
     }
-    const prefContato = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="pref"]:checked'))
-      .map((el) => el.value).join(', ');
-    const especialidades = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="especialidade"]:checked'))
-      .map((el) => el.value);
-    String(dados.especialidade_outra || '').split(',').map((x) => x.trim()).filter(Boolean)
-      .forEach((x) => { if (!especialidades.includes(x)) especialidades.push(x); });
-    const locaisSelect = form.querySelector<HTMLSelectElement>('#fg-locais');
-    const locaisIds = locaisSelect ? Array.from(locaisSelect.selectedOptions).map((o) => o.value) : [];
-    const locaisNomes = locaisSelect ? Array.from(locaisSelect.selectedOptions).map((o) => o.text) : [];
-
-    const arquivoFoto = form.querySelector<HTMLInputElement>('#fg-foto')?.files?.[0];
+    const arquivoFoto = campoFoto?.files?.[0];
     if (arquivoFoto && arquivoFoto.size > 5 * 1024 * 1024) {
-      status.textContent = 'A foto passou de 5 MB. Escolha uma menor ou deixe o campo em branco.';
+      avisar('A foto passou de 5 MB. Escolha uma menor ou deixe o campo em branco.', campoFoto);
       return;
     }
     status.textContent = '';
 
+    const temCupom = !!chkCupom?.checked;
     const perfil: Record<string, any> = {
-      nome: dados.nome,
-      email: dados.email,
-      instagram: usuarioInstagram(dados.instagram),
-      contato_pref: prefContato || null,
-      cidade: dados.cidade || null,
-      uf: dados.uf || null,
-      especialidades_lista: especialidades,
-      certificacao: dados.certificacao || null,
-      bio: dados.bio || null,
-      cursos_oferecidos: String(dados.cursos_oferecidos || '').trim() || null,
-      locais_ids: locaisIds,
-      locais_interesse: dados.locais_outro || null,
+      nome: valor('nome'),
+      email: valor('email'),
+      instagram: usuarioInstagram(valor('instagram')),
+      cidade: valor('cidade') || null,
+      uf: valor('uf') || null,
+      especialidades_lista: especialidadesEscolhidas(),
+      certificacao: valor('certificacao') || null,
+      bio: valor('bio') || null,
+      cursos_oferecidos: valor('cursos_oferecidos') || null,
+      locais_ids: locaisEscolhidos().map((l) => l.id),
+      locais_interesse: valor('locais_outro') || null,
       tem_cupom: temCupom ? 'Sim' : 'Não',
-      cupom_codigo: temCupom ? (dados.cupom_codigo || null) : null,
-      cupom_desc: temCupom ? (dados.cupom_desc || null) : null,
+      cupom_codigo: temCupom ? (valor('cupom_codigo') || null) : null,
+      cupom_desc: temCupom ? (valor('cupom_desc') || null) : null,
     };
+    const mensagem = valor('mensagem');
 
     // ----- Revisão antes de enviar -----
-    const confirmou = await revisar(perfil, {
-      telefone, locaisNomes, mensagem: String(dados.mensagem || '').trim(), arquivoFoto: arquivoFoto || null,
-    });
+    const confirmou = await revisar(perfil, { telefone, mensagem, fotoNova: !!arquivoFoto });
     if (!confirmou) {
-      status.textContent = 'Sem pressa: ajuste o que precisar e clique em enviar de novo.';
+      status.textContent = 'Sem pressa: ajuste o que precisar e clique em "Revisar e enviar" de novo.';
       return;
     }
 
@@ -477,12 +835,13 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
     // ----- Editando um perfil que já existe -----
     if (edicao) {
       if (fotoUrl) perfil.foto_url = fotoUrl;   // sem foto nova, a atual continua
+      const chaveEdicao = chaveRascunho();
       const { data: r, error } = await supabase.rpc('guia_enviar_edicao', {
-        p_whatsapp: edicao.whatsapp, p_senha: edicao.senha, p_dados: perfil, p_mensagem: dados.mensagem || null,
+        p_whatsapp: edicao.whatsapp, p_senha: edicao.senha, p_dados: perfil, p_mensagem: mensagem || null,
       });
       btn.removeAttribute('disabled');
       if (error || !r) {
-        status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.br';
+        status.textContent = 'Ops, algo deu errado. Seu rascunho continua salvo: tente novamente ou escreva para contato@climbeiros.com.br';
         return;
       }
       if (!r.ok) {
@@ -493,6 +852,7 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
             : 'Não consegui conferir seu acesso. Feche e entre de novo em "Editar meu perfil".';
         return;
       }
+      rascunho.apagar(chaveEdicao);
       sairDaEdicao();
       status.textContent = 'Recebemos suas alterações! Assim que a equipe aprovar, elas aparecem no site. 🧗';
       return;
@@ -503,50 +863,154 @@ const ESPECIALIDADES = ['Escalada esportiva','Escalada tradicional','Boulder','E
       ...perfil,
       telefone,
       foto_url: fotoUrl,
-      mensagem: dados.mensagem || null,
+      mensagem: mensagem || null,
       senha_hash: campoSenha?.value,   // chega com os 6 números; o banco embaralha antes de gravar
     }]);
+    btn.removeAttribute('disabled');
     if (error) {
-      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.br';
-      btn.removeAttribute('disabled');
+      status.textContent = 'Ops, algo deu errado. Seu rascunho continua salvo: tente novamente ou escreva para contato@climbeiros.com.br';
       return;
     }
+    rascunho.apagar(CHAVE_NOVO);
     form.reset();
-    atualizarCupom();
+    esconderRascunho();
+    atualizarTudo();
+    abrirBloco(blocos[0], false);
     status.textContent = 'Recebemos sua inscrição! Em breve a gente entra em contato. 🧗';
-    btn.removeAttribute('disabled');
   });
+
+  atualizarTudo();
+  oferecerRascunho();
 </script>
 
-<style>
-  #form-guia { scroll-margin-top: 110px; }
-  .fg-editando { background: var(--creme-claro); border-left: 4px solid var(--laranja); border-radius: 0 8px 8px 0; padding: 12px 16px; margin-bottom: 16px; }
+<style is:global>
+  /* Tudo aqui é global porque parte do conteúdo (card, revisão, etiquetas) é criado por
+     JavaScript, e o CSS "scoped" do Astro não pega elementos criados assim. Prefixos:
+     "fg-" = formulário de guia, "fgc-" = card de guia da prévia. */
+  #form-guia { scroll-margin-top: 110px; gap: 14px; }
+  #form-guia .botao { align-self: flex-start; }
+  .fg-link { background: none; border: 0; padding: 0; color: var(--laranja); font: inherit; font-weight: 600; cursor: pointer; }
+  .fg-link:hover { text-decoration: underline; }
+
+  /* Caixas de aviso no topo: editando / rascunho salvo */
+  .fg-editando { background: var(--creme-claro); border-left: 4px solid var(--laranja); border-radius: 0 8px 8px 0; padding: 12px 16px; }
   .fg-editando p { margin: 0 0 6px; }
-  .fg-editando[hidden], .fg-foto-atual[hidden], #fg-senha-campo[hidden], .fc-legenda[hidden], #fg-editando-pendente[hidden] { display: none; }
-  .fg-cancelar { background: none; border: 0; padding: 0; color: var(--laranja); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+  .fg-editando .fg-link { text-decoration: underline; }
+  .fg-retomar { background: var(--branco); border-left: 4px solid var(--laranja); border-radius: 0 8px 8px 0; padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .fg-retomar p { margin: 0; flex: 1; min-width: 200px; font-size: .92rem; }
+  #form-guia .fg-retomar .botao { padding: 8px 16px; font-size: .85rem; margin: 0; align-self: center; }
+
+  /* Blocos que abrem e fecham */
+  .fg-bloco { background: var(--branco); border: 1px solid rgba(42,31,22,.12); border-radius: 12px; overflow: hidden; }
+  .fg-bloco[open] { border-color: rgba(218,115,38,.45); box-shadow: 0 10px 24px -18px rgba(42,31,22,.5); }
+  .fg-bloco > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 16px 18px; user-select: none; }
+  .fg-bloco > summary::-webkit-details-marker { display: none; }
+  .fg-bloco > summary:focus-visible { outline: 2px solid var(--laranja); outline-offset: -2px; }
+  .fg-bloco-num { flex: 0 0 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--fonte-display); font-weight: 600; background: var(--creme-claro); color: var(--verde-escuro); }
+  .fg-bloco--completo .fg-bloco-num { background: var(--verde); color: #fff; }
+  .fg-bloco-tit { flex: 1; min-width: 0; }
+  .fg-bloco-tit strong { display: block; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: 1.05rem; color: var(--verde-escuro); font-weight: 600; }
+  .fg-bloco-tit small { display: block; font-size: .82rem; color: #6b5e4d; margin-top: 2px; }
+  .fg-bloco-status { font-size: .8rem; font-weight: 600; white-space: nowrap; color: #6b5e4d; }
+  .fg-bloco--completo .fg-bloco-status { color: var(--verde); }
+  .fg-bloco-seta { width: 10px; height: 10px; border-right: 2px solid var(--verde-escuro); border-bottom: 2px solid var(--verde-escuro); transform: rotate(45deg); transition: transform .2s; margin: 0 4px 4px 0; flex: 0 0 auto; }
+  .fg-bloco[open] .fg-bloco-seta { transform: rotate(-135deg); margin: 4px 4px 0 0; }
+  .fg-bloco-corpo { display: flex; flex-direction: column; gap: 18px; padding: 4px 18px 20px 66px; }
+  .fg-bloco-rodape { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 12px; border-top: 1px dashed rgba(42,31,22,.15); }
+  .fg-ver { background: transparent; border: 2px solid var(--verde-escuro); color: var(--verde-escuro); border-radius: var(--raio); padding: 7px 14px; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: .82rem; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+  .fg-ver:hover { background: var(--verde-escuro); color: var(--creme-claro); }
+  .fg-ver svg { width: 16px; height: 16px; }
+
+  /* Senha: pra que serve */
+  .fg-senha-info { background: var(--creme-claro); border-left: 4px solid var(--verde); border-radius: 0 8px 8px 0; padding: 10px 14px; font-size: .85rem; line-height: 1.5; }
+  .fg-senha-info .fg-senha-tit { margin: 0 0 4px; font-weight: 600; color: var(--verde-escuro); }
+  .fg-senha-info ul { margin: 0; padding-left: 18px; }
+  .fg-senha-info li { margin: 2px 0; }
+  .fg-senha-info strong { color: var(--verde-escuro); }
+
+  /* Foto atual (modo edição) */
   .fg-foto-atual { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font-size: .9rem; }
   .fg-foto-atual img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
-</style>
 
-<style is:global>
-  /* Janela de revisão (o conteúdo é criado via JavaScript, por isso is:global) */
-  .fg-rev { border: 0; border-radius: 14px; padding: 26px 26px 0; width: min(620px, 94vw); max-height: 90vh; overflow: auto; background: #fffdf7; color: var(--marrom); box-shadow: 0 30px 60px -20px rgba(0,0,0,.5); }
-  .fg-rev::backdrop { background: rgba(42,31,22,.55); }
-  .fg-rev h2 { margin: 0 0 8px; font-size: clamp(1.4rem, 5vw, 2rem); }
+  /* Locais com busca */
+  .fg-locais-lista { max-height: 240px; overflow: auto; border: 1px solid rgba(42,31,22,.18); border-radius: 8px; background: var(--branco); padding: 4px 12px 8px; }
+  .fg-locais-uf-tit { font-family: var(--fonte-display); text-transform: uppercase; font-size: .75rem; letter-spacing: .06em; color: var(--laranja); margin: 10px 0 4px; }
+  .fg-locais-lista .fc-check { padding: 3px 0; }
+  .fg-locais-nada { margin: 10px 0 4px; font-size: .88rem; color: #6b5e4d; font-style: italic; }
+  .fg-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fg-chips span { background: var(--verde); color: #fff; font-size: .78rem; padding: 3px 10px; border-radius: 999px; }
+
+  /* Rascunho salvo */
+  .fg-rascunho { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .85rem; color: #5f5344; }
+  .fg-rascunho-ponto { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); flex: 0 0 auto; }
+  .fg-rascunho--salvando .fg-rascunho-ponto { background: var(--amarelo); }
+  .fg-rascunho .fg-link { margin-left: auto; text-decoration: underline; font-weight: 400; }
+
+  /* Janelas (visualizar / revisão) */
+  .fg-janela { border: 0; border-radius: 14px; width: min(460px, 94vw); max-height: 92vh; overflow: auto; background: var(--creme-claro); color: var(--marrom); box-shadow: 0 30px 60px -20px rgba(0,0,0,.5); }
+  .fg-janela::backdrop { background: rgba(42,31,22,.55); }
+  .fg-janela--ver { padding: 22px; }
+  .fg-ver-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .fg-ver-topo p { margin: 0; font-size: .85rem; color: #5f5344; }
+  .fg-fechar { background: none; border: 0; font-size: 1.6rem; line-height: 1; color: var(--verde-escuro); cursor: pointer; padding: 0 4px; }
+  .fg-ver-dica { margin: 12px 0 0; font-size: .82rem; color: #5f5344; text-align: center; }
+  .fg-janela--rev { padding: 26px 26px 0; }
+  .fg-janela--rev h2 { margin: 0 0 8px; font-size: clamp(1.4rem, 5vw, 2rem); }
   .fg-rev-intro { margin: 0 0 16px; font-size: .95rem; line-height: 1.5; }
-  .fg-rev-bloco { background: var(--creme-claro); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+  .fg-janela--rev .fgc { margin-bottom: 14px; box-shadow: 0 10px 24px -18px rgba(42,31,22,.5); }
+  .fg-rev-bloco { background: #f1efe8; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
   .fg-rev-bloco h3 { font-size: 1rem; margin: 0 0 10px; }
-  .fg-rev-bloco--equipe { background: #f1efe8; }
-  .fg-rev-bloco dl { margin: 0; display: grid; grid-template-columns: minmax(110px, 30%) 1fr; gap: 8px 14px; }
+  .fg-rev-bloco dl { margin: 0; display: grid; grid-template-columns: minmax(110px, 35%) 1fr; gap: 8px 14px; }
   .fg-rev-bloco dt { font-weight: 600; font-size: .88rem; }
   .fg-rev-bloco dd { margin: 0; font-size: .92rem; white-space: pre-wrap; overflow-wrap: anywhere; }
   .fg-rev-bloco dd.fg-rev-vazio { opacity: .5; font-style: italic; }
-  .fg-rev-foto { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; display: block; }
-  .fg-rev-botoes { position: sticky; bottom: 0; background: #fffdf7; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; padding: 14px 0 22px; margin: 0; border-top: 1px solid rgba(42,31,22,.12); }
-  @media (max-width: 520px) {
-    .fg-rev { padding: 20px 18px 0; }
+  .fg-rev-botoes { position: sticky; bottom: 0; background: var(--creme-claro); display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 0 22px; margin: 0; border-top: 1px solid rgba(42,31,22,.12); }
+  .fg-rev-botoes .botao { flex: 1 1 100%; text-align: center; }
+
+  /* Card da prévia (cópia do card de src/pages/cursos.astro) */
+  .fgc { background: var(--branco); border: 1px solid #e6ddc4; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; text-align: left; }
+  .fgc-head { background: linear-gradient(150deg, var(--verde-escuro), var(--marrom)); padding: 20px; color: var(--creme-claro); display: flex; align-items: center; gap: 14px; }
+  .fgc-foto { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--creme); display: block; flex: 0 0 auto; }
+  .fgc-foto--iniciais { background: linear-gradient(150deg, #7d9576, #4f6b4a); display: grid; place-items: center; font-family: var(--fonte-display); font-weight: 700; font-size: 1.4rem; color: var(--creme); }
+  .fgc-info { flex: 1; min-width: 0; }
+  .fgc-info h3 { font-family: var(--fonte-display); font-weight: 700; text-transform: uppercase; font-size: 1.45rem; line-height: 1.05; color: #fff; margin: 0; overflow-wrap: anywhere; }
+  .fgc-base { font-size: .86rem; color: var(--creme); opacity: .9; margin-top: 4px; }
+  .fgc-corpo { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .fgc-lbl { font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: .7rem; color: var(--laranja); margin-bottom: 6px; }
+  .fgc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fgc-chip { font-size: .78rem; font-weight: 600; background: var(--creme-claro); color: var(--verde-escuro); padding: 3px 10px; border-radius: 999px; }
+  .fgc-texto { font-size: .95rem; color: #4a4033; margin: 0; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
+  .fgc-locais { margin: 0; font-size: .9rem; line-height: 1.55; color: #4a4033; }
+  .fgc-locais--outros { margin-top: 6px; }
+  .fgc-locais strong, .fgc-cert strong { font-weight: 600; color: var(--verde-escuro); }
+  .fgc-cert { margin: 0; font-size: .85rem; line-height: 1.5; color: #7a6c58; }
+  .fgc-cupom { border: 1.5px dashed var(--laranja); border-radius: 10px; background: rgba(218,115,38,.07); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .fgc-cupom-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .fgc-cupom-lbl { font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; color: #a8540f; }
+  .fgc-cupom-codigo { background: var(--creme); color: var(--verde-escuro); border-radius: 6px; padding: 5px 10px; font-family: var(--fonte-display); letter-spacing: .04em; }
+  .fgc-cupom-desc { margin: 0; font-size: .85rem; line-height: 1.4; }
+  .fgc-contato { display: flex; gap: 6px; border-top: 1px solid #eee4cc; padding-top: 16px; }
+  .fgc-btn { height: 40px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: #fff; font-weight: 600; font-size: .85rem; }
+  .fgc-btn svg { width: 18px; height: 18px; flex: 0 0 auto; }
+  .fgc-btn--ic { width: 40px; flex: 0 0 40px; }
+  .fgc-wa { background: #25995a; }
+  .fgc-ig { flex: 1 1 0; min-width: 0; padding: 0 8px; background: linear-gradient(120deg, #e0931c, var(--laranja)); }
+  .fgc-ig span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fgc-em { background: var(--verde-escuro); color: var(--creme); }
+  .fgc-vazio { margin: 0; font-size: .88rem; color: #8a7d68; font-style: italic; }
+
+  @media (max-width: 600px) {
+    .fg-bloco > summary { padding: 14px; gap: 4px 10px; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; }
+    .fg-bloco-num { grid-row: 1 / span 2; }
+    .fg-bloco-tit { grid-column: 2; }
+    .fg-bloco-status { grid-column: 2; grid-row: 2; }
+    .fg-bloco-seta { grid-column: 3; grid-row: 1 / span 2; }
+    .fg-bloco-rodape .fg-ver { flex: 1 1 100%; justify-content: center; }
+    .fg-bloco-corpo { padding: 4px 14px 18px; }
+    .fg-bloco-num { flex-basis: 30px; height: 30px; }
+    .fg-bloco-status { font-size: .74rem; }
+    .fg-janela--rev { padding: 20px 18px 0; }
     .fg-rev-bloco dl { grid-template-columns: 1fr; gap: 2px; }
     .fg-rev-bloco dd { margin-bottom: 8px; }
-    .fg-rev-botoes .botao { flex: 1 1 100%; text-align: center; }
   }
 </style>
