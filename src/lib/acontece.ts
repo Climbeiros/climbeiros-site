@@ -207,7 +207,7 @@ export async function getNovidades(limite = 10, dias?: number): Promise<Novidade
       foto: g.foto_url && !/\.(heic|heif)(\?|$)/i.test(g.foto_url) ? g.foto_url : null,
     })),
     ...fotos.filter((f) => f.enviado_em).map((f) => ({
-      tipo: 'Galeria', titulo: f.local ? `Foto nova: ${f.local}` : 'Foto nova da comunidade', texto: `Mandada por ${f.nome}`,
+      tipo: 'Galeria', titulo: f.local ? `Foto nova: ${f.local}` : 'Foto nova da comunidade', texto: `Enviada por ${f.nome}`,
       href: '/galeria', data: f.enviado_em,
     })),
     ...artigos.filter((a) => a.publicado_em).map((a) => ({
