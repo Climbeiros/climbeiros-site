@@ -686,13 +686,15 @@ const numerosGuias = [
           comentario: dados.get('comentario') || null,
         });
         if (error) {
-          status.textContent = 'Erro ao enviar: ' + error.message;
+          console.error('Avaliação:', error);
+          status.textContent = 'Ops, não consegui enviar sua avaliação. Tente de novo ou escreva pra contato@climbeiros.com.br';
         } else {
           status.textContent = 'Obrigado! Sua avaliação passará por uma checagem antes de aparecer no site.';
           form.reset();
         }
       } catch (err) {
-        status.textContent = 'Erro inesperado: ' + (err instanceof Error ? err.message : String(err));
+        console.error('Avaliação:', err);
+        status.textContent = 'Ops, algo deu errado (pode ser a internet). Tente de novo ou escreva pra contato@climbeiros.com.br';
       }
       botao.disabled = false;
     });
