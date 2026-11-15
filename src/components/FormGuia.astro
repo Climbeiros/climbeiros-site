@@ -181,7 +181,7 @@ const iconeOlho = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
         <label for="fg-foto">Foto</label>
         <p class="fg-foto-atual" id="fg-foto-atual" hidden><img id="fg-foto-atual-img" alt="" /> <span>Sua foto atual. Escolha outra só se quiser trocar.</span></p>
         <input type="file" id="fg-foto" name="foto" accept="image/png, image/jpeg, image/webp" data-conta data-nao-salvar />
-        <small class="fc-ajuda">Até 5 MB. A foto não fica no rascunho: se sair da página, escolha de novo.</small>
+        <small class="fc-ajuda">Fotos grandes são diminuídas na hora do envio. A foto não fica no rascunho: se sair da página, escolha de novo.</small>
       </div>
       <div class="fc-campo">
         <label for="fg-bio">Sobre você</label>
@@ -263,6 +263,7 @@ const iconeOlho = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
   import { supabase } from '../lib/supabase';
   import { usuarioInstagram } from '../lib/contatos';
   import { mascaraTelefone, telefoneValido } from '../lib/formularios';
+  import { reduzirFoto } from '../lib/desapego';
 
   const form = document.getElementById('form-guia') as HTMLFormElement | null;
   const status = document.getElementById('fg-status');
@@ -786,10 +787,6 @@ const iconeOlho = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
       return;
     }
     const arquivoFoto = campoFoto?.files?.[0];
-    if (arquivoFoto && arquivoFoto.size > 5 * 1024 * 1024) {
-      avisar('A foto passou de 5 MB. Escolha uma menor ou deixe o campo em branco.', campoFoto);
-      return;
-    }
     status.textContent = '';
 
     const temCupom = !!chkCupom?.checked;
@@ -821,15 +818,24 @@ const iconeOlho = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
     btn.setAttribute('disabled', '');
     status.textContent = 'Enviando...';
 
-    // Foto (opcional): sobe pro bucket público "fotos-guias" antes de gravar
+    // Foto (opcional): diminui (igual ao Desapego) e sobe pro bucket "fotos-guias".
+    // Se não subir, para e avisa. Antes o cadastro seguia sem foto e dizia "Recebemos" (bug de 14/11/2026).
     let fotoUrl: string | null = null;
     if (arquivoFoto) {
-      const extensao = arquivoFoto.name.split('.').pop();
-      const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extensao}`;
-      const { error: erroUpload } = await supabase.storage.from('fotos-guias').upload(nomeArquivo, arquivoFoto);
-      if (!erroUpload) {
-        fotoUrl = supabase.storage.from('fotos-guias').getPublicUrl(nomeArquivo).data.publicUrl;
+      status.textContent = 'Preparando a foto...';
+      const blob = await reduzirFoto(arquivoFoto).catch(() => arquivoFoto);
+      const erroFoto = (msg: string) => { btn?.removeAttribute('disabled'); avisar(msg, campoFoto); };
+      if (blob.size > 5 * 1024 * 1024) {
+        return erroFoto('A foto é grande demais e não consegui diminuir. Escolha outra (ou um print dela), ou deixe o campo em branco.');
       }
+      const extensao = blob.type === 'image/jpeg' ? 'jpg' : (arquivoFoto.name.split('.').pop() || 'jpg').toLowerCase();
+      const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extensao}`;
+      const { error: erroUpload } = await supabase.storage.from('fotos-guias').upload(nomeArquivo, blob, { contentType: blob.type || arquivoFoto.type });
+      if (erroUpload) {
+        return erroFoto('Não consegui enviar a foto. Tente outra (JPG) ou deixe o campo em branco. Nada foi enviado ainda e seu rascunho continua salvo.');
+      }
+      fotoUrl = supabase.storage.from('fotos-guias').getPublicUrl(nomeArquivo).data.publicUrl;
+      status.textContent = 'Enviando...';
     }
 
     // ----- Editando um perfil que já existe -----
