@@ -3,9 +3,22 @@
 // Formulário "Anunciar no Desapego". Grava em "anuncios_desapego" (entra
 // pendente no painel). A senha vai em texto pro banco, que embaralha antes
 // de guardar (trigger anuncios_desapego_ao_criar). Use só uma vez por página.
+//
+// Novo visual (14/11/2026), no mesmo padrão do formulário de guia:
+// - 4 blocos que abrem e fecham (O que é / Fotos e descrição / Entrega /
+//   Seus contatos), cada um mostrando no título o que falta.
+// - Rascunho salvo sozinho no navegador (localStorage). Fotos, senha e o
+//   "li o aviso" não entram no rascunho. Anúncio novo e cada edição têm
+//   rascunhos separados.
+// - "Visualizar meu anúncio" nos blocos 1 a 3 mostra o card e o anúncio aberto
+//   exatamente como no site (o desenho vem de src/lib/desapegoCards.ts, o mesmo
+//   que a página usa).
+// - "Revisar e enviar" mostra o anúncio + "Quero fazer ajustes" / "Está certo".
+// O estilo dos blocos e das janelas fica em src/styles/formularios.css (.fc-bloco...).
 import '../styles/formularios.css';
 import { CATEGORIAS, CONSERVACAO, ENTREGAS, UFS } from '../lib/desapego';
 const anoAtual = new Date().getFullYear();
+const iconeOlho = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 ---
 <form class="fc" id="form-desapego" novalidate>
   <!-- Aparece só quando a pessoa clica em "Editar" no "Meus anúncios" -->
@@ -14,186 +27,290 @@ const anoAtual = new Date().getFullYear();
     <p>Mudou <strong>só o preço</strong>? Atualiza no site na hora. Se mudar outra coisa (título, fotos, descrição...), o anúncio passa de novo pela equipe e sai do ar até ser aprovado.</p>
     <button type="button" class="botao botao--secundario" id="fd-cancelar-edicao">Cancelar edição</button>
   </div>
-  <p class="fc-legenda">
-    Seu anúncio passa por uma olhadinha da equipe antes de aparecer e fica <strong>30 dias no ar</strong>.
-    Etiquetas: <span class="selo selo--site">No site</span> aparece pra todo mundo,
-    <span class="selo selo--equipe">Só a equipe vê</span> fica só com a gente.
-  </p>
 
-  <div class="fc-campo">
-    <span class="fc-label">O que você quer fazer? <span class="req req--sim">Obrigatório</span></span>
-    <div class="fc-opcoes">
-      <label class="fc-check"><input type="radio" name="modalidade" value="venda" checked /> Vender</label>
-      <label class="fc-check"><input type="radio" name="modalidade" value="troca" /> Trocar</label>
-      <label class="fc-check"><input type="radio" name="modalidade" value="doacao" /> Doar</label>
-    </div>
+  <div class="fc-retomar" id="fd-retomar" hidden>
+    <p><strong>Você tem um rascunho salvo</strong> (<span id="fd-retomar-quando"></span>). Quer continuar de onde parou?</p>
+    <button type="button" class="botao" id="fd-retomar-sim">Continuar</button>
+    <button type="button" class="botao botao--secundario" id="fd-retomar-nao">Começar do zero</button>
   </div>
 
-  <div class="fc-linha">
-    <div class="fc-campo">
-      <label for="fd-categoria">Tipo de equipamento <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <select id="fd-categoria" name="categoria" required>
-        <option value="">Selecione</option>
-        {CATEGORIAS.map((c) => <option value={c.valor}>{c.rotulo}{c.ajuda ? ` (${c.ajuda})` : ''}</option>)}
-      </select>
-    </div>
-    <div class="fc-campo" id="fd-preco-campo">
-      <label for="fd-preco">Preço (R$) <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <input type="text" id="fd-preco" name="preco" inputmode="decimal" placeholder="Ex.: 250" />
-    </div>
-    <div class="fc-campo" id="fd-troca-campo" hidden>
-      <label for="fd-troca">O que você aceita em troca? <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <input type="text" id="fd-troca" name="troca_por" maxlength="80" placeholder="Ex.: sapatilha 38, um friend" />
-    </div>
-  </div>
-
-  <div class="fc-campo">
-    <label for="fd-titulo">Título do anúncio <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-    <input type="text" id="fd-titulo" name="titulo" maxlength="80" required placeholder="Ex.: Sapatilha La Sportiva Tarantulace 40" />
-  </div>
-
-  <div class="fc-linha">
-    <div class="fc-campo">
-      <label for="fd-marca">Marca e modelo <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-      <input type="text" id="fd-marca" name="marca_modelo" maxlength="80" placeholder="Ex.: Petzl Corax" />
-    </div>
-    <div class="fc-campo">
-      <label for="fd-tamanho">Tamanho <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-      <input type="text" id="fd-tamanho" name="tamanho" maxlength="30" placeholder="Ex.: 40, M, 60 m" />
-    </div>
-  </div>
-
-  <div class="fc-campo">
-    <span class="fc-label">Estado de conservação <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></span>
-    <div class="fc-opcoes">
-      {Object.entries(CONSERVACAO).map(([v, r], i) => (
-        <label class="fc-check"><input type="radio" name="conservacao" value={v} checked={i === 2} /> {r}</label>
-      ))}
-    </div>
-  </div>
-
-  <!-- Aparece só pra corda, cadeirinha, mosquetão, freio, fita, capacete, proteção -->
-  <div class="fc-destaque" id="fd-seguranca" hidden>
-    <p class="fd-seg-titulo">⚠️ Equipamento de segurança: conte o histórico</p>
-    <p class="fc-aviso" style="opacity:.85;font-size:.85rem">Quem vai comprar precisa dessas informações pra decidir com segurança. Seja sincero, combinado?</p>
-    <div class="fc-linha">
+  <!-- BLOCO 1 -->
+  <details class="fc-bloco" data-bloco="1" open>
+    <summary>
+      <span class="fc-bloco-num">1</span>
+      <span class="fc-bloco-tit"><strong>O que você está desapegando</strong><small>Tipo, preço, título e estado do equipamento</small></span>
+      <span class="fc-bloco-status"></span><span class="fc-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fc-bloco-corpo">
       <div class="fc-campo">
-        <label for="fd-ano">Ano de fabricação <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-        <input type="number" id="fd-ano" name="seg_ano_fabricacao" min="1980" max={anoAtual} placeholder={`Ex.: ${anoAtual - 3}`} />
-        <small class="fc-ajuda">Costuma estar numa etiqueta ou gravado na peça.</small>
-      </div>
-      <div class="fc-campo">
-        <span class="fc-label">Já segurou queda forte? <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></span>
+        <span class="fc-label">O que você quer fazer? <span class="req req--sim">Obrigatório</span></span>
         <div class="fc-opcoes">
-          <label class="fc-check"><input type="radio" name="seg_quedas" value="nao" /> Não</label>
-          <label class="fc-check"><input type="radio" name="seg_quedas" value="sim" /> Sim</label>
-          <label class="fc-check"><input type="radio" name="seg_quedas" value="nao_sei" /> Não sei</label>
+          <label class="fc-check"><input type="radio" name="modalidade" value="venda" checked /> Vender</label>
+          <label class="fc-check"><input type="radio" name="modalidade" value="troca" /> Trocar</label>
+          <label class="fc-check"><input type="radio" name="modalidade" value="doacao" /> Doar</label>
         </div>
       </div>
-    </div>
-    <div class="fc-campo">
-      <label for="fd-armaz">Como foi usado e guardado? <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-      <input type="text" id="fd-armaz" name="seg_armazenamento" maxlength="300" placeholder="Ex.: uso em academia 1x por semana, guardado em local seco, longe do sol" />
-    </div>
-  </div>
 
-  <div class="fc-campo">
-    <label for="fd-descricao">Descrição <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-    <textarea id="fd-descricao" name="descricao" rows="4" maxlength="1500" placeholder="Detalhes, marcas de uso, motivo do desapego, se aceita proposta, se entrega ou só retira..."></textarea>
-  </div>
+      <div class="fc-linha">
+        <div class="fc-campo">
+          <label for="fd-categoria">Tipo de equipamento <span class="req req--sim">Obrigatório</span></label>
+          <select id="fd-categoria" name="categoria">
+            <option value="">Selecione</option>
+            {CATEGORIAS.map((c) => <option value={c.valor}>{c.rotulo}{c.ajuda ? ` (${c.ajuda})` : ''}</option>)}
+          </select>
+        </div>
+        <div class="fc-campo" id="fd-preco-campo">
+          <label for="fd-preco">Preço (R$) <span class="req req--sim">Obrigatório</span></label>
+          <input type="text" id="fd-preco" name="preco" inputmode="decimal" placeholder="Ex.: 250" />
+        </div>
+        <div class="fc-campo" id="fd-troca-campo" hidden>
+          <label for="fd-troca">O que você aceita em troca? <span class="req req--sim">Obrigatório</span></label>
+          <input type="text" id="fd-troca" name="troca_por" maxlength="80" placeholder="Ex.: sapatilha 38, um friend" />
+        </div>
+      </div>
 
-  <div class="fc-campo">
-    <label for="fd-fotos">Fotos (até 3) <span class="req req--sim">Pelo menos 1</span> <span class="selo selo--site">No site</span></label>
-    <input type="file" id="fd-fotos" name="fotos" accept="image/*" multiple />
-    <small class="fc-ajuda" id="fd-fotos-ajuda-edicao" hidden><strong>Fotos atuais abaixo.</strong> Pra trocar, escolha novas fotos: elas substituem as atuais.</small>
-    <small class="fc-ajuda">Foto boa vende mais: luz natural, fundo limpo e uma foto mostrando o desgaste de perto.</small>
-    <div class="fd-previas" id="fd-previas"></div>
-  </div>
+      <div class="fc-campo">
+        <label for="fd-titulo">Título do anúncio <span class="req req--sim">Obrigatório</span></label>
+        <input type="text" id="fd-titulo" name="titulo" maxlength="80" placeholder="Ex.: Sapatilha La Sportiva Tarantulace 40" />
+      </div>
 
-  <div class="fc-linha">
-    <div class="fc-campo">
-      <label for="fd-cidade">Cidade <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <input type="text" id="fd-cidade" name="cidade" maxlength="60" required placeholder="Ex.: São Paulo" />
-    </div>
-    <div class="fc-campo">
-      <label for="fd-uf">UF <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <select id="fd-uf" name="uf" required>
-        <option value="">Selecione</option>
-        {UFS.map((uf) => <option value={uf}>{uf}</option>)}
-      </select>
-    </div>
-  </div>
+      <div class="fc-linha">
+        <div class="fc-campo">
+          <label for="fd-marca">Marca e modelo <span class="req req--nao">Opcional</span></label>
+          <input type="text" id="fd-marca" name="marca_modelo" maxlength="80" placeholder="Ex.: Petzl Corax" />
+        </div>
+        <div class="fc-campo">
+          <label for="fd-tamanho">Tamanho <span class="req req--nao">Opcional</span></label>
+          <input type="text" id="fd-tamanho" name="tamanho" maxlength="30" placeholder="Ex.: 40, M, 60 m" />
+        </div>
+      </div>
 
-  <div class="fc-campo">
-    <span class="fc-label">Como pode ser a entrega? <span class="req req--sim">Pelo menos 1</span> <span class="selo selo--site">No site</span></span>
-    <div class="fc-opcoes">
-      {Object.entries(ENTREGAS).map(([v, r]) => (
-        <label class="fc-check"><input type="checkbox" name="entrega" value={v} /> {r.charAt(0).toUpperCase() + r.slice(1)}</label>
-      ))}
-    </div>
-  </div>
-  <div class="fc-campo" id="fd-bairros-campo" hidden>
-    <label for="fd-bairros">Bairro(s) pra retirada <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-    <input type="text" id="fd-bairros" name="retirada_bairros" maxlength="120" placeholder="Ex.: Pinheiros (perto de casa) ou Vila Olímpia (perto do trabalho)" />
-    <small class="fc-ajuda">Só o bairro, sem endereço. O ponto exato vocês combinam no WhatsApp.</small>
-  </div>
-  <div class="fc-campo" id="fd-academias-campo" hidden>
-    <label for="fd-academias">Em qual(is) academia(s) você pode entregar? <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-    <input type="text" id="fd-academias" name="entrega_academias" maxlength="150" placeholder="Ex.: Casa de Pedra Perdizes, Gravidade" />
-  </div>
+      <div class="fc-campo">
+        <span class="fc-label">Estado de conservação <span class="req req--sim">Obrigatório</span></span>
+        <div class="fc-opcoes">
+          {Object.entries(CONSERVACAO).map(([v, r], i) => (
+            <label class="fc-check"><input type="radio" name="conservacao" value={v} checked={i === 2} /> {r}</label>
+          ))}
+        </div>
+      </div>
 
-  <div class="fc-linha">
-    <div class="fc-campo">
-      <label for="fd-nome">Seu nome <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <input type="text" id="fd-nome" name="nome" maxlength="60" required placeholder="Pode ser só o primeiro nome" />
-    </div>
-    <div class="fc-campo">
-      <label for="fd-whats">WhatsApp <span class="req req--sim">Obrigatório</span> <span class="selo selo--site">No site</span></label>
-      <input type="tel" id="fd-whats" name="whatsapp" maxlength="13" inputmode="numeric" required placeholder="(11)991721313" />
-      <small class="fc-ajuda">Aparece no anúncio, num botão pra pessoa te chamar.</small>
-    </div>
-  </div>
-  <div class="fc-campo">
-    <label for="fd-insta">Instagram <span class="req req--nao">Opcional</span> <span class="selo selo--site">No site</span></label>
-    <input type="text" id="fd-insta" name="instagram" maxlength="60" placeholder="@seu.perfil" />
-  </div>
+      <!-- Aparece só pra corda, cadeirinha, capacete, ferragens, fitas -->
+      <div class="fc-destaque" id="fd-seguranca" hidden>
+        <p class="fd-seg-titulo">⚠️ Equipamento de segurança: conte o histórico</p>
+        <p class="fc-aviso" style="opacity:.85;font-size:.85rem">Quem vai comprar precisa dessas informações pra decidir com segurança. Seja sincero, combinado?</p>
+        <div class="fc-linha">
+          <div class="fc-campo">
+            <label for="fd-ano">Ano de fabricação <span class="req req--sim">Obrigatório</span></label>
+            <input type="number" id="fd-ano" name="seg_ano_fabricacao" min="1980" max={anoAtual} placeholder={`Ex.: ${anoAtual - 3}`} />
+            <small class="fc-ajuda">Costuma estar numa etiqueta ou gravado na peça.</small>
+          </div>
+          <div class="fc-campo" id="fd-quedas-campo">
+            <span class="fc-label">Já segurou queda forte? <span class="req req--sim">Obrigatório</span></span>
+            <div class="fc-opcoes">
+              <label class="fc-check"><input type="radio" name="seg_quedas" value="nao" /> Não</label>
+              <label class="fc-check"><input type="radio" name="seg_quedas" value="sim" /> Sim</label>
+              <label class="fc-check"><input type="radio" name="seg_quedas" value="nao_sei" /> Não sei</label>
+            </div>
+          </div>
+        </div>
+        <div class="fc-campo">
+          <label for="fd-armaz">Como foi usado e guardado? <span class="req req--nao">Opcional</span></label>
+          <input type="text" id="fd-armaz" name="seg_armazenamento" maxlength="300" placeholder="Ex.: uso em academia 1x por semana, guardado em local seco, longe do sol" />
+        </div>
+      </div>
 
-  <div class="fc-destaque" id="fd-bloco-senha">
-    <div class="fc-campo">
-      <label for="fd-senha">Crie uma senha de 6 números <span class="req req--sim">Obrigatório</span> <span class="selo selo--equipe">Só você sabe</span></label>
-      <input type="password" id="fd-senha" name="senha" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required autocomplete="new-password" placeholder="••••••" />
-      <small class="fc-ajuda">Já anunciou antes? Use a mesma senha, assim você vê todos os seus anúncios juntos. <strong>Guarde essa senha.</strong> Com ela (e o seu WhatsApp) você renova o anúncio, marca como vendido ou tira do ar. A gente não manda e-mail nem lembrete, e nem a equipe consegue ver sua senha.</small>
+      <div class="fc-bloco-rodape">
+        <button type="button" class="fc-ver" data-ver><Fragment set:html={iconeOlho} />Visualizar meu anúncio</button>
+        <button type="button" class="fc-link" data-proximo>Próximo bloco →</button>
+      </div>
     </div>
-    <div class="fc-campo">
-      <label for="fd-senha2">Repita a senha <span class="req req--sim">Obrigatório</span></label>
-      <input type="password" id="fd-senha2" name="senha2" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required autocomplete="new-password" placeholder="••••••" />
-    </div>
-  </div>
+  </details>
 
-  <div class="fc-campo" id="fd-msg-campo">
-    <label for="fd-msg">Mensagem pra equipe Climbeiros <span class="req req--nao">Opcional</span> <span class="selo selo--equipe">Só a equipe vê</span></label>
-    <textarea id="fd-msg" name="mensagem" rows="2" maxlength="1000"></textarea>
-  </div>
+  <!-- BLOCO 2 -->
+  <details class="fc-bloco" data-bloco="2">
+    <summary>
+      <span class="fc-bloco-num">2</span>
+      <span class="fc-bloco-tit"><strong>Fotos e descrição</strong><small>Foto boa vende mais</small></span>
+      <span class="fc-bloco-status"></span><span class="fc-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fc-bloco-corpo">
+      <div class="fc-campo">
+        <label for="fd-fotos">Fotos (até 3) <span class="req req--sim">Pelo menos 1</span></label>
+        <input type="file" id="fd-fotos" name="fotos" accept="image/*" multiple />
+        <small class="fc-ajuda" id="fd-fotos-ajuda-edicao" hidden><strong>Fotos atuais abaixo.</strong> Toque no × pra tirar uma foto e escolha outras pra completar (até 3 no total).</small>
+        <small class="fc-ajuda">Luz natural, fundo limpo e uma foto mostrando o desgaste de perto. A primeira foto é a capa do anúncio. As fotos não ficam no rascunho: se sair da página, escolha de novo.</small>
+        <div class="fd-previas" id="fd-previas"></div>
+        <p class="fd-contador" id="fd-contador" hidden></p>
+        <p class="fc-erro" id="fd-fotos-aviso" hidden></p>
+      </div>
+      <div class="fc-campo">
+        <label for="fd-descricao">Descrição <span class="req req--nao">Opcional</span></label>
+        <textarea id="fd-descricao" name="descricao" rows="4" maxlength="1500" placeholder="Detalhes, marcas de uso, motivo do desapego, se aceita proposta..."></textarea>
+      </div>
+      <div class="fc-bloco-rodape">
+        <button type="button" class="fc-ver" data-ver><Fragment set:html={iconeOlho} />Visualizar meu anúncio</button>
+        <button type="button" class="fc-link" data-proximo>Próximo bloco →</button>
+      </div>
+    </div>
+  </details>
+
+  <!-- BLOCO 3 -->
+  <details class="fc-bloco" data-bloco="3">
+    <summary>
+      <span class="fc-bloco-num">3</span>
+      <span class="fc-bloco-tit"><strong>Onde e como entregar</strong><small>Cidade e formas de entrega</small></span>
+      <span class="fc-bloco-status"></span><span class="fc-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fc-bloco-corpo">
+      <div class="fc-linha">
+        <div class="fc-campo">
+          <label for="fd-cidade">Cidade <span class="req req--sim">Obrigatório</span></label>
+          <input type="text" id="fd-cidade" name="cidade" maxlength="60" placeholder="Ex.: São Paulo" />
+        </div>
+        <div class="fc-campo">
+          <label for="fd-uf">UF <span class="req req--sim">Obrigatório</span></label>
+          <select id="fd-uf" name="uf">
+            <option value="">Selecione</option>
+            {UFS.map((uf) => <option value={uf}>{uf}</option>)}
+          </select>
+        </div>
+      </div>
+      <div class="fc-campo" id="fd-entrega-campo">
+        <span class="fc-label">Como pode ser a entrega? <span class="req req--sim">Pelo menos 1</span></span>
+        <div class="fc-opcoes">
+          {Object.entries(ENTREGAS).map(([v, r]) => (
+            <label class="fc-check"><input type="checkbox" name="entrega" value={v} /> {r.charAt(0).toUpperCase() + r.slice(1)}</label>
+          ))}
+        </div>
+      </div>
+      <div class="fc-campo" id="fd-bairros-campo" hidden>
+        <label for="fd-bairros">Bairro(s) pra retirada <span class="req req--sim">Obrigatório</span></label>
+        <input type="text" id="fd-bairros" name="retirada_bairros" maxlength="120" placeholder="Ex.: Pinheiros (perto de casa) ou Vila Olímpia (perto do trabalho)" />
+        <small class="fc-ajuda">Só o bairro, sem endereço. O ponto exato vocês combinam no WhatsApp.</small>
+      </div>
+      <div class="fc-campo" id="fd-academias-campo" hidden>
+        <label for="fd-academias">Em qual(is) academia(s) você pode entregar? <span class="req req--sim">Obrigatório</span></label>
+        <input type="text" id="fd-academias" name="entrega_academias" maxlength="150" placeholder="Ex.: Casa de Pedra Perdizes, Gravidade" />
+      </div>
+      <div class="fc-bloco-rodape">
+        <button type="button" class="fc-ver" data-ver><Fragment set:html={iconeOlho} />Visualizar meu anúncio</button>
+        <button type="button" class="fc-link" data-proximo>Próximo bloco →</button>
+      </div>
+    </div>
+  </details>
+
+  <!-- BLOCO 4 -->
+  <details class="fc-bloco" data-bloco="4">
+    <summary>
+      <span class="fc-bloco-num">4</span>
+      <span class="fc-bloco-tit"><strong>Seus contatos</strong><small>Nome, WhatsApp e Instagram aparecem no anúncio</small></span>
+      <span class="fc-bloco-status"></span><span class="fc-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fc-bloco-corpo">
+      <div class="fc-linha">
+        <div class="fc-campo">
+          <label for="fd-nome">Seu nome <span class="req req--sim">Obrigatório</span></label>
+          <input type="text" id="fd-nome" name="nome" maxlength="60" placeholder="Pode ser só o primeiro nome" />
+        </div>
+        <div class="fc-campo">
+          <label for="fd-whats">WhatsApp <span class="req req--sim">Obrigatório</span></label>
+          <input type="tel" id="fd-whats" name="whatsapp" maxlength="13" inputmode="numeric" placeholder="(11)991721313" />
+          <small class="fc-ajuda" id="fd-whats-ajuda">Aparece no anúncio, num botão pra pessoa te chamar.</small>
+        </div>
+      </div>
+      <div class="fc-campo">
+        <label for="fd-insta">Instagram <span class="req req--nao">Opcional</span></label>
+        <input type="text" id="fd-insta" name="instagram" maxlength="60" placeholder="@seu.perfil" />
+      </div>
+
+      <div class="fc-campo" id="fd-bloco-senha">
+        <div class="fc-linha">
+          <div class="fc-campo">
+            <label for="fd-senha">Crie uma senha de 6 números <span class="req req--sim">Obrigatório</span></label>
+            <input type="password" id="fd-senha" name="senha" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="new-password" placeholder="••••••" />
+          </div>
+          <div class="fc-campo">
+            <label for="fd-senha2">Repita a senha <span class="req req--sim">Obrigatório</span></label>
+            <input type="password" id="fd-senha2" name="senha2" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="new-password" placeholder="••••••" />
+          </div>
+        </div>
+        <div class="fc-info">
+          <p>Pra que serve a senha?</p>
+          <ul>
+            <li><strong>Pra você cuidar do anúncio sozinho</strong> em "Meus anúncios" (com seu WhatsApp + esta senha): editar, renovar por mais 30 dias, marcar como vendido ou tirar do ar.</li>
+            <li><strong>Já anunciou antes?</strong> Use a mesma senha, assim todos os seus anúncios aparecem juntos.</li>
+            <li><strong>Guarde bem:</strong> a gente não manda e-mail nem lembrete, e ninguém vê sua senha, nem a equipe. Ela não fica salva no rascunho.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="fc-campo" id="fd-msg-campo">
+        <label for="fd-msg">Mensagem pra equipe Climbeiros <span class="req req--nao">Opcional</span> <span class="selo selo--equipe">Só a equipe vê</span></label>
+        <textarea id="fd-msg" name="mensagem" rows="2" maxlength="1000"></textarea>
+      </div>
+    </div>
+  </details>
 
   <input type="text" name="site" class="fc-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
 
   <label class="fc-check fd-aceite">
-    <input type="checkbox" name="aceite" id="fd-aceite" required />
+    <input type="checkbox" name="aceite" id="fd-aceite" />
     <span>Li e entendi o aviso de segurança: o Climbeiros só aproxima as pessoas e não confere nem se responsabiliza pelo equipamento, pela negociação nem pelo pagamento. Tudo é combinado direto entre mim e quem se interessar.</span>
   </label>
 
-  <button type="submit" class="botao" id="fd-enviar">Enviar anúncio</button>
+  <div class="fc-rascunho" id="fd-rascunho" hidden>
+    <span class="fc-rascunho-ponto"></span><span id="fd-rascunho-txt">Rascunho salvo</span>
+    <button type="button" class="fc-link" id="fd-rascunho-apagar">Apagar rascunho</button>
+  </div>
+  <button type="submit" class="botao" id="fd-enviar">Revisar e enviar</button>
   <p class="fc-status" id="fd-status" role="status"></p>
 </form>
 
-<style>
+<!-- "Visualizar meu anúncio": o card e o anúncio aberto, como no site -->
+<dialog class="fc-janela" id="fd-ver" aria-labelledby="fd-ver-titulo">
+  <div class="fc-janela-topo">
+    <p id="fd-ver-titulo">É assim que seu anúncio aparece no <strong>Desapego</strong></p>
+    <button type="button" class="fc-janela-fechar" id="fd-ver-fechar" aria-label="Fechar">×</button>
+  </div>
+  <div id="fd-ver-conteudo"></div>
+  <p class="fc-janela-dica">Campos em branco não aparecem no anúncio.</p>
+</dialog>
+
+<!-- Revisão antes de enviar -->
+<dialog class="fc-janela" id="fd-revisao" aria-labelledby="fd-rev-titulo">
+  <h2 id="fd-rev-titulo">Confere antes de enviar?</h2>
+  <p class="fc-janela-intro" id="fd-rev-intro"></p>
+  <div id="fd-rev-conteudo"></div>
+  <div id="fd-rev-extra"></div>
+  <form method="dialog" class="fc-janela-botoes">
+    <button type="submit" value="corrigir" class="botao botao--secundario">Quero fazer ajustes</button>
+    <button type="submit" value="enviar" class="botao" id="fd-rev-ok">Está certo, pode enviar</button>
+  </form>
+</dialog>
+
+<style is:global>
   .fd-seg-titulo { margin: 0; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .03em; color: var(--laranja); }
   .fd-previas { display: flex; gap: 8px; flex-wrap: wrap; }
-  .fd-previas img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(42,31,22,.15); }
+  .fd-previas img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(42,31,22,.15); display: block; }
+  .fd-foto { position: relative; }
+  .fd-foto-capa { position: absolute; left: 4px; bottom: 4px; font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; background: var(--verde-escuro); color: #fff; border-radius: 4px; padding: 1px 5px; }
+  .fd-tirar { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; background: var(--marrom); color: #fff; font-size: 1rem; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0; }
+  .fd-tirar:hover { background: var(--laranja); }
+  .fd-contador { margin: 0; font-size: .82rem; font-weight: 600; color: var(--verde-escuro); }
   .fd-editando { background: var(--branco); border: 2px solid var(--laranja); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
   .fd-editando p { margin: 0; }
   .fd-editando .botao { align-self: flex-start; margin-top: 4px; }
   .fd-aceite { padding: 14px; border-radius: 8px; background: rgba(218,115,38,.08); border: 1px solid rgba(218,115,38,.35); }
+  #form-desapego { scroll-margin-top: 110px; gap: 14px; }
+
+  /* Prévia: o card da lista (mesma largura do site) + o anúncio aberto numa coluna só */
+  .fd-previa-card { width: 240px; margin: 0 auto; pointer-events: none; }
+  .fd-previa-card .dsp-card { width: 100%; text-align: left; }
+  .fd-previa-det { background: var(--branco); border-radius: 12px; overflow: hidden; pointer-events: none; box-shadow: 0 10px 24px -18px rgba(42,31,22,.5); }
+  .fd-previa-det .dsp-det { grid-template-columns: 1fr; }
+  .fd-previa-det .dsp-det-info { padding: 18px; }
+  .fd-previa-det .dsp-sou-eu { display: none; }
+  .fd-previa-det .dsp-det-fotos .dsp-det-principal { max-height: 260px; }
 </style>
 
 <script>
@@ -201,86 +318,331 @@ const anoAtual = new Date().getFullYear();
   import { usuarioInstagram } from '../lib/contatos';
   import { mascaraTelefone, telefoneValido } from '../lib/formularios';
   import { ehSeguranca, reduzirFoto } from '../lib/desapego';
+  import { cardHtml, detalheHtml, type Anuncio } from '../lib/desapegoCards';
 
   const form = document.getElementById('form-desapego') as HTMLFormElement | null;
-  const status = document.getElementById('fd-status')!;
-  const btn = document.getElementById('fd-enviar')!;
-  const selCategoria = document.getElementById('fd-categoria') as HTMLSelectElement;
-  const blocoSeg = document.getElementById('fd-seguranca')!;
-  const campoPreco = document.getElementById('fd-preco-campo')!;
-  const campoTroca = document.getElementById('fd-troca-campo')!;
-  const campoBairros = document.getElementById('fd-bairros-campo')!;
-  const campoAcademias = document.getElementById('fd-academias-campo')!;
-  const inputFotos = document.getElementById('fd-fotos') as HTMLInputElement;
-  const previas = document.getElementById('fd-previas')!;
-  const campoWhats = document.getElementById('fd-whats') as HTMLInputElement;
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+  const status = $('fd-status');
+  const btn = $<HTMLButtonElement>('fd-enviar');
+  const selCategoria = $<HTMLSelectElement>('fd-categoria');
+  const blocoSeg = $('fd-seguranca');
+  const campoPreco = $('fd-preco-campo');
+  const campoTroca = $('fd-troca-campo');
+  const campoBairros = $('fd-bairros-campo');
+  const campoAcademias = $('fd-academias-campo');
+  const inputFotos = $<HTMLInputElement>('fd-fotos');
+  const previas = $('fd-previas');
+  const campoWhats = $<HTMLInputElement>('fd-whats');
+  const blocos = form ? Array.from(form.querySelectorAll<HTMLDetailsElement>('.fc-bloco')) : [];
   mascaraTelefone(campoWhats);
+
+  // Avisos de erro embaixo de cada campo
+  function lugarDoErro(campo: HTMLElement) {
+    return (campo.id === 'fd-fotos' ? null : campo.closest('.fc-campo, .fd-aceite')) as HTMLElement | null;
+  }
+  function mostrarErro(campo: HTMLElement, msg: string) {
+    if (campo.id === 'fd-fotos') { avisarFotos(msg); return; }
+    const caixa = lugarDoErro(campo);
+    if (!caixa) return;
+    // No "Li o aviso", o aviso vai logo abaixo da caixa (dentro dela ficaria espremido)
+    const fora = caixa.classList.contains('fd-aceite');
+    let p = (fora ? (caixa.nextElementSibling?.classList.contains('fc-erro') ? caixa.nextElementSibling : null) : caixa.querySelector(':scope > .fc-erro')) as HTMLElement | null;
+    if (!p) { p = document.createElement('p'); p.className = 'fc-erro'; if (fora) caixa.after(p); else caixa.appendChild(p); }
+    p.textContent = msg;
+    caixa.classList.add('fc-campo--erro');
+  }
+  function limparErro(campo: HTMLElement) {
+    const caixa = lugarDoErro(campo);
+    if (!caixa) return;
+    if (caixa.classList.contains('fd-aceite')) { if (caixa.nextElementSibling?.classList.contains('fc-erro')) caixa.nextElementSibling.remove(); }
+    else caixa.querySelector(':scope > .fc-erro')?.remove();
+    caixa.classList.remove('fc-campo--erro');
+  }
+  form?.addEventListener('input', (e) => limparErro(e.target as HTMLElement));
+  form?.addEventListener('change', (e) => { if ((e.target as HTMLElement).id !== 'fd-fotos') limparErro(e.target as HTMLElement); });
   // Senha: só números, no máximo 6
   ['fd-senha', 'fd-senha2'].forEach((id) => {
-    const c = document.getElementById(id) as HTMLInputElement | null;
+    const c = $<HTMLInputElement>(id);
     c?.addEventListener('input', () => { c.value = c.value.replace(/\D/g, '').slice(0, 6); });
   });
 
-  const atualizar = () => {
-    blocoSeg.hidden = !ehSeguranca(selCategoria.value) || !selCategoria.value;
-    const modalidade = (form?.querySelector('input[name="modalidade"]:checked') as HTMLInputElement)?.value;
+  // ---- Modo edição (vem do "Meus anúncios" na página) ----
+  type Edicao = { id: string; whatsapp: string; senha: string; fotos: string[]; dados: Record<string, any> };
+  let edicao: Edicao | null = null;
+
+  // ---------- Leitura do formulário ----------
+  const val = (nome: string) => {
+    const el = form?.elements.namedItem(nome) as HTMLInputElement | null;
+    return el && 'value' in el ? String(el.value || '').trim() : '';
+  };
+  const marcado = (nome: string) => (form?.querySelector<HTMLInputElement>(`input[name="${nome}"]:checked`)?.value ?? '');
+  const marcados = (nome: string) => Array.from(form?.querySelectorAll<HTMLInputElement>(`input[name="${nome}"]:checked`) ?? []).map((c) => c.value);
+  const precoNum = () => Number(val('preco').replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, ''));
+  // Fotos escolhidas: guardadas aqui (e não no campo), pra pessoa poder tirar uma
+  // foto com o × e adicionar outras aos poucos. Na edição, as fotos atuais (url)
+  // entram na mesma lista. Máximo 3 no total.
+  const MAX_FOTOS = 3;
+  type Foto = { arquivo?: File; url: string; temp: boolean };
+  let fotos: Foto[] = [];
+  const fotosEscolhidas = () => fotos.filter((f) => f.arquivo).map((f) => f.arquivo!);
+
+  const atualizarCondicionais = () => {
+    blocoSeg.hidden = !selCategoria.value || !ehSeguranca(selCategoria.value);
+    const modalidade = marcado('modalidade');
     campoPreco.hidden = modalidade !== 'venda';
     campoTroca.hidden = modalidade !== 'troca';
-    const entregas = Array.from(form?.querySelectorAll<HTMLInputElement>('input[name="entrega"]:checked') ?? []).map((c) => c.value);
+    const entregas = marcados('entrega');
     campoBairros.hidden = !entregas.includes('retirada');
     campoAcademias.hidden = !entregas.includes('academia');
   };
-  selCategoria.addEventListener('change', atualizar);
-  form?.querySelectorAll('input[name="modalidade"], input[name="entrega"]').forEach((r) => r.addEventListener('change', atualizar));
-  atualizar();
 
-  inputFotos.addEventListener('change', () => {
-    previas.innerHTML = '';
-    if (edicao && !(inputFotos.files?.length)) return mostrarFotosAtuais();
-    Array.from(inputFotos.files ?? []).slice(0, 3).forEach((f) => {
-      const img = document.createElement('img');
-      img.src = URL.createObjectURL(f);
-      img.alt = '';
-      previas.appendChild(img);
+  // Tudo o que falta, na ordem do formulário. Serve pro título dos blocos e pro envio.
+  type Falta = { msg: string; rotulo: string; campo: HTMLElement | null; bloco: number };
+  function faltas(): Falta[] {
+    const f: Falta[] = [];
+    const add = (bloco: number, rotulo: string, msg: string, campo: HTMLElement | null) => f.push({ bloco, rotulo, msg, campo });
+    const modalidade = marcado('modalidade') || 'venda';
+    const seg = !!selCategoria.value && ehSeguranca(selCategoria.value);
+    if (!selCategoria.value) add(1, 'Tipo de equipamento', 'Escolha o tipo de equipamento.', selCategoria);
+    if (modalidade === 'venda' && !(precoNum() > 0)) add(1, 'Preço', 'Coloque o preço (ou escolha Trocar ou Doar).', $('fd-preco'));
+    if (modalidade === 'troca' && !val('troca_por')) add(1, 'O que aceita em troca', 'Conte o que você aceita em troca.', $('fd-troca'));
+    if (!val('titulo')) add(1, 'Título do anúncio', 'Dê um título pro anúncio.', $('fd-titulo'));
+    if (seg && !val('seg_ano_fabricacao')) add(1, 'Ano de fabricação', 'Pra equipamento de segurança, o ano de fabricação é obrigatório.', $('fd-ano'));
+    if (seg && !marcado('seg_quedas')) add(1, 'Já segurou queda forte?', 'Conte se o equipamento já segurou queda forte.', $('fd-quedas-campo').querySelector('input'));
+    if (fotos.length === 0) add(2, 'Fotos', 'Coloque pelo menos uma foto.', inputFotos);
+    if (!val('cidade')) add(3, 'Cidade', 'Preencha a cidade.', $('fd-cidade'));
+    if (!val('uf')) add(3, 'UF', 'Escolha a UF.', $('fd-uf'));
+    const entregas = marcados('entrega');
+    if (!entregas.length) add(3, 'Entrega', 'Marque pelo menos uma forma de entrega.', $('fd-entrega-campo').querySelector('input'));
+    if (entregas.includes('retirada') && !val('retirada_bairros')) add(3, 'Bairro(s) pra retirada', 'Conte o bairro (ou bairros) onde a pessoa pode retirar.', $('fd-bairros'));
+    if (entregas.includes('academia') && !val('entrega_academias')) add(3, 'Academia(s)', 'Conte em qual academia (ou academias) você pode entregar.', $('fd-academias'));
+    if (!val('nome')) add(4, 'Seu nome', 'Preencha seu nome.', $('fd-nome'));
+    if (!edicao) {
+      if (!val('whatsapp')) add(4, 'WhatsApp', 'Preencha o WhatsApp.', campoWhats);
+      else if (!telefoneValido(val('whatsapp'))) add(4, 'WhatsApp', 'Preencha o WhatsApp no formato (11)991721313, com DDD.', campoWhats);
+      if (!/^\d{6}$/.test(val('senha'))) add(4, 'Senha', 'A senha precisa ter exatamente 6 números.', $('fd-senha'));
+      else if (val('senha') !== val('senha2')) add(4, 'Repita a senha', 'As duas senhas não estão iguais.', $('fd-senha2'));
+    }
+    return f;
+  }
+
+  // Quantos campos de cada bloco já estão preenchidos (só pra mostrar "X de Y")
+  function preenchidos(bloco: number): [number, number] {
+    const modalidade = marcado('modalidade');
+    const seg = !!selCategoria.value && ehSeguranca(selCategoria.value);
+    const itens: boolean[] = [];
+    if (bloco === 1) {
+      itens.push(!!selCategoria.value, !!val('titulo'), !!val('marca_modelo'), !!val('tamanho'));
+      if (modalidade === 'venda') itens.push(precoNum() > 0);
+      if (modalidade === 'troca') itens.push(!!val('troca_por'));
+      if (seg) itens.push(!!val('seg_ano_fabricacao'), !!marcado('seg_quedas'), !!val('seg_armazenamento'));
+    } else if (bloco === 2) {
+      itens.push(fotos.length > 0, !!val('descricao'));
+    } else if (bloco === 3) {
+      const e = marcados('entrega');
+      itens.push(!!val('cidade'), !!val('uf'), e.length > 0);
+      if (e.includes('retirada')) itens.push(!!val('retirada_bairros'));
+      if (e.includes('academia')) itens.push(!!val('entrega_academias'));
+    } else {
+      itens.push(!!val('nome'), !!val('whatsapp'), !!val('instagram'));
+      if (!edicao) itens.push(!!val('senha'), !!val('senha2'));
+    }
+    return [itens.filter(Boolean).length, itens.length];
+  }
+
+  function atualizarBlocos() {
+    const lista = faltas();
+    blocos.forEach((b, i) => {
+      const n = i + 1;
+      const falta = lista.filter((x) => x.bloco === n).length;
+      const [feitos, total] = preenchidos(n);
+      const st = b.querySelector('.fc-bloco-status');
+      if (st) {
+        if (falta) st.textContent = falta === 1 ? 'Falta 1 obrigatório' : `Faltam ${falta} obrigatórios`;
+        else st.textContent = feitos === total ? '✓ Completo' : `${feitos} de ${total}`;
+      }
+      b.classList.toggle('fc-bloco--completo', !falta && feitos === total);
     });
+  }
+
+  function abrirBloco(b: HTMLDetailsElement | null | undefined, rolar = true) {
+    if (!b) return;
+    blocos.forEach((x) => { if (x !== b) x.open = false; });
+    b.open = true;
+    if (rolar) b.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  form?.querySelectorAll<HTMLButtonElement>('[data-proximo]').forEach((bt) => bt.addEventListener('click', () => {
+    const atual = bt.closest<HTMLDetailsElement>('.fc-bloco');
+    abrirBloco(blocos[blocos.indexOf(atual!) + 1]);
+  }));
+
+  // ---------- Fotos: miniaturas ----------
+  const contador = $('fd-contador');
+  const avisoFotos = $('fd-fotos-aviso');
+  const fotosParaPrevia = (): string[] => fotos.map((f) => f.url);
+  function avisarFotos(msg: string) { avisoFotos.textContent = msg; avisoFotos.hidden = !msg; }
+  function mostrarMiniaturas() {
+    previas.innerHTML = '';
+    fotos.forEach((f, i) => {
+      const caixa = document.createElement('div');
+      caixa.className = 'fd-foto';
+      const img = document.createElement('img');
+      img.src = f.url; img.alt = `Foto ${i + 1}`;
+      caixa.appendChild(img);
+      if (i === 0) { const capa = document.createElement('span'); capa.className = 'fd-foto-capa'; capa.textContent = 'Capa'; caixa.appendChild(capa); }
+      const x = document.createElement('button');
+      x.type = 'button'; x.className = 'fd-tirar'; x.textContent = '×';
+      x.setAttribute('aria-label', `Tirar a foto ${i + 1}`);
+      x.addEventListener('click', () => {
+        const [tirada] = fotos.splice(i, 1);
+        if (tirada?.temp) URL.revokeObjectURL(tirada.url);
+        avisarFotos('');
+        mostrarMiniaturas();
+        atualizarBlocos();
+      });
+      caixa.appendChild(x);
+      previas.appendChild(caixa);
+    });
+    contador.hidden = fotos.length === 0;
+    contador.textContent = fotos.length >= MAX_FOTOS
+      ? `${fotos.length} de ${MAX_FOTOS} fotos (máximo). Pra trocar, toque no × de uma delas.`
+      : `${fotos.length} de ${MAX_FOTOS} fotos. Dá pra escolher mais ${MAX_FOTOS - fotos.length}.`;
+  }
+  function limparFotos() {
+    fotos.forEach((f) => { if (f.temp) URL.revokeObjectURL(f.url); });
+    fotos = [];
+    inputFotos.value = '';
+    avisarFotos('');
+    mostrarMiniaturas();
+  }
+  inputFotos.addEventListener('change', () => {
+    const novos = Array.from(inputFotos.files ?? []);
+    inputFotos.value = ''; // deixa escolher de novo (inclusive a mesma foto)
+    const cabem = MAX_FOTOS - fotos.length;
+    novos.slice(0, Math.max(0, cabem)).forEach((arquivo) => fotos.push({ arquivo, url: URL.createObjectURL(arquivo), temp: true }));
+    const sobraram = novos.length - Math.max(0, cabem);
+    if (sobraram > 0) {
+      avisarFotos(cabem <= 0
+        ? `Já tem ${MAX_FOTOS} fotos, que é o máximo. Toque no × de uma delas pra trocar.`
+        : `O máximo é ${MAX_FOTOS} fotos: ${cabem === 1 ? 'ficou só a primeira' : `ficaram as ${cabem} primeiras`} que você escolheu. Pra trocar, toque no × de uma delas.`);
+    } else avisarFotos('');
+    limparErro(inputFotos);
+    mostrarMiniaturas();
+    atualizarBlocos();
+    salvarDepois();
   });
 
-  // ---- Modo edição (vem do "Meus anúncios" na página) ----
-  type Edicao = { id: string; whatsapp: string; senha: string; fotos: string[] };
-  let edicao: Edicao | null = null;
-  const bannerEdicao = document.getElementById('fd-editando')!;
-  const blocoSenha = document.getElementById('fd-bloco-senha')!;
-  const campoMsg = document.getElementById('fd-msg-campo')!;
-  const ajudaFotosEdicao = document.getElementById('fd-fotos-ajuda-edicao')!;
-
-  const mostrarFotosAtuais = () => {
-    previas.innerHTML = '';
-    (edicao?.fotos ?? []).forEach((url) => {
-      const img = document.createElement('img');
-      img.src = url;
-      img.alt = '';
-      previas.appendChild(img);
-    });
+  // ---------- Rascunho automático ----------
+  const CHAVE_NOVO = 'climbeiros:rascunho:desapego';
+  const chaveRascunho = () => edicao ? `climbeiros:rascunho:desapego-edicao:${edicao.id}` : CHAVE_NOVO;
+  const NAO_SALVAR = new Set(['senha', 'senha2', 'aceite', 'site', 'fotos', 'whatsapp_travado']);
+  const rascunho = {
+    ler(chave: string): { quando: number; dados: Record<string, any> } | null {
+      try { return JSON.parse(localStorage.getItem(chave) || 'null'); } catch { return null; }
+    },
+    gravar(chave: string, v: unknown) { try { localStorage.setItem(chave, JSON.stringify(v)); return true; } catch { return false; } },
+    apagar(chave: string) { try { localStorage.removeItem(chave); } catch { /* sem localStorage */ } },
   };
+  const barra = $('fd-rascunho');
+  const barraTxt = $('fd-rascunho-txt');
+  const caixaRetomar = $('fd-retomar');
+  const hora = (ts: number) => new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  function coletar() {
+    const dados: Record<string, any> = {};
+    form?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input, textarea, select').forEach((el) => {
+      if (!el.name || NAO_SALVAR.has(el.name) || el.type === 'file' || el.disabled) return;
+      if (el instanceof HTMLInputElement && (el.type === 'checkbox' || el.type === 'radio')) {
+        if (!dados[el.name]) dados[el.name] = [];
+        if (el.checked) dados[el.name].push(el.value);
+      } else dados[el.name] = el.value;
+    });
+    return dados;
+  }
+  function aplicar(dados: Record<string, any>) {
+    form?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input, textarea, select').forEach((el) => {
+      if (!el.name || !(el.name in dados) || NAO_SALVAR.has(el.name) || el.type === 'file' || el.disabled) return;
+      if (el instanceof HTMLInputElement && (el.type === 'checkbox' || el.type === 'radio')) el.checked = (dados[el.name] || []).includes(el.value);
+      else el.value = dados[el.name] ?? '';
+    });
+    atualizarTudo();
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  function salvarDepois() {
+    barra.hidden = false;
+    barra.classList.add('fc-rascunho--salvando');
+    barraTxt.textContent = 'Salvando rascunho...';
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const agora = Date.now();
+      const ok = rascunho.gravar(chaveRascunho(), { quando: agora, dados: coletar() });
+      barra.classList.remove('fc-rascunho--salvando');
+      barraTxt.textContent = ok ? `Rascunho salvo às ${hora(agora)} neste aparelho` : 'Este navegador não deixa salvar rascunho';
+    }, 700);
+  }
+  function esconderRascunho() { clearTimeout(timer); barra.hidden = true; caixaRetomar.hidden = true; }
+  function oferecerRascunho() {
+    const salvo = rascunho.ler(chaveRascunho());
+    caixaRetomar.hidden = !(salvo && salvo.dados);
+    if (salvo?.dados) {
+      const d = new Date(salvo.quando);
+      $('fd-retomar-quando').textContent = `${d.toLocaleDateString('pt-BR')} às ${hora(salvo.quando)}`;
+    }
+  }
+  $('fd-retomar-sim').addEventListener('click', () => {
+    const salvo = rascunho.ler(chaveRascunho());
+    if (salvo?.dados) aplicar(salvo.dados);
+    caixaRetomar.hidden = true;
+    if (salvo) { barra.hidden = false; barraTxt.textContent = `Rascunho salvo às ${hora(salvo.quando)} neste aparelho`; }
+    status.textContent = edicao
+      ? 'Rascunho recuperado. Se tinha escolhido fotos novas, escolha de novo.'
+      : 'Rascunho recuperado. As fotos e a senha precisam ser preenchidas de novo.';
+  });
+  $('fd-retomar-nao').addEventListener('click', () => { rascunho.apagar(chaveRascunho()); caixaRetomar.hidden = true; });
+  $('fd-rascunho-apagar').addEventListener('click', () => {
+    rascunho.apagar(chaveRascunho());
+    if (edicao) entrarNaEdicao({ id: edicao.id, whatsapp: edicao.whatsapp, senha: edicao.senha, dados: edicao.dados }, false);
+    else { form?.reset(); limparFotos(); atualizarTudo(); }
+    esconderRascunho();
+    status.textContent = 'Rascunho apagado.';
+  });
+
+  function atualizarTudo() { atualizarCondicionais(); atualizarBlocos(); }
+  form?.addEventListener('input', () => { atualizarTudo(); salvarDepois(); });
+  form?.addEventListener('change', () => { atualizarTudo(); salvarDepois(); });
+
+  // ---------- Entrar / sair da edição ----------
+  const bannerEdicao = $('fd-editando');
+  const blocoSenha = $('fd-bloco-senha');
+  const campoMsg = $('fd-msg-campo');
+  const ajudaFotosEdicao = $('fd-fotos-ajuda-edicao');
+  const ajudaWhats = $('fd-whats-ajuda');
 
   function sairDaEdicao() {
     edicao = null;
     form?.reset();
-    previas.innerHTML = '';
+    limparFotos();
+    esconderRascunho();
     bannerEdicao.hidden = true;
     blocoSenha.hidden = false;
     campoMsg.hidden = false;
     ajudaFotosEdicao.hidden = true;
     campoWhats.disabled = false;
-    btn.textContent = 'Enviar anúncio';
-    atualizar();
+    ajudaWhats.textContent = 'Aparece no anúncio, num botão pra pessoa te chamar.';
+    $('fd-rev-ok').textContent = 'Está certo, pode enviar';
+    atualizarTudo();
+    abrirBloco(blocos[0], false);
+    oferecerRascunho();
   }
 
-  function entrarNaEdicao(det: { id: string; whatsapp: string; senha: string; dados: Record<string, any> }) {
+  function entrarNaEdicao(det: { id: string; whatsapp: string; senha: string; dados: Record<string, any> }, perguntarRascunho = true) {
     if (!form) return;
     form.reset();
+    esconderRascunho();
     const v = det.dados ?? {};
-    edicao = { id: det.id, whatsapp: det.whatsapp, senha: det.senha, fotos: v.fotos ?? [] };
+    edicao = { id: det.id, whatsapp: det.whatsapp, senha: det.senha, fotos: v.fotos ?? [], dados: v };
+    limparFotos();
+    fotos = (edicao.fotos ?? []).filter(Boolean).slice(0, MAX_FOTOS).map((url) => ({ url, temp: false }));
     const set = (nome: string, valor: unknown) => {
       const el = form.elements.namedItem(nome) as HTMLInputElement | HTMLSelectElement | null;
       if (el && 'value' in el) el.value = valor == null ? '' : String(valor);
@@ -291,115 +653,209 @@ const anoAtual = new Date().getFullYear();
     set('instagram', v.instagram ? '@' + v.instagram : '');
     campoWhats.value = det.whatsapp;
     campoWhats.disabled = true;
+    ajudaWhats.textContent = 'O WhatsApp é o seu login e não muda por aqui.';
     const marcar = (nome: string, valor: unknown) => form.querySelectorAll<HTMLInputElement>(`input[name="${nome}"]`)
       .forEach((r) => { r.checked = Array.isArray(valor) ? valor.includes(r.value) : r.value === valor; });
     marcar('modalidade', v.modalidade);
     marcar('conservacao', v.conservacao);
     marcar('seg_quedas', v.seg_quedas);
     marcar('entrega', v.entrega ?? []);
-    document.getElementById('fd-editando-titulo')!.textContent = v.titulo ?? '';
+    $('fd-editando-titulo').textContent = v.titulo ?? '';
     bannerEdicao.hidden = false;
     blocoSenha.hidden = true;
     campoMsg.hidden = true;
     ajudaFotosEdicao.hidden = false;
-    btn.textContent = 'Salvar alterações';
+    $('fd-rev-ok').textContent = 'Está certo, pode salvar';
     status.textContent = '';
-    atualizar();
-    mostrarFotosAtuais();
-    document.getElementById('anunciar')?.scrollIntoView({ behavior: 'smooth' });
+    atualizarTudo();
+    mostrarMiniaturas();
+    if (perguntarRascunho) {
+      oferecerRascunho();
+      abrirBloco(blocos[0], false);
+      $('anunciar')?.scrollIntoView({ behavior: 'smooth' });
+    }
   }
   window.addEventListener('desapego:editar', (e) => entrarNaEdicao((e as CustomEvent).detail));
-  document.getElementById('fd-cancelar-edicao')!.addEventListener('click', () => { sairDaEdicao(); status.textContent = ''; });
+  $('fd-cancelar-edicao').addEventListener('click', () => { sairDaEdicao(); status.textContent = ''; });
 
+  // ---------- Prévia (mesmo desenho da página) ----------
+  function anuncioDoFormulario(): Anuncio {
+    const modalidade = marcado('modalidade') || 'venda';
+    const seg = !!selCategoria.value && ehSeguranca(selCategoria.value);
+    const entrega = marcados('entrega');
+    const agora = new Date();
+    const preco = modalidade === 'venda' && precoNum() > 0 ? Math.round(precoNum() * 100) / 100 : null;
+    // Na edição, mantém o "preço original" pra prévia mostrar o "Baixou o preço" como o site
+    const original = edicao ? (edicao.dados.preco_original ?? edicao.dados.preco ?? null) : null;
+    return {
+      id: 'previa',
+      categoria: selCategoria.value || 'outros',
+      titulo: val('titulo') || 'Título do anúncio',
+      marca_modelo: val('marca_modelo') || null,
+      tamanho: val('tamanho') || null,
+      conservacao: marcado('conservacao') || 'usado',
+      descricao: val('descricao') || null,
+      modalidade,
+      preco,
+      preco_original: original != null && preco != null && Number(original) > preco ? Number(original) : null,
+      editado_em: null,
+      troca_por: modalidade === 'troca' ? (val('troca_por') || null) : null,
+      entrega,
+      retirada_bairros: entrega.includes('retirada') ? (val('retirada_bairros') || null) : null,
+      entrega_academias: entrega.includes('academia') ? (val('entrega_academias') || null) : null,
+      cidade: val('cidade') || 'Sua cidade',
+      uf: val('uf') || 'UF',
+      fotos: fotosParaPrevia(),
+      nome: val('nome') || 'Seu nome',
+      whatsapp: val('whatsapp') || '11999999999',
+      instagram: usuarioInstagram(val('instagram')),
+      seg_ano_fabricacao: seg && val('seg_ano_fabricacao') ? Number(val('seg_ano_fabricacao')) : null,
+      seg_quedas: seg ? (marcado('seg_quedas') || null) : null,
+      seg_armazenamento: seg ? (val('seg_armazenamento') || null) : null,
+      publicado_em: agora.toISOString(),
+      expira_em: new Date(agora.getTime() + 30 * 864e5).toISOString(),
+      vendido_em: null,
+    };
+  }
+  function montarPrevia(alvo: HTMLElement) {
+    const a = anuncioDoFormulario();
+    alvo.innerHTML = `
+      <p class="fc-janela-rotulo">Na lista de anúncios</p>
+      <div class="fd-previa-card">${cardHtml(a)}</div>
+      <p class="fc-janela-rotulo">Quem toca no anúncio vê</p>
+      <div class="fd-previa-det">${detalheHtml(a)}</div>`;
+    alvo.querySelectorAll('a, button').forEach((el) => el.setAttribute('tabindex', '-1'));
+  }
+  const janelaVer = $<HTMLDialogElement>('fd-ver');
+  form?.querySelectorAll('[data-ver]').forEach((b) => b.addEventListener('click', () => {
+    if (typeof janelaVer.showModal !== 'function') return;
+    montarPrevia($('fd-ver-conteudo'));
+    janelaVer.showModal();
+    janelaVer.scrollTop = 0;
+  }));
+  $('fd-ver-fechar').addEventListener('click', () => janelaVer.close());
+  janelaVer.addEventListener('click', (e) => { if (e.target === janelaVer) janelaVer.close(); });
+
+  // ---------- Revisão ----------
+  const janelaRev = $<HTMLDialogElement>('fd-revisao');
+  function revisar(): Promise<boolean> {
+    if (typeof janelaRev.showModal !== 'function') return Promise.resolve(true);
+    $('fd-rev-intro').textContent = edicao
+      ? 'É assim que seu anúncio vai ficar. Se você mudou mais que o preço, ele passa de novo pela equipe antes de voltar pro site.'
+      : 'É assim que seu anúncio vai aparecer, depois que a equipe der uma olhada. Confira o preço, o título e as fotos com calma.';
+    montarPrevia($('fd-rev-conteudo'));
+    const linhas: [string, string][] = [['WhatsApp', edicao ? edicao.whatsapp : val('whatsapp')], ['Cidade', `${val('cidade')}, ${val('uf')}`]];
+    if (!edicao && val('mensagem')) linhas.push(['Mensagem pra equipe', val('mensagem')]);
+    const caixa = document.createElement('section');
+    caixa.className = 'fc-janela-caixa';
+    caixa.innerHTML = '<h3>Confira também</h3><dl></dl>';
+    const dl = caixa.querySelector('dl')!;
+    linhas.forEach(([r, v]) => {
+      const dt = document.createElement('dt'); dt.textContent = r;
+      const dd = document.createElement('dd'); dd.textContent = v || 'Em branco'; if (!v) dd.className = 'fc-vazio';
+      dl.append(dt, dd);
+    });
+    $('fd-rev-extra').replaceChildren(caixa);
+    janelaRev.returnValue = '';
+    janelaRev.showModal();
+    janelaRev.scrollTop = 0;
+    return new Promise((ok) => janelaRev.addEventListener('close', () => ok(janelaRev.returnValue === 'enviar'), { once: true }));
+  }
+
+  // ---------- Envio ----------
+  // Aviso em laranja logo abaixo do campo (além da mensagem perto do botão).
+  // Não põe o cursor em campo de arquivo, caixinha ou bolinha: no celular isso
+  // pode reabrir a galeria. Nesses casos só rola a tela até o campo.
   const erro = (msg: string, campo?: HTMLElement | null) => {
     status.textContent = msg;
-    campo?.focus();
+    if (!campo) return;
+    abrirBloco(campo.closest<HTMLDetailsElement>('.fc-bloco'), false);
+    mostrarErro(campo, msg);
+    const tipo = (campo as HTMLInputElement).type;
+    const caixa = campo.closest('.fc-campo, .fd-aceite') ?? campo;
+    if (['file', 'checkbox', 'radio'].includes(tipo)) caixa.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    else { campo.focus({ preventScroll: true }); caixa.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   };
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!form) return;
-    const d = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
-    if (d.site) { status.textContent = 'Recebemos seu anúncio!'; return; } // robô
+    if (val('site')) { status.textContent = 'Recebemos seu anúncio!'; return; } // robô
 
-    const modalidade = d.modalidade || 'venda';
-    const seg = ehSeguranca(d.categoria || '');
-    const precoNum = Number(String(d.preco || '').replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, ''));
-    const fotos = Array.from(inputFotos.files ?? []);
-
-    if (!d.categoria) return erro('Escolha o tipo de equipamento.', selCategoria);
-    if (modalidade === 'venda' && !(precoNum > 0)) return erro('Coloque o preço (ou escolha Trocar ou Doar).', document.getElementById('fd-preco'));
-    if (modalidade === 'troca' && !String(d.troca_por || '').trim()) return erro('Conte o que você aceita em troca.', document.getElementById('fd-troca'));
-    const entrega = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="entrega"]:checked')).map((c) => c.value);
-    if (!String(d.titulo || '').trim()) return erro('Dê um título pro anúncio.', document.getElementById('fd-titulo'));
-    if (seg && !d.seg_ano_fabricacao) return erro('Pra equipamento de segurança, o ano de fabricação é obrigatório.', document.getElementById('fd-ano'));
-    if (seg && !d.seg_quedas) return erro('Conte se o equipamento já segurou queda forte.');
-    if (fotos.length === 0 && !edicao) return erro('Coloque pelo menos uma foto.', inputFotos);
-    if (fotos.length > 3) return erro('São no máximo 3 fotos. Escolha as melhores.', inputFotos);
-    if (!String(d.cidade || '').trim() || !d.uf) return erro('Preencha cidade e UF.', document.getElementById('fd-cidade'));
-    if (entrega.length === 0) return erro('Marque pelo menos uma forma de entrega.');
-    if (entrega.includes('retirada') && !String(d.retirada_bairros || '').trim()) return erro('Conte o bairro (ou bairros) onde a pessoa pode retirar.', document.getElementById('fd-bairros'));
-    if (entrega.includes('academia') && !String(d.entrega_academias || '').trim()) return erro('Conte em qual academia (ou academias) você pode entregar.', document.getElementById('fd-academias'));
-    if (!String(d.nome || '').trim()) return erro('Preencha seu nome.', document.getElementById('fd-nome'));
-    if (!edicao) {
-      if (!d.whatsapp || !telefoneValido(d.whatsapp)) return erro('Preencha o WhatsApp no formato (11)991721313, com DDD.', campoWhats);
-      if (!/^\d{6}$/.test(String(d.senha || ''))) return erro('A senha precisa ter exatamente 6 números.', document.getElementById('fd-senha'));
-      if (d.senha !== d.senha2) return erro('As duas senhas não estão iguais.', document.getElementById('fd-senha2'));
+    const lista = faltas();
+    if (lista.length) {
+      const f = lista[0];
+      const nomeBloco = blocos[f.bloco - 1]?.querySelector('strong')?.textContent || '';
+      return erro(`${f.msg} (bloco "${nomeBloco}")`, f.campo);
     }
-    if (!d.aceite) return erro('Marque que leu o aviso de segurança.', document.getElementById('fd-aceite'));
+    if (!($<HTMLInputElement>('fd-aceite')).checked) return erro('Marque que leu o aviso de segurança.', $('fd-aceite'));
+    status.textContent = '';
+
+    const confirmou = await revisar();
+    if (!confirmou) { status.textContent = 'Sem pressa: ajuste o que precisar e clique em "Revisar e enviar" de novo.'; return; }
+
+    const modalidade = marcado('modalidade') || 'venda';
+    const seg = ehSeguranca(selCategoria.value);
+    const entrega = marcados('entrega');
+    const novas = fotosEscolhidas().length;
 
     btn.setAttribute('disabled', '');
-    if (fotos.length) status.textContent = 'Enviando as fotos...';
-
+    // Sobe só as fotos novas; as que já estavam no anúncio (edição) continuam com o mesmo link.
     const urls: string[] = [];
-    for (const f of fotos) {
-      status.textContent = `Preparando a foto ${urls.length + 1} de ${fotos.length}...`;
+    let feitas = 0;
+    for (const foto of fotos) {
+      if (!foto.arquivo) { urls.push(foto.url); continue; }
+      const f = foto.arquivo;
+      feitas++;
+      status.textContent = `Preparando a foto ${feitas} de ${novas}...`;
       const blob = await reduzirFoto(f);
       if (blob.size > 5 * 1024 * 1024) {
         btn.removeAttribute('disabled');
-        return erro('Uma das fotos é grande demais (mais de 5 MB) e não consegui diminuir. Tente tirar um print da foto ou escolher outra.', inputFotos);
+        return erro('Uma das fotos é grande demais (mais de 5 MB) e não consegui diminuir. Tire essa foto com o × e escolha outra (ou um print dela).', inputFotos);
       }
       const ext = blob.type === 'image/jpeg' ? 'jpg' : (f.name.split('.').pop() || 'jpg').toLowerCase();
       const nome = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from('fotos-desapego').upload(nome, blob, { contentType: blob.type || f.type });
       if (error) {
         btn.removeAttribute('disabled');
-        return erro('Não consegui enviar uma das fotos. Tente uma foto menor (até 5 MB) ou em JPG.');
+        return erro('Não consegui enviar uma das fotos. Tente uma foto menor (até 5 MB) ou em JPG.', inputFotos);
       }
       urls.push(supabase.storage.from('fotos-desapego').getPublicUrl(nome).data.publicUrl);
     }
 
     status.textContent = edicao ? 'Salvando...' : 'Enviando o anúncio...';
+    const preco = precoNum();
     const campos = {
       modalidade,
-      categoria: d.categoria,
-      titulo: d.titulo.trim(),
-      marca_modelo: d.marca_modelo?.trim() || null,
-      tamanho: d.tamanho?.trim() || null,
-      conservacao: d.conservacao || 'usado',
-      descricao: d.descricao?.trim() || null,
-      preco: modalidade === 'venda' ? Math.round(precoNum * 100) / 100 : null,
-      troca_por: modalidade === 'troca' ? d.troca_por.trim() : null,
+      categoria: selCategoria.value,
+      titulo: val('titulo'),
+      marca_modelo: val('marca_modelo') || null,
+      tamanho: val('tamanho') || null,
+      conservacao: marcado('conservacao') || 'usado',
+      descricao: val('descricao') || null,
+      preco: modalidade === 'venda' ? Math.round(preco * 100) / 100 : null,
+      troca_por: modalidade === 'troca' ? val('troca_por') : null,
       entrega,
-      retirada_bairros: entrega.includes('retirada') ? d.retirada_bairros.trim() : null,
-      entrega_academias: entrega.includes('academia') ? d.entrega_academias.trim() : null,
-      cidade: d.cidade.trim(),
-      uf: d.uf,
-      fotos: urls.length ? urls : (edicao?.fotos ?? []),
-      nome: d.nome.trim(),
-      instagram: usuarioInstagram(d.instagram),
-      seg_ano_fabricacao: seg ? Number(d.seg_ano_fabricacao) : null,
-      seg_quedas: seg ? d.seg_quedas : null,
-      seg_armazenamento: seg ? (d.seg_armazenamento?.trim() || null) : null,
+      retirada_bairros: entrega.includes('retirada') ? val('retirada_bairros') : null,
+      entrega_academias: entrega.includes('academia') ? val('entrega_academias') : null,
+      cidade: val('cidade'),
+      uf: val('uf'),
+      fotos: urls,
+      nome: val('nome'),
+      instagram: usuarioInstagram(val('instagram')),
+      seg_ano_fabricacao: seg ? Number(val('seg_ano_fabricacao')) : null,
+      seg_quedas: seg ? marcado('seg_quedas') : null,
+      seg_armazenamento: seg ? (val('seg_armazenamento') || null) : null,
     };
 
     if (edicao) {
+      const chave = chaveRascunho();
       const { data: r, error: erroEd } = await supabase.rpc('desapego_editar', {
         p_id: edicao.id, p_whatsapp: edicao.whatsapp, p_senha: edicao.senha, p_campos: campos,
       });
       btn.removeAttribute('disabled');
       if (erroEd) {
-        const msg = /Informe|Coloque|precisa/.test(erroEd.message) ? erroEd.message + '.' : 'Ops, não consegui salvar. Tente de novo.';
+        const msg = /Informe|Coloque|precisa/.test(erroEd.message) ? erroEd.message + '.' : 'Ops, não consegui salvar. Seu rascunho continua salvo: tente de novo.';
         return erro(msg);
       }
       const RESP: Record<string, string> = {
@@ -413,26 +869,33 @@ const anoAtual = new Date().getFullYear();
         prazo_acabou: 'Esse anúncio venceu há mais de 30 dias. Faça um anúncio novo, por favor.',
         nao_encontrado: 'Não achei esse anúncio.',
       };
-      const texto = RESP[String(r)] ?? 'Feito.';
+      const ok = ['preco_atualizado', 'editado_volta_aprovacao', 'editado_pendente', 'sem_mudancas'].includes(String(r));
+      if (ok) rascunho.apagar(chave);
       sairDaEdicao();
-      status.innerHTML = texto;
+      status.innerHTML = RESP[String(r)] ?? 'Feito.';
       window.dispatchEvent(new CustomEvent('desapego:atualizar'));
       return;
     }
 
     const { error } = await supabase.from('anuncios_desapego').insert([{
       ...campos,
-      whatsapp: d.whatsapp,
-      mensagem: d.mensagem?.trim() || null,
-      senha_hash: d.senha, // o banco embaralha antes de guardar
+      whatsapp: val('whatsapp'),
+      mensagem: val('mensagem') || null,
+      senha_hash: val('senha'), // o banco embaralha antes de guardar
     }]);
     btn.removeAttribute('disabled');
     if (error) {
-      return erro('Ops, algo deu errado. Tente de novo ou escreva pra contato@climbeiros.com.br');
+      return erro('Ops, algo deu errado. Seu rascunho continua salvo: tente de novo ou escreva pra contato@climbeiros.com.br');
     }
+    rascunho.apagar(CHAVE_NOVO);
     form.reset();
-    previas.innerHTML = '';
-    atualizar();
+    limparFotos();
+    esconderRascunho();
+    atualizarTudo();
+    abrirBloco(blocos[0], false);
     status.innerHTML = '<strong>Recebemos seu anúncio! 🧗</strong> Assim que a equipe der uma olhada, ele aparece aqui e fica 30 dias no ar. Pra renovar, marcar como vendido ou tirar do ar, use o botão <strong>"Meus anúncios"</strong> no topo da página, com o seu WhatsApp e a senha que você criou.';
   });
+
+  atualizarTudo();
+  oferecerRascunho();
 </script>
