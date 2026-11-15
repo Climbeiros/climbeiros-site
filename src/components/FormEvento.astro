@@ -225,20 +225,26 @@ const EQ = '<span class="selo selo--equipe">Só a equipe vê</span>';
       return;
     }
 
-    // Contato de quem enviou (só a equipe vê, no painel). Se falhar, o
-    // evento já está salvo e aparece no painel do mesmo jeito.
-    await supabase.from('agenda_eventos_contatos').insert([{
+    // Contato de quem enviou (só a equipe vê, no painel). O evento já está salvo;
+    // se o contato falhar, tenta mais uma vez e, se não der, pede pra pessoa avisar
+    // (antes a falha passava em silêncio e o evento chegava sem contato, 14/11/2026).
+    const contato = {
       evento_id: id,
       nome: txt(dados.contato_nome),
       email: txt(dados.contato_email),
       celular: celular || null,
       da_organizacao: !!dados.da_organizacao,
       mensagem: txt(dados.mensagem) || null,
-    }]);
+    };
+    let { error: erroContato } = await supabase.from('agenda_eventos_contatos').insert([contato]);
+    if (erroContato) ({ error: erroContato } = await supabase.from('agenda_eventos_contatos').insert([contato]));
+    if (erroContato) console.error('Contato do evento:', erroContato);
 
     form.reset();
     if (campoTipoOutro) campoTipoOutro.hidden = true;
-    status.textContent = 'Recebemos o evento! Depois da checagem da equipe, ele aparece na agenda. 🧗';
+    status.textContent = erroContato
+      ? `Recebemos o evento, mas seu contato não foi junto. Manda um e-mail pra contato@climbeiros.com.br com o nome do evento ("${txt(dados.titulo)}") pra gente conseguir falar com você.`
+      : 'Recebemos o evento! Depois da checagem da equipe, ele aparece na agenda. 🧗';
     btn.removeAttribute('disabled');
   });
 </script>
