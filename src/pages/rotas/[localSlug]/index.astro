@@ -399,7 +399,7 @@ const jsonLdLocal = local
                 <input type="url" name="link_video" placeholder="Link do YouTube, Instagram ou TikTok" />
               </label>
               <label>
-                Fotos (opcional, até 5 MB cada)
+                Fotos (opcional)
                 <input type="file" name="fotos" accept="image/png, image/jpeg, image/webp" multiple />
               </label>
               <label>
@@ -431,6 +431,7 @@ const jsonLdLocal = local
 
 <script>
   import { supabase } from '../../../lib/supabase';
+  import { reduzirFoto } from '../../../lib/desapego';
 
   // ---- Botão de compartilhar (Web Share API, com fallback pra copiar o link) ----
   document.querySelectorAll('.botao-compartilhar').forEach((botao) => {
@@ -597,56 +598,69 @@ const jsonLdLocal = local
     }
 
     const botao = formAv.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+    const CONTATO = 'Tente de novo ou escreva pra contato@climbeiros.com.br';
     botao?.setAttribute('disabled', '');
-    statusAv.textContent = 'Enviando...';
 
     try {
-      const { data: avaliacaoInserida, error: erroAvaliacao } = await supabase
-        .from('avaliacoes_locais')
-        .insert({
-          local_id: formAv.dataset.localId,
-          nome: dados.get('nome'),
-          email: dados.get('email'),
-          nota: Number(nota),
-          comentario: dados.get('comentario') || null,
-          link_video: dados.get('link_video') || null,
-        })
-        .select('id')
-        .single();
+      // 1) Fotos primeiro (diminuídas, igual ao Desapego). Se alguma não subir,
+      //    para tudo e avisa: antes a foto era pulada sem aviso (bug de 14/11/2026).
+      const arquivos = Array.from((formAv.querySelector('input[name="fotos"]') as HTMLInputElement | null)?.files ?? []);
+      const urlsFotos: string[] = [];
+      for (const [i, arquivo] of arquivos.entries()) {
+        statusAv.textContent = `Preparando a foto ${i + 1} de ${arquivos.length}...`;
+        const blob = await reduzirFoto(arquivo);
+        if (blob.size > 5 * 1024 * 1024) {
+          statusAv.textContent = `A foto "${arquivo.name}" é grande demais e não consegui diminuir. Tire ela e escolha outra (ou um print dela).`;
+          botao?.removeAttribute('disabled');
+          return;
+        }
+        const ext = blob.type === 'image/jpeg' ? 'jpg' : (arquivo.name.split('.').pop() || 'jpg').toLowerCase();
+        const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: erroUpload } = await supabase.storage
+          .from('fotos-avaliacoes-setores')
+          .upload(nomeArquivo, blob, { contentType: blob.type || arquivo.type });
+        if (erroUpload) {
+          statusAv.textContent = `Não consegui enviar a foto "${arquivo.name}". Tente outra foto (JPG) ou envie sem fotos. Sua avaliação ainda não foi enviada.`;
+          botao?.removeAttribute('disabled');
+          return;
+        }
+        urlsFotos.push(supabase.storage.from('fotos-avaliacoes-setores').getPublicUrl(nomeArquivo).data.publicUrl);
+      }
 
-      if (erroAvaliacao || !avaliacaoInserida) {
-        statusAv.textContent = 'Erro ao enviar: ' + (erroAvaliacao?.message ?? 'tente novamente.');
+      // 2) A avaliação. O id é criado aqui (como no Divulgar evento): pedir o id de
+      //    volta pro banco falhava, porque o público não pode ler avaliações pendentes.
+      statusAv.textContent = 'Enviando...';
+      const avaliacaoId = crypto.randomUUID();
+      const { error: erroAvaliacao } = await supabase.from('avaliacoes_locais').insert({
+        id: avaliacaoId,
+        local_id: formAv.dataset.localId,
+        nome: dados.get('nome'),
+        email: dados.get('email'),
+        nota: Number(nota),
+        comentario: dados.get('comentario') || null,
+        link_video: dados.get('link_video') || null,
+      });
+      if (erroAvaliacao) {
+        console.error('Avaliação de local:', erroAvaliacao);
+        statusAv.textContent = 'Ops, não consegui enviar sua avaliação. ' + CONTATO;
         botao?.removeAttribute('disabled');
         return;
       }
 
-      const arquivos = (formAv.querySelector('input[name="fotos"]') as HTMLInputElement | null)?.files;
-      if (arquivos && arquivos.length > 0) {
-        for (const arquivo of Array.from(arquivos)) {
-          if (arquivo.size > 5 * 1024 * 1024) continue; // pula fotos maiores que 5 MB
-          const extensao = arquivo.name.split('.').pop();
-          const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extensao}`;
-
-          const { error: erroUpload } = await supabase.storage
-            .from('fotos-avaliacoes-setores')
-            .upload(nomeArquivo, arquivo);
-          if (erroUpload) continue;
-
-          const { data: urlPublica } = supabase.storage
-            .from('fotos-avaliacoes-setores')
-            .getPublicUrl(nomeArquivo);
-
-          await supabase.from('avaliacoes_locais_fotos').insert({
-            avaliacao_id: avaliacaoInserida.id,
-            imagem_url: urlPublica.publicUrl,
-          });
-        }
+      // 3) Liga as fotos à avaliação
+      let fotosFalharam = 0;
+      for (const url of urlsFotos) {
+        const { error: erroFoto } = await supabase.from('avaliacoes_locais_fotos').insert({ avaliacao_id: avaliacaoId, imagem_url: url });
+        if (erroFoto) { console.error('Foto da avaliação:', erroFoto); fotosFalharam++; }
       }
 
-      statusAv.textContent = 'Obrigado! Sua avaliação passa por uma checagem antes de aparecer no site.';
       formAv.reset();
+      statusAv.textContent = fotosFalharam
+        ? `Recebemos sua avaliação, mas ${fotosFalharam === 1 ? 'uma foto não foi junto' : fotosFalharam + ' fotos não foram junto'}. Se quiser, mande pra contato@climbeiros.com.br.`
+        : 'Obrigado! Sua avaliação passa por uma checagem antes de aparecer no site.';
     } catch (err) {
-      statusAv.textContent = 'Erro inesperado: ' + (err instanceof Error ? err.message : String(err));
+      console.error('Avaliação de local:', err);
+      statusAv.textContent = 'Ops, algo deu errado (pode ser a internet). ' + CONTATO;
     }
 
     botao?.removeAttribute('disabled');
