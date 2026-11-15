@@ -59,8 +59,8 @@ const EQ = '<span class="selo selo--equipe">Só a equipe vê</span>';
   </div>
   <div class="fc-campo">
     <label for="fa-foto">Foto ou logo <Fragment set:html={OB + ' ' + SITE} /></label>
-    <input type="file" id="fa-foto" name="foto" accept="image/*" required />
-    <small class="fc-ajuda">Até 5 MB. De preferência uma foto da parede ou do espaço.</small>
+    <input type="file" id="fa-foto" name="foto" accept="image/png, image/jpeg, image/webp" required />
+    <small class="fc-ajuda">JPG, PNG ou WEBP (fotos grandes são diminuídas no envio). De preferência uma foto da parede ou do espaço.</small>
   </div>
   <div class="fc-linha">
     <div class="fc-campo">
@@ -110,7 +110,8 @@ const EQ = '<span class="selo selo--equipe">Só a equipe vê</span>';
 <script>
   import { supabase } from '../lib/supabase';
   import { linkInstagram } from '../lib/contatos';
-  import { mascaraTelefone, telefoneValido, nomeArquivoUnico } from '../lib/formularios';
+  import { mascaraTelefone, telefoneValido } from '../lib/formularios';
+  import { reduzirFoto } from '../lib/desapego';
 
   const form = document.getElementById('form-academia') as HTMLFormElement | null;
   const status = document.getElementById('fa-status');
@@ -158,14 +159,18 @@ const EQ = '<span class="selo selo--equipe">Só a equipe vê</span>';
     btn.setAttribute('disabled', '');
     status.textContent = 'Enviando...';
 
-    // Foto ou logo (obrigatória): sobe pro bucket público de fotos (o mesmo dos guias)
-    if (arquivoFoto.size > 5 * 1024 * 1024) {
-      status.textContent = 'A foto passou de 5 MB. Escolha uma menor, por favor.';
+    // Foto ou logo (obrigatória): diminui (igual ao Desapego) e sobe pro bucket público de fotos (o mesmo dos guias)
+    status.textContent = 'Preparando a foto...';
+    const foto = await reduzirFoto(arquivoFoto).catch(() => arquivoFoto);
+    if (foto.size > 5 * 1024 * 1024) {
+      status.textContent = 'A foto é grande demais e não consegui diminuir. Escolha outra (ou um print dela), por favor.';
       btn.removeAttribute('disabled');
       return;
     }
-    const nomeArquivo = 'academia-' + nomeArquivoUnico(arquivoFoto);
-    const { error: erroUpload } = await supabase.storage.from('fotos-guias').upload(nomeArquivo, arquivoFoto);
+    status.textContent = 'Enviando...';
+    const ext = foto.type === 'image/jpeg' ? 'jpg' : (arquivoFoto.name.split('.').pop() || 'jpg').toLowerCase();
+    const nomeArquivo = `academia-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error: erroUpload } = await supabase.storage.from('fotos-guias').upload(nomeArquivo, foto, { contentType: foto.type || arquivoFoto.type });
     if (erroUpload) {
       status.textContent = 'Não conseguimos enviar a foto. Tente outra imagem ou escreva para contato@climbeiros.com.br';
       btn.removeAttribute('disabled');
