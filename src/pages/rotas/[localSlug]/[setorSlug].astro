@@ -88,7 +88,7 @@ const jsonLdSetor = encontrado && setor && local
   {encontrado && local && setor ? (
     <section class="secao">
       <div class="container setor-detalhe">
-        <a href={`/rotas/${local.slug}`} class="voltar">← {local.nome}</a>
+        <a href={`/rotas/${local.slug}`} class="voltar" data-voltar>← {local.nome}</a>
 
         <h1>{setor.nome}</h1>
         <p class="setor-detalhe__local">
