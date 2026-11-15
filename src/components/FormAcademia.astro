@@ -2,122 +2,244 @@
 // src/components/FormAcademia.astro
 // Formulário "É dono(a) ou trabalha numa academia? Apareça aqui". Grava em
 // "inscricoes_academias" (entra pendente no painel; ao aprovar, a academia
-// é copiada pra tabela "academias" e aparece no site). Mesmo estilo e etiquetas do formulário de guia.
+// é copiada pra tabela "academias" e aparece no site).
 // Use só uma vez por página (os ids são fixos).
+//
+// Novo visual (15/11/2026), no mesmo padrão do Desapego e do formulário de guia:
+// - 4 blocos que abrem e fecham (A academia / Foto e descrição / Contatos da
+//   academia / Sobre você), cada um mostrando no título o que falta.
+// - Rascunho salvo sozinho no navegador (localStorage). A foto e o "li e
+//   concordo" não entram no rascunho.
+// - "Visualizar a academia" (blocos 1 a 3) e "Revisar e enviar" mostram o card
+//   como na página de Academias. O card da prévia copia o visual do card de
+//   src/pages/academias.astro (classes "fac-" aqui embaixo): mudou lá, ajuste aqui.
+// - Avisos de erro em laranja logo abaixo do campo.
+// O estilo dos blocos e das janelas fica em src/styles/formularios.css (.fc-bloco...).
 import '../styles/formularios.css';
 
 const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 const MODALIDADES = ['Boulder', 'Top rope', 'Escalada guiada (esportiva)', 'Aulas para iniciantes', 'Escalada infantil', 'Treinamento / preparação física'];
-
-const OB = '<span class="req req--sim">Obrigatório</span>';
-const OP = '<span class="req req--nao">Opcional</span>';
-const SITE = '<span class="selo selo--site">No site</span>';
-const EQ = '<span class="selo selo--equipe">Só a equipe vê</span>';
+const iconeOlho = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 ---
-<form class="fc" id="form-academia">
-  <p class="fc-legenda">
-    Os campos marcados como <strong>Obrigatório</strong> são o mínimo pro card da academia ficar bom no site;
-    o resto é opcional, mas quanto mais completo, melhor. Fique de olho também nas etiquetas:
-    <Fragment set:html={SITE} /> aparece pra todo mundo, <Fragment set:html={EQ} /> fica só com a gente.
-  </p>
-
-  <h3 class="fc-secao">Sobre a academia</h3>
-  <div class="fc-campo">
-    <label for="fa-nome">Nome da academia <Fragment set:html={OB + ' ' + SITE} /></label>
-    <input type="text" id="fa-nome" name="nome" required />
-  </div>
-  <div class="fc-linha">
-    <div class="fc-campo">
-      <label for="fa-cidade">Cidade <Fragment set:html={OB + ' ' + SITE} /></label>
-      <input type="text" id="fa-cidade" name="cidade" placeholder="Ex.: São Paulo" required />
-    </div>
-    <div class="fc-campo">
-      <label for="fa-uf">UF <Fragment set:html={OB + ' ' + SITE} /></label>
-      <select id="fa-uf" name="estado" required>
-        <option value="">Selecione</option>
-        {UFS.map((uf) => <option value={uf}>{uf}</option>)}
-      </select>
-    </div>
-  </div>
-  <div class="fc-campo">
-    <label for="fa-endereco">Endereço <Fragment set:html={OB + ' ' + SITE} /></label>
-    <input type="text" id="fa-endereco" name="endereco" placeholder="Rua, número, bairro (e CEP, se quiser)" required />
-    <small class="fc-ajuda">Com o CEP, a academia aparece também pra quem busca por CEP na página.</small>
-  </div>
-  <div class="fc-campo">
-    <span class="fc-label">Modalidades <Fragment set:html={OP + ' ' + SITE} /></span>
-    <div class="fc-opcoes">
-      {MODALIDADES.map((m) => (
-        <label class="fc-check"><input type="checkbox" name="modalidade" value={m} /> {m}</label>
-      ))}
-    </div>
-    <input type="text" id="fa-modalidade-outra" name="modalidade_outra" placeholder="Outra modalidade" />
-  </div>
-  <div class="fc-campo">
-    <label for="fa-descricao">Sobre a academia <Fragment set:html={OP + ' ' + SITE} /></label>
-    <textarea id="fa-descricao" name="descricao" rows="3" placeholder="O que faz a academia ser especial: estrutura, ambiente, horários, eventos..."></textarea>
-  </div>
-  <div class="fc-campo">
-    <label for="fa-foto">Foto ou logo <Fragment set:html={OB + ' ' + SITE} /></label>
-    <input type="file" id="fa-foto" name="foto" accept="image/png, image/jpeg, image/webp" required />
-    <small class="fc-ajuda">JPG, PNG ou WEBP (fotos grandes são diminuídas no envio). De preferência uma foto da parede ou do espaço.</small>
-  </div>
-  <div class="fc-linha">
-    <div class="fc-campo">
-      <label for="fa-whatsapp">WhatsApp da academia <Fragment set:html={OP + ' ' + SITE} /></label>
-      <input type="tel" id="fa-whatsapp" name="whatsapp" placeholder="(11)991721313" maxlength="13" inputmode="numeric" />
-    </div>
-    <div class="fc-campo">
-      <label for="fa-instagram">Instagram <Fragment set:html={OP + ' ' + SITE} /></label>
-      <input type="text" id="fa-instagram" name="instagram" placeholder="@academia" />
-    </div>
-  </div>
-  <div class="fc-campo">
-    <label for="fa-site">Site <Fragment set:html={OP + ' ' + SITE} /></label>
-    <input type="text" id="fa-site" name="website" placeholder="www.academia.com.br" />
+<form class="fc" id="form-academia" novalidate>
+  <div class="fc-retomar" id="fa-retomar" hidden>
+    <p><strong>Você tem um rascunho salvo</strong> (<span id="fa-retomar-quando"></span>). Quer continuar de onde parou?</p>
+    <button type="button" class="botao" id="fa-retomar-sim">Continuar</button>
+    <button type="button" class="botao botao--secundario" id="fa-retomar-nao">Começar do zero</button>
   </div>
 
-  <h3 class="fc-secao">Sobre você</h3>
-  <div class="fc-linha">
-    <div class="fc-campo">
-      <label for="fa-contato-nome">Seu nome <Fragment set:html={OB + ' ' + EQ} /></label>
-      <input type="text" id="fa-contato-nome" name="contato_nome" required />
+  <!-- BLOCO 1 -->
+  <details class="fc-bloco" data-bloco="1" open>
+    <summary>
+      <span class="fc-bloco-num">1</span>
+      <span class="fc-bloco-tit"><strong>A academia</strong><small>Nome, endereço e modalidades</small></span>
+      <span class="fc-bloco-status"></span><span class="fc-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fc-bloco-corpo">
+      <div class="fc-campo">
+        <label for="fa-nome">Nome da academia <span class="req req--sim">Obrigatório</span></label>
+        <input type="text" id="fa-nome" name="nome" maxlength="80" />
+      </div>
+      <div class="fc-linha">
+        <div class="fc-campo">
+          <label for="fa-cidade">Cidade <span class="req req--sim">Obrigatório</span></label>
+          <input type="text" id="fa-cidade" name="cidade" placeholder="Ex.: São Paulo" maxlength="60" />
+        </div>
+        <div class="fc-campo">
+          <label for="fa-uf">UF <span class="req req--sim">Obrigatório</span></label>
+          <select id="fa-uf" name="estado">
+            <option value="">Selecione</option>
+            {UFS.map((uf) => <option value={uf}>{uf}</option>)}
+          </select>
+        </div>
+      </div>
+      <div class="fc-campo">
+        <label for="fa-endereco">Endereço <span class="req req--sim">Obrigatório</span></label>
+        <input type="text" id="fa-endereco" name="endereco" placeholder="Rua, número, bairro e CEP" maxlength="160" />
+        <small class="fc-ajuda">Com o CEP, a academia aparece também pra quem busca por CEP na página.</small>
+      </div>
+      <div class="fc-campo" data-grupo>
+        <span class="fc-label">Modalidades <span class="req req--nao">Opcional</span></span>
+        <div class="fc-opcoes">
+          {MODALIDADES.map((m) => (
+            <label class="fc-check"><input type="checkbox" name="modalidade" value={m} /> {m}</label>
+          ))}
+        </div>
+        <input type="text" id="fa-modalidade-outra" name="modalidade_outra" placeholder="Outra modalidade (opcional)" maxlength="60" />
+      </div>
+      <div class="fc-bloco-rodape">
+        <button type="button" class="fc-ver" data-ver><Fragment set:html={iconeOlho} />Visualizar a academia</button>
+        <button type="button" class="fc-link" data-proximo>Próximo bloco →</button>
+      </div>
     </div>
-    <div class="fc-campo">
-      <label for="fa-contato-email">Seu e-mail <Fragment set:html={OB + ' ' + EQ} /></label>
-      <input type="email" id="fa-contato-email" name="contato_email" required />
-    </div>
-  </div>
-  <label class="fc-check">
-    <input type="checkbox" name="responsavel" />
-    Sou dono(a) ou trabalho nessa academia
-  </label>
-  <div class="fc-campo">
-    <label for="fa-msg">Mensagem pra equipe Climbeiros <Fragment set:html={OP + ' ' + EQ} /></label>
-    <textarea id="fa-msg" name="mensagem" rows="3" placeholder="Algo que só a gente precise saber"></textarea>
-  </div>
+  </details>
 
-  <label class="fc-check">
-    <input type="checkbox" name="consentimento" required />
+  <!-- BLOCO 2 -->
+  <details class="fc-bloco" data-bloco="2">
+    <summary>
+      <span class="fc-bloco-num">2</span>
+      <span class="fc-bloco-tit"><strong>Foto e descrição</strong><small>A primeira coisa que a pessoa vê no card</small></span>
+      <span class="fc-bloco-status"></span><span class="fc-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fc-bloco-corpo">
+      <div class="fc-campo">
+        <label for="fa-foto">Foto ou logo <span class="req req--sim">Obrigatório</span></label>
+        <input type="file" id="fa-foto" name="foto" accept="image/png, image/jpeg, image/webp" />
+        <small class="fc-ajuda">JPG, PNG ou WEBP (fotos grandes são diminuídas no envio). De preferência uma foto da parede ou do espaço. A foto não fica no rascunho: se sair da página, escolha de novo.</small>
+        <div class="fa-foto-previa" id="fa-foto-previa" hidden>
+          <img id="fa-foto-img" alt="Foto escolhida" />
+          <button type="button" class="fa-tirar" id="fa-foto-tirar" aria-label="Tirar a foto">×</button>
+        </div>
+      </div>
+      <div class="fc-campo">
+        <label for="fa-descricao">Sobre a academia <span class="req req--nao">Opcional</span></label>
+        <textarea id="fa-descricao" name="descricao" rows="4" maxlength="800" placeholder="O que faz a academia ser especial: estrutura, ambiente, horários, eventos..."></textarea>
+      </div>
+      <div class="fc-bloco-rodape">
+        <button type="button" class="fc-ver" data-ver><Fragment set:html={iconeOlho} />Visualizar a academia</button>
+        <button type="button" class="fc-link" data-proximo>Próximo bloco →</button>
+      </div>
+    </div>
+  </details>
+
+  <!-- BLOCO 3 -->
+  <details class="fc-bloco" data-bloco="3">
+    <summary>
+      <span class="fc-bloco-num">3</span>
+      <span class="fc-bloco-tit"><strong>Contatos da academia</strong><small>Viram botões no card · todos opcionais</small></span>
+      <span class="fc-bloco-status"></span><span class="fc-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fc-bloco-corpo">
+      <div class="fc-linha">
+        <div class="fc-campo">
+          <label for="fa-whatsapp">WhatsApp da academia <span class="req req--nao">Opcional</span></label>
+          <input type="tel" id="fa-whatsapp" name="whatsapp" placeholder="(11)991721313" maxlength="13" inputmode="numeric" />
+        </div>
+        <div class="fc-campo">
+          <label for="fa-instagram">Instagram <span class="req req--nao">Opcional</span></label>
+          <input type="text" id="fa-instagram" name="instagram" placeholder="@academia" maxlength="60" />
+        </div>
+      </div>
+      <div class="fc-campo">
+        <label for="fa-site">Site <span class="req req--nao">Opcional</span></label>
+        <input type="text" id="fa-site" name="website" placeholder="www.academia.com.br" maxlength="120" />
+      </div>
+      <div class="fc-bloco-rodape">
+        <button type="button" class="fc-ver" data-ver><Fragment set:html={iconeOlho} />Visualizar a academia</button>
+        <button type="button" class="fc-link" data-proximo>Próximo bloco →</button>
+      </div>
+    </div>
+  </details>
+
+  <!-- BLOCO 4 -->
+  <details class="fc-bloco" data-bloco="4">
+    <summary>
+      <span class="fc-bloco-num">4</span>
+      <span class="fc-bloco-tit"><strong>Sobre você</strong><small>Não aparece no site · só pra equipe falar com você</small></span>
+      <span class="fc-bloco-status"></span><span class="fc-bloco-seta" aria-hidden="true"></span>
+    </summary>
+    <div class="fc-bloco-corpo">
+      <div class="fc-linha">
+        <div class="fc-campo">
+          <label for="fa-contato-nome">Seu nome <span class="req req--sim">Obrigatório</span></label>
+          <input type="text" id="fa-contato-nome" name="contato_nome" maxlength="80" />
+        </div>
+        <div class="fc-campo">
+          <label for="fa-contato-email">Seu e-mail <span class="req req--sim">Obrigatório</span></label>
+          <input type="email" id="fa-contato-email" name="contato_email" maxlength="120" />
+        </div>
+      </div>
+      <label class="fc-check">
+        <input type="checkbox" name="responsavel" id="fa-responsavel" />
+        Sou dono(a) ou trabalho nessa academia
+      </label>
+      <div class="fc-campo">
+        <label for="fa-msg">Mensagem pra equipe Climbeiros <span class="req req--nao">Opcional</span></label>
+        <textarea id="fa-msg" name="mensagem" rows="3" maxlength="1000" placeholder="Algo que só a gente precise saber"></textarea>
+      </div>
+    </div>
+  </details>
+
+  <label class="fc-check fa-consentimento">
+    <input type="checkbox" name="consentimento" id="fa-consentimento" />
     <span>Li e concordo com a <a href="/privacidade" target="_blank">Política de Privacidade</a>.</span>
   </label>
   <input type="text" name="site" class="fc-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
-  <button type="submit" class="botao" id="fa-enviar">Enviar cadastro</button>
+
+  <div class="fc-rascunho" id="fa-rascunho" hidden>
+    <span class="fc-rascunho-ponto"></span><span id="fa-rascunho-txt">Rascunho salvo</span>
+    <button type="button" class="fc-link" id="fa-rascunho-apagar">Apagar rascunho</button>
+  </div>
+  <button type="submit" class="botao" id="fa-enviar">Revisar e enviar</button>
   <p class="fc-status" id="fa-status" role="status"></p>
   <p class="fc-aviso">O cadastro passa por uma checagem da equipe do Climbeiros antes de aparecer no site. É gratuito.</p>
 </form>
 
+<!-- "Visualizar a academia": o card como na página -->
+<dialog class="fc-janela" id="fa-ver" aria-labelledby="fa-ver-titulo">
+  <div class="fc-janela-topo">
+    <p id="fa-ver-titulo">É assim que a academia aparece em <strong>Academias</strong></p>
+    <button type="button" class="fc-janela-fechar" id="fa-ver-fechar" aria-label="Fechar">×</button>
+  </div>
+  <div id="fa-ver-card"></div>
+  <p class="fc-janela-dica">Campos em branco não aparecem no card. As avaliações aparecem depois, quando a galera começar a avaliar.</p>
+</dialog>
+
+<!-- Revisão antes de enviar -->
+<dialog class="fc-janela" id="fa-revisao" aria-labelledby="fa-rev-titulo">
+  <h2 id="fa-rev-titulo">Confere antes de enviar?</h2>
+  <p class="fc-janela-intro">É assim que a academia vai aparecer, depois da checagem da equipe. Dá uma lida com calma no endereço e nos contatos: é por eles que a galera vai chegar até vocês.</p>
+  <div id="fa-rev-card"></div>
+  <div id="fa-rev-extra"></div>
+  <form method="dialog" class="fc-janela-botoes">
+    <button type="submit" value="corrigir" class="botao botao--secundario">Quero fazer ajustes</button>
+    <button type="submit" value="enviar" class="botao">Está certo, pode enviar</button>
+  </form>
+</dialog>
+
+<style is:global>
+  #form-academia { scroll-margin-top: 110px; gap: 14px; }
+  .fa-consentimento { padding: 12px 14px; border-radius: 8px; background: var(--branco); border: 1px solid rgba(42,31,22,.12); }
+  .fa-foto-previa { position: relative; width: fit-content; margin-top: 4px; }
+  .fa-foto-previa img { display: block; max-width: 220px; max-height: 150px; border-radius: 8px; border: 1px solid rgba(42,31,22,.15); background: var(--branco); object-fit: contain; }
+  .fa-tirar { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; background: var(--marrom); color: #fff; font-size: 1rem; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0; }
+  .fa-tirar:hover { background: var(--laranja); }
+
+  /* Card da prévia: cópia do card de src/pages/academias.astro */
+  .fac { max-width: 340px; margin: 0 auto; text-align: left; pointer-events: none; }
+  .fac .fac-img { width: 100%; height: 180px; object-fit: contain; background: var(--branco); padding: 10px; display: block; box-sizing: border-box; }
+  .fac .fac-sem-foto { height: 180px; display: grid; place-items: center; background: var(--creme); color: #6b5e4d; font-size: .85rem; }
+  .fac .card__corpo h3 { margin: 0 0 6px; }
+  .fac .fac-local { font-size: .85rem; color: var(--laranja); font-weight: 600; margin: 0 0 8px; }
+  .fac .fac-endereco { font-size: .85rem; opacity: .65; margin: -4px 0 8px; font-style: italic; }
+  .fac .fac-mod { font-size: .85rem; margin: 0 0 8px; }
+  .fac .fac-desc { margin: 0 0 8px; white-space: pre-line; overflow-wrap: anywhere; }
+  .fac .fac-links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .fac .fac-links span { color: var(--laranja); font-weight: 600; text-decoration: underline; }
+  .fac .fac-aval { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(42,31,22,.12); font-size: .9rem; opacity: .6; font-style: italic; }
+</style>
+
 <script>
   import { supabase } from '../lib/supabase';
-  import { linkInstagram } from '../lib/contatos';
+  import { linkInstagram, usuarioInstagram } from '../lib/contatos';
   import { mascaraTelefone, telefoneValido } from '../lib/formularios';
   import { reduzirFoto } from '../lib/desapego';
 
   const form = document.getElementById('form-academia') as HTMLFormElement | null;
-  const status = document.getElementById('fa-status');
-  const btn = document.getElementById('fa-enviar');
-  const campoWhats = document.getElementById('fa-whatsapp') as HTMLInputElement | null;
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+  const status = $('fa-status');
+  const btn = $<HTMLButtonElement>('fa-enviar');
+  const campoWhats = $<HTMLInputElement>('fa-whatsapp');
+  const inputFoto = $<HTMLInputElement>('fa-foto');
+  const blocos = form ? Array.from(form.querySelectorAll<HTMLDetailsElement>('.fc-bloco')) : [];
   mascaraTelefone(campoWhats);
+
+  const val = (nome: string) => {
+    const el = form?.elements.namedItem(nome) as HTMLInputElement | null;
+    return el && 'value' in el ? String(el.value || '').trim() : '';
+  };
+  const marcados = (nome: string) => Array.from(form?.querySelectorAll<HTMLInputElement>(`input[name="${nome}"]:checked`) ?? []).map((c) => c.value);
+  const modalidades = () => { const m = marcados('modalidade'); if (val('modalidade_outra')) m.push(val('modalidade_outra')); return m; };
 
   // Site: aceita "www.x.com.br" e completa com https://
   function linkSite(valor: string): string | null {
@@ -126,83 +248,318 @@ const EQ = '<span class="selo selo--equipe">Só a equipe vê</span>';
     return /^https?:\/\//i.test(v) ? v : `https://${v}`;
   }
 
+  // ---------- Avisos embaixo de cada campo ----------
+  function mostrarErro(campo: HTMLElement, msg: string) {
+    const caixa = campo.closest('.fc-campo, .fa-consentimento') as HTMLElement | null;
+    if (!caixa) return;
+    const fora = caixa.classList.contains('fa-consentimento');
+    let p = (fora ? (caixa.nextElementSibling?.classList.contains('fc-erro') ? caixa.nextElementSibling : null) : caixa.querySelector(':scope > .fc-erro')) as HTMLElement | null;
+    if (!p) { p = document.createElement('p'); p.className = 'fc-erro'; if (fora) caixa.after(p); else caixa.appendChild(p); }
+    p.textContent = msg;
+    caixa.classList.add('fc-campo--erro');
+  }
+  function limparErro(campo: HTMLElement) {
+    const caixa = campo.closest('.fc-campo, .fa-consentimento') as HTMLElement | null;
+    if (!caixa) return;
+    if (caixa.classList.contains('fa-consentimento')) { if (caixa.nextElementSibling?.classList.contains('fc-erro')) caixa.nextElementSibling.remove(); }
+    else caixa.querySelector(':scope > .fc-erro')?.remove();
+    caixa.classList.remove('fc-campo--erro');
+  }
+  form?.addEventListener('input', (e) => limparErro(e.target as HTMLElement));
+  form?.addEventListener('change', (e) => limparErro(e.target as HTMLElement));
+
+  // ---------- Foto (uma só, com prévia e ×) ----------
+  let foto: File | null = null;
+  let fotoUrl = '';
+  const previa = $('fa-foto-previa');
+  const previaImg = $<HTMLImageElement>('fa-foto-img');
+  function mostrarFoto() {
+    previa.hidden = !foto;
+    if (foto) previaImg.src = fotoUrl;
+  }
+  function tirarFoto() {
+    if (fotoUrl) URL.revokeObjectURL(fotoUrl);
+    foto = null; fotoUrl = ''; inputFoto.value = '';
+    mostrarFoto();
+  }
+  inputFoto.addEventListener('change', () => {
+    const f = inputFoto.files?.[0];
+    if (!f) return;
+    if (!/^image\/(jpeg|png|webp)$/i.test(f.type)) {
+      inputFoto.value = '';
+      mostrarErro(inputFoto, 'Essa imagem não é JPG, PNG ou WEBP. Fotos do iPhone (HEIC): tire um print da foto e escolha o print.');
+      return;
+    }
+    if (fotoUrl) URL.revokeObjectURL(fotoUrl);
+    foto = f; fotoUrl = URL.createObjectURL(f);
+    mostrarFoto();
+    atualizarBlocos();
+  });
+  $('fa-foto-tirar').addEventListener('click', () => { tirarFoto(); atualizarBlocos(); });
+
+  // ---------- O que falta (pro título dos blocos e pro envio) ----------
+  type Falta = { msg: string; campo: HTMLElement | null; bloco: number };
+  function faltas(): Falta[] {
+    const f: Falta[] = [];
+    const add = (bloco: number, msg: string, campo: HTMLElement | null) => f.push({ bloco, msg, campo });
+    if (!val('nome')) add(1, 'Preencha o nome da academia.', $('fa-nome'));
+    if (!val('cidade')) add(1, 'Preencha a cidade.', $('fa-cidade'));
+    if (!val('estado')) add(1, 'Escolha a UF.', $('fa-uf'));
+    if (!val('endereco')) add(1, 'Preencha o endereço (rua, número, bairro e CEP).', $('fa-endereco'));
+    if (!foto) add(2, 'Coloque uma foto ou o logo da academia.', inputFoto);
+    if (val('whatsapp') && !telefoneValido(val('whatsapp'))) add(3, 'Preencha o WhatsApp no formato (11)991721313, com DDD, ou deixe em branco.', campoWhats);
+    if (!val('contato_nome')) add(4, 'Preencha seu nome.', $('fa-contato-nome'));
+    const email = $<HTMLInputElement>('fa-contato-email');
+    if (!val('contato_email')) add(4, 'Preencha seu e-mail.', email);
+    else if (!email.checkValidity()) add(4, 'Confira o e-mail: parece que falta alguma coisa (ex.: nome@email.com).', email);
+    return f;
+  }
+  function preenchidos(bloco: number): [number, number] {
+    const itens: boolean[] =
+      bloco === 1 ? [!!val('nome'), !!val('cidade'), !!val('estado'), !!val('endereco'), modalidades().length > 0]
+      : bloco === 2 ? [!!foto, !!val('descricao')]
+      : bloco === 3 ? [!!val('whatsapp'), !!val('instagram'), !!val('website')]
+      : [!!val('contato_nome'), !!val('contato_email'), !!$<HTMLInputElement>('fa-responsavel').checked, !!val('mensagem')];
+    return [itens.filter(Boolean).length, itens.length];
+  }
+  function atualizarBlocos() {
+    const lista = faltas();
+    blocos.forEach((b, i) => {
+      const n = i + 1;
+      const falta = lista.filter((x) => x.bloco === n).length;
+      const [feitos, total] = preenchidos(n);
+      const st = b.querySelector('.fc-bloco-status');
+      if (st) {
+        if (falta) st.textContent = falta === 1 ? 'Falta 1 obrigatório' : `Faltam ${falta} obrigatórios`;
+        else st.textContent = feitos === total ? '✓ Completo' : `${feitos} de ${total}`;
+      }
+      b.classList.toggle('fc-bloco--completo', !falta && feitos === total);
+    });
+  }
+  function abrirBloco(b: HTMLDetailsElement | null | undefined, rolar = true) {
+    if (!b) return;
+    blocos.forEach((x) => { if (x !== b) x.open = false; });
+    b.open = true;
+    if (rolar) b.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  form?.querySelectorAll<HTMLButtonElement>('[data-proximo]').forEach((bt) => bt.addEventListener('click', () => {
+    const atual = bt.closest<HTMLDetailsElement>('.fc-bloco');
+    abrirBloco(blocos[blocos.indexOf(atual!) + 1]);
+  }));
+
+  // ---------- Rascunho automático ----------
+  const CHAVE = 'climbeiros:rascunho:academia';
+  const NAO_SALVAR = new Set(['foto', 'consentimento', 'site']);
+  const rascunho = {
+    ler(): { quando: number; dados: Record<string, any> } | null { try { return JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch { return null; } },
+    gravar(v: unknown) { try { localStorage.setItem(CHAVE, JSON.stringify(v)); return true; } catch { return false; } },
+    apagar() { try { localStorage.removeItem(CHAVE); } catch { /* sem localStorage */ } },
+  };
+  const barra = $('fa-rascunho');
+  const barraTxt = $('fa-rascunho-txt');
+  const caixaRetomar = $('fa-retomar');
+  const hora = (ts: number) => new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  function coletar() {
+    const dados: Record<string, any> = {};
+    form?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input, textarea, select').forEach((el) => {
+      if (!el.name || NAO_SALVAR.has(el.name) || el.type === 'file') return;
+      if (el instanceof HTMLInputElement && el.type === 'checkbox') {
+        if (!dados[el.name]) dados[el.name] = [];
+        if (el.checked) dados[el.name].push(el.value);
+      } else dados[el.name] = el.value;
+    });
+    return dados;
+  }
+  function aplicar(dados: Record<string, any>) {
+    form?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input, textarea, select').forEach((el) => {
+      if (!el.name || !(el.name in dados) || NAO_SALVAR.has(el.name) || el.type === 'file') return;
+      if (el instanceof HTMLInputElement && el.type === 'checkbox') el.checked = (dados[el.name] || []).includes(el.value);
+      else el.value = dados[el.name] ?? '';
+    });
+    atualizarBlocos();
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  function salvarDepois() {
+    barra.hidden = false;
+    barra.classList.add('fc-rascunho--salvando');
+    barraTxt.textContent = 'Salvando rascunho...';
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const agora = Date.now();
+      const ok = rascunho.gravar({ quando: agora, dados: coletar() });
+      barra.classList.remove('fc-rascunho--salvando');
+      barraTxt.textContent = ok ? `Rascunho salvo às ${hora(agora)} neste aparelho` : 'Este navegador não deixa salvar rascunho';
+    }, 700);
+  }
+  function esconderRascunho() { clearTimeout(timer); barra.hidden = true; caixaRetomar.hidden = true; }
+  const salvo = rascunho.ler();
+  if (salvo?.dados) {
+    const d = new Date(salvo.quando);
+    $('fa-retomar-quando').textContent = `${d.toLocaleDateString('pt-BR')} às ${hora(salvo.quando)}`;
+    caixaRetomar.hidden = false;
+  }
+  $('fa-retomar-sim').addEventListener('click', () => {
+    const s = rascunho.ler();
+    if (s?.dados) aplicar(s.dados);
+    caixaRetomar.hidden = true;
+    if (s) { barra.hidden = false; barraTxt.textContent = `Rascunho salvo às ${hora(s.quando)} neste aparelho`; }
+    status.textContent = 'Rascunho recuperado. A foto precisa ser escolhida de novo.';
+  });
+  $('fa-retomar-nao').addEventListener('click', () => { rascunho.apagar(); caixaRetomar.hidden = true; });
+  $('fa-rascunho-apagar').addEventListener('click', () => {
+    rascunho.apagar(); form?.reset(); tirarFoto(); atualizarBlocos(); esconderRascunho();
+    status.textContent = 'Rascunho apagado.';
+  });
+  form?.addEventListener('input', () => { atualizarBlocos(); salvarDepois(); });
+  form?.addEventListener('change', (e) => { atualizarBlocos(); if ((e.target as HTMLElement).id !== 'fa-foto') salvarDepois(); });
+
+  // ---------- Card (mesmo visual da página de Academias) ----------
+  function el(tag: string, cls?: string, texto?: string) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (texto != null) e.textContent = texto;
+    return e;
+  }
+  function montarCard(): HTMLElement {
+    const card = el('article', 'card fac');
+    if (foto) {
+      const img = el('img', 'fac-img') as HTMLImageElement;
+      img.src = fotoUrl; img.alt = val('nome');
+      card.append(img);
+    } else card.append(el('div', 'fac-sem-foto', 'Foto ou logo da academia'));
+    const corpo = el('div', 'card__corpo');
+    corpo.append(el('h3', '', val('nome') || 'Nome da academia'));
+    corpo.append(el('p', 'fac-local', `${val('cidade') || 'Cidade'}, ${val('estado') || 'UF'}`));
+    if (val('endereco')) corpo.append(el('p', 'fac-endereco', val('endereco')));
+    const mods = modalidades();
+    if (mods.length) { const p = el('p', 'fac-mod'); p.append(el('strong', '', 'Modalidades: '), mods.join(', ')); corpo.append(p); }
+    if (val('descricao')) corpo.append(el('p', 'fac-desc', val('descricao')));
+    const links = el('div', 'fac-links');
+    if (val('website')) links.append(el('span', '', 'Site'));
+    if (val('whatsapp')) links.append(el('span', '', 'WhatsApp'));
+    if (usuarioInstagram(val('instagram'))) links.append(el('span', '', 'Instagram'));
+    if (links.children.length) corpo.append(links);
+    corpo.append(el('div', 'fac-aval', 'Ainda sem avaliações'));
+    card.append(corpo);
+    return card;
+  }
+  const janelaVer = $<HTMLDialogElement>('fa-ver');
+  form?.querySelectorAll('[data-ver]').forEach((b) => b.addEventListener('click', () => {
+    if (typeof janelaVer.showModal !== 'function') return;
+    $('fa-ver-card').replaceChildren(montarCard());
+    janelaVer.showModal();
+    janelaVer.scrollTop = 0;
+  }));
+  $('fa-ver-fechar').addEventListener('click', () => janelaVer.close());
+  janelaVer.addEventListener('click', (e) => { if (e.target === janelaVer) janelaVer.close(); });
+
+  // ---------- Revisão ----------
+  const janelaRev = $<HTMLDialogElement>('fa-revisao');
+  function revisar(): Promise<boolean> {
+    if (typeof janelaRev.showModal !== 'function') return Promise.resolve(true);
+    $('fa-rev-card').replaceChildren(montarCard());
+    const linhas: [string, string][] = [
+      ['WhatsApp', val('whatsapp')], ['Instagram', val('instagram')], ['Site', val('website')],
+      ['Seu nome', val('contato_nome')], ['Seu e-mail', val('contato_email')],
+      ['Trabalha na academia?', $<HTMLInputElement>('fa-responsavel').checked ? 'Sim' : 'Não marcado'],
+    ];
+    if (val('mensagem')) linhas.push(['Mensagem pra equipe', val('mensagem')]);
+    const caixa = el('section', 'fc-janela-caixa');
+    caixa.append(el('h3', '', 'Confira também'));
+    const dl = el('dl');
+    linhas.forEach(([r, v]) => { const dd = el('dd', v ? '' : 'fc-vazio', v || 'Em branco'); dl.append(el('dt', '', r), dd); });
+    caixa.append(dl);
+    $('fa-rev-extra').replaceChildren(caixa);
+    janelaRev.returnValue = '';
+    janelaRev.showModal();
+    janelaRev.scrollTop = 0;
+    return new Promise((ok) => janelaRev.addEventListener('close', () => ok(janelaRev.returnValue === 'enviar'), { once: true }));
+  }
+
+  // ---------- Envio ----------
+  // Mostra o aviso embaixo do campo e rola até ele (sem pôr o cursor em campo de
+  // arquivo ou caixinha: no celular isso pode reabrir a galeria)
+  function erro(msg: string, campo?: HTMLElement | null) {
+    status.textContent = msg;
+    if (!campo) return;
+    abrirBloco(campo.closest<HTMLDetailsElement>('.fc-bloco'), false);
+    mostrarErro(campo, msg);
+    const caixa = campo.closest('.fc-campo, .fa-consentimento') ?? campo;
+    if (!['file', 'checkbox'].includes((campo as HTMLInputElement).type)) campo.focus({ preventScroll: true });
+    caixa.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!status || !btn || !form) return;
-    const dados = Object.fromEntries(new FormData(form).entries()) as Record<string, any>;
-
+    if (!form) return;
     // Campo invisível: se veio preenchido, é robô. Finge que deu certo.
-    if (dados.site) {
-      status.textContent = 'Cadastro enviado!';
-      form.reset();
-      return;
-    }
-    const obrig = (v: unknown) => String(v || '').trim();
-    const arquivoFoto = form.querySelector<HTMLInputElement>('#fa-foto')?.files?.[0];
-    if (!obrig(dados.nome) || !obrig(dados.cidade) || !obrig(dados.estado) || !obrig(dados.endereco)
-        || !arquivoFoto || !obrig(dados.contato_nome) || !obrig(dados.contato_email)) {
-      status.textContent = 'Preencha os campos obrigatórios: nome, cidade, UF, endereço e foto ou logo da academia, seu nome e seu e-mail.';
-      return;
-    }
-    if (!telefoneValido(String(dados.whatsapp || ''))) {
-      status.textContent = 'Preencha o WhatsApp no formato (11)991721313, com DDD e 9 números, ou deixe o campo em branco.';
-      campoWhats?.focus();
-      return;
-    }
+    if (val('site')) { status.textContent = 'Cadastro enviado!'; form.reset(); return; }
 
-    const modalidades = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="modalidade"]:checked')).map((el) => el.value);
-    if (obrig(dados.modalidade_outra)) modalidades.push(obrig(dados.modalidade_outra));
+    const lista = faltas();
+    if (lista.length) {
+      const f = lista[0];
+      const nomeBloco = blocos[f.bloco - 1]?.querySelector('strong')?.textContent || '';
+      return erro(`${f.msg} (bloco "${nomeBloco}")`, f.campo);
+    }
+    if (!$<HTMLInputElement>('fa-consentimento').checked) return erro('Marque que leu e concorda com a Política de Privacidade.', $('fa-consentimento'));
+    status.textContent = '';
+
+    if (!(await revisar())) { status.textContent = 'Sem pressa: ajuste o que precisar e clique em "Revisar e enviar" de novo.'; return; }
+
     // WhatsApp guardado como o card usa: só números, com 55 na frente
-    let whats = String(dados.whatsapp || '').replace(/\D/g, '');
+    let whats = val('whatsapp').replace(/\D/g, '');
     if (whats.length === 10 || whats.length === 11) whats = '55' + whats;
 
     btn.setAttribute('disabled', '');
-    status.textContent = 'Enviando...';
-
-    // Foto ou logo (obrigatória): diminui (igual ao Desapego) e sobe pro bucket público de fotos (o mesmo dos guias)
+    // Foto ou logo: diminui (igual ao Desapego) e sobe pro bucket público de fotos (o mesmo dos guias)
     status.textContent = 'Preparando a foto...';
-    const foto = await reduzirFoto(arquivoFoto).catch(() => arquivoFoto);
-    if (foto.size > 5 * 1024 * 1024) {
-      status.textContent = 'A foto é grande demais e não consegui diminuir. Escolha outra (ou um print dela), por favor.';
+    const original = foto!;
+    const pronta = await reduzirFoto(original).catch(() => original);
+    if (pronta.size > 5 * 1024 * 1024) {
       btn.removeAttribute('disabled');
-      return;
+      return erro('A foto é grande demais e não consegui diminuir. Toque no × e escolha outra (ou um print dela).', inputFoto);
     }
     status.textContent = 'Enviando...';
-    const ext = foto.type === 'image/jpeg' ? 'jpg' : (arquivoFoto.name.split('.').pop() || 'jpg').toLowerCase();
+    const ext = pronta.type === 'image/jpeg' ? 'jpg' : (original.name.split('.').pop() || 'jpg').toLowerCase();
     const nomeArquivo = `academia-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error: erroUpload } = await supabase.storage.from('fotos-guias').upload(nomeArquivo, foto, { contentType: foto.type || arquivoFoto.type });
+    const { error: erroUpload } = await supabase.storage.from('fotos-guias').upload(nomeArquivo, pronta, { contentType: pronta.type || original.type });
     if (erroUpload) {
-      status.textContent = 'Não conseguimos enviar a foto. Tente outra imagem ou escreva para contato@climbeiros.com.br';
       btn.removeAttribute('disabled');
-      return;
+      return erro('Não conseguimos enviar a foto. Tente outra imagem ou escreva para contato@climbeiros.com.br', inputFoto);
     }
-    const fotoUrl = supabase.storage.from('fotos-guias').getPublicUrl(nomeArquivo).data.publicUrl;
+    const urlFoto = supabase.storage.from('fotos-guias').getPublicUrl(nomeArquivo).data.publicUrl;
 
     // Entra pendente em "inscricoes_academias". Ao aprovar no painel de
-    // pendencias, a academia e copiada pra tabela "academias" e vai pro site.
+    // pendências, a academia é copiada pra tabela "academias" e vai pro site.
+    const mods = modalidades();
     const { error } = await supabase.from('inscricoes_academias').insert([{
-      nome: obrig(dados.nome),
-      cidade: obrig(dados.cidade),
-      estado: obrig(dados.estado),
-      endereco: obrig(dados.endereco),
-      modalidades: modalidades.length ? modalidades.join(', ') : null,
-      descricao: obrig(dados.descricao) || null,
-      imagem_url: fotoUrl,
+      nome: val('nome'),
+      cidade: val('cidade'),
+      estado: val('estado'),
+      endereco: val('endereco'),
+      modalidades: mods.length ? mods.join(', ') : null,
+      descricao: val('descricao') || null,
+      imagem_url: urlFoto,
       whatsapp: whats || null,
-      instagram: linkInstagram(dados.instagram),
-      website: linkSite(String(dados.website || '')),
-      contato_nome: obrig(dados.contato_nome),
-      contato_email: obrig(dados.contato_email),
-      responsavel: !!dados.responsavel,
-      mensagem: obrig(dados.mensagem) || null,
+      instagram: linkInstagram(val('instagram')),
+      website: linkSite(val('website')),
+      contato_nome: val('contato_nome'),
+      contato_email: val('contato_email'),
+      responsavel: $<HTMLInputElement>('fa-responsavel').checked,
+      mensagem: val('mensagem') || null,
     }]);
-    if (error) {
-      status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.br';
-      btn.removeAttribute('disabled');
-      return;
-    }
-    form.reset();
-    status.textContent = 'Recebemos o cadastro! Depois da checagem da equipe, a academia aparece no site. 🧗';
     btn.removeAttribute('disabled');
+    if (error) {
+      return erro('Ops, algo deu errado. Seu rascunho continua salvo: tente de novo ou escreva para contato@climbeiros.com.br');
+    }
+    rascunho.apagar();
+    form.reset();
+    tirarFoto();
+    esconderRascunho();
+    atualizarBlocos();
+    abrirBloco(blocos[0], false);
+    status.textContent = 'Recebemos o cadastro! Depois da checagem da equipe, a academia aparece no site. 🧗';
   });
+
+  atualizarBlocos();
 </script>
