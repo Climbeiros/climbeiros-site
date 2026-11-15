@@ -121,7 +121,7 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
           <input type="text" name="local" placeholder="Ex.: Academia Vertical, Setor Pedra Grande" />
         </label>
         <label>
-          Foto (até 5 MB)
+          Foto
           <input type="file" name="foto" accept="image/png, image/jpeg, image/webp" required />
         </label>
         <button type="submit" class="botao">Enviar foto</button>
@@ -147,6 +147,7 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
 
 <script>
   import { createClient } from '@supabase/supabase-js';
+  import { reduzirFoto } from '../lib/desapego';
 
   // ---------------------------------------------------------------------
   // Formulário de envio de foto (igual a antes — nenhuma mudança aqui)
@@ -167,26 +168,30 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
       status.textContent = 'Escolha uma foto antes de enviar.';
       return;
     }
-    if (arquivo.size > 5 * 1024 * 1024) {
-      status.textContent = 'A foto precisa ter no máximo 5 MB.';
-      return;
-    }
-
     botao.disabled = true;
-    status.textContent = 'Enviando...';
+    status.textContent = 'Preparando a foto...';
 
     try {
       const supabase = createClient(form.dataset.supabaseUrl!, form.dataset.supabaseKey!);
 
-      const extensao = arquivo.name.split('.').pop();
+      // Diminui a foto antes de subir (igual ao Desapego): foto de celular passa fácil de 5 MB.
+      const blob = await reduzirFoto(arquivo).catch(() => arquivo);
+      if (blob.size > 5 * 1024 * 1024) {
+        status.textContent = 'A foto é grande demais e não consegui diminuir. Escolha outra (ou um print dela).';
+        botao.disabled = false;
+        return;
+      }
+      status.textContent = 'Enviando...';
+      const extensao = blob.type === 'image/jpeg' ? 'jpg' : (arquivo.name.split('.').pop() || 'jpg').toLowerCase();
       const nomeArquivo = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extensao}`;
 
       const { error: erroUpload } = await supabase.storage
         .from('fotos-comunidade')
-        .upload(nomeArquivo, arquivo);
+        .upload(nomeArquivo, blob, { contentType: blob.type || arquivo.type });
 
       if (erroUpload) {
-        status.textContent = 'Erro ao enviar a foto: ' + erroUpload.message;
+        console.error('Galeria (foto):', erroUpload);
+        status.textContent = 'Não consegui enviar a foto. Tente outra (JPG) ou escreva pra contato@climbeiros.com.br';
         botao.disabled = false;
         return;
       }
@@ -203,13 +208,15 @@ const dadosFotosJSON = JSON.stringify(listaFotos).replace(/</g, '\\u003c');
       });
 
       if (erroInsert) {
-        status.textContent = 'Erro ao registrar a foto: ' + erroInsert.message;
+        console.error('Galeria (registro):', erroInsert);
+        status.textContent = 'Ops, a foto subiu mas não consegui registrar. Tente de novo ou escreva pra contato@climbeiros.com.br';
       } else {
         status.textContent = 'Foto enviada! Ela aparece aqui assim que for aprovada pela equipe do Climbeiros.';
         form.reset();
       }
     } catch (err) {
-      status.textContent = 'Erro inesperado: ' + (err instanceof Error ? err.message : String(err));
+      console.error('Galeria:', err);
+      status.textContent = 'Ops, algo deu errado (pode ser a internet). Tente de novo ou escreva pra contato@climbeiros.com.br';
     }
 
     botao.disabled = false;
