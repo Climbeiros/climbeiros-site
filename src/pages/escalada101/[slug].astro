@@ -82,6 +82,26 @@ const jsonLdArtigo = artigo
   )}
 </Layout>
 <script>
+  // Se a pessoa chegou aqui vindo de outra parte do site (ex.: do Crux, pelo
+  // "Entender os graus"), o "Voltar pra Escalada 101" vira "Voltar pro Crux"
+  // e volta pra página de onde ela veio (14/11/2026).
+  try {
+    const de = new URL(document.referrer);
+    const outraSecao = de.origin === location.origin && !de.pathname.startsWith('/escalada101') && de.pathname !== location.pathname;
+    if (outraSecao) {
+      const nomes: Record<string, string> = { crux: 'Voltar pro Crux', rotas: 'Voltar pros locais', beta: 'Voltar pro Beta', cursos: 'Voltar pros guias', academias: 'Voltar pras academias' };
+      const secao = de.pathname.split('/').filter(Boolean)[0] || '';
+      const rotulo = nomes[secao] || 'Voltar';
+      document.querySelectorAll<HTMLAnchorElement>('a[href="/escalada101"], a[href="/escalada101/"]').forEach((a) => {
+        if (!/voltar/i.test(a.textContent || '')) return;
+        a.href = de.pathname + de.search;
+        a.textContent = '← ' + rotulo;
+        a.setAttribute('data-voltar', '');
+      });
+    }
+  } catch { /* sem referrer: mantém o voltar normal */ }
+</script>
+<script>
   // Clique num card de modalidade (.tipo-card com atributo data-video) abre
   // o vídeo dessa modalidade num pop-up por cima da página. Os cards vêm do
   // conteúdo do artigo (Supabase, via set:html), então o clique é ligado
