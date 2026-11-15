@@ -60,6 +60,11 @@ const jsonLdArtigo = artigo
         </div>
       </section>
       <div class="artigo-largo" set:html={artigo.conteudo} />
+      {!/href=["']\/escalada101\/?["']/.test(artigo.conteudo || '') && (
+        <div class="container" style="padding-bottom:3rem;">
+          <a href="/escalada101" class="botao" data-voltar>Voltar pra Escalada 101</a>
+        </div>
+      )}
       <!-- POP-UP DE VÍDEO: abre ao clicar num card de modalidade com data-video -->
       <div class="video-lightbox" id="video-lightbox" hidden>
         <button type="button" class="video-lightbox__fechar" id="video-lightbox-fechar" aria-label="Fechar vídeo">&times;</button>
