@@ -64,3 +64,85 @@
 
 /* Subtitulo que separa blocos dentro de um formulario (ex.: "Sobre a academia" / "Sobre voce") */
 .fc .fc-secao { margin: 10px 0 0; padding-bottom: 6px; border-bottom: 1px solid rgba(42, 31, 22, 0.15); font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: 0.04em; font-size: 1.05rem; color: var(--laranja); }
+
+/* ===================================================================
+   FormulÃ¡rio em blocos (padrÃ£o novo, 14/11/2026). Primeiro usado no
+   Desapego; serve pra academia, rota etc. O de guia (FormGuia) tem uma
+   cÃ³pia prÃ³pria com prefixo "fg-", feita antes deste padrÃ£o comum.
+   - .fc-bloco: <details> que abre e fecha, com status no tÃ­tulo
+   - .fc-rascunho / .fc-retomar: rascunho salvo no navegador
+   - .fc-janela: janelas "Visualizar" e "Revisar e enviar"
+   =================================================================== */
+.fc .fc-bloco { background: var(--branco); border: 1px solid rgba(42,31,22,.12); border-radius: 12px; overflow: hidden; }
+.fc .fc-bloco[open] { border-color: rgba(218,115,38,.45); box-shadow: 0 10px 24px -18px rgba(42,31,22,.5); }
+.fc .fc-bloco > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 16px 18px; user-select: none; }
+.fc .fc-bloco > summary::-webkit-details-marker { display: none; }
+.fc .fc-bloco > summary:focus-visible { outline: 2px solid var(--laranja); outline-offset: -2px; }
+.fc .fc-bloco-num { flex: 0 0 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--fonte-display); font-weight: 600; background: var(--creme-claro); color: var(--verde-escuro); }
+.fc .fc-bloco--completo .fc-bloco-num { background: var(--verde); color: #fff; }
+.fc .fc-bloco-tit { flex: 1; min-width: 0; }
+.fc .fc-bloco-tit strong { display: block; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: 1.05rem; color: var(--verde-escuro); font-weight: 600; }
+.fc .fc-bloco-tit small { display: block; font-size: .82rem; color: #6b5e4d; margin-top: 2px; }
+.fc .fc-bloco-status { font-size: .8rem; font-weight: 600; white-space: nowrap; color: #6b5e4d; }
+.fc .fc-bloco--completo .fc-bloco-status { color: var(--verde); }
+.fc .fc-bloco-seta { width: 10px; height: 10px; border-right: 2px solid var(--verde-escuro); border-bottom: 2px solid var(--verde-escuro); transform: rotate(45deg); transition: transform .2s; margin: 0 4px 4px 0; flex: 0 0 auto; }
+.fc .fc-bloco[open] .fc-bloco-seta { transform: rotate(-135deg); margin: 4px 4px 0 0; }
+.fc .fc-bloco-corpo { display: flex; flex-direction: column; gap: 18px; padding: 4px 18px 20px 66px; }
+.fc .fc-bloco-rodape { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 12px; border-top: 1px dashed rgba(42,31,22,.15); }
+.fc .fc-link { background: none; border: 0; padding: 0; color: var(--laranja); font: inherit; font-weight: 600; cursor: pointer; }
+.fc .fc-link:hover { text-decoration: underline; }
+.fc .fc-ver { background: transparent; border: 2px solid var(--verde-escuro); color: var(--verde-escuro); border-radius: var(--raio, 10px); padding: 7px 14px; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .04em; font-size: .82rem; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.fc .fc-ver:hover { background: var(--verde-escuro); color: var(--creme-claro); }
+.fc .fc-ver svg { width: 16px; height: 16px; }
+.fc .fc-info { background: var(--creme-claro); border-left: 4px solid var(--verde); border-radius: 0 8px 8px 0; padding: 10px 14px; font-size: .85rem; line-height: 1.5; }
+.fc .fc-info p { margin: 0 0 4px; font-weight: 600; color: var(--verde-escuro); }
+.fc .fc-info ul { margin: 0; padding-left: 18px; }
+.fc .fc-info li { margin: 2px 0; }
+.fc .fc-info strong { color: var(--verde-escuro); }
+.fc .fc-retomar { background: var(--branco); border-left: 4px solid var(--laranja); border-radius: 0 8px 8px 0; padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fc .fc-retomar p { margin: 0; flex: 1; min-width: 200px; font-size: .92rem; }
+.fc .fc-retomar .botao { padding: 8px 16px; font-size: .85rem; margin: 0; align-self: center; }
+.fc .fc-rascunho { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .85rem; color: #5f5344; }
+.fc .fc-rascunho-ponto { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); flex: 0 0 auto; }
+.fc .fc-rascunho--salvando .fc-rascunho-ponto { background: var(--amarelo); }
+.fc .fc-rascunho .fc-link { margin-left: auto; text-decoration: underline; font-weight: 400; }
+
+.fc-janela { border: 0; border-radius: 14px; width: min(480px, 94vw); max-height: 92vh; overflow: auto; padding: 22px; background: var(--creme-claro); color: var(--marrom); box-shadow: 0 30px 60px -20px rgba(0,0,0,.5); }
+.fc-janela::backdrop { background: rgba(42,31,22,.55); }
+.fc-janela h2 { margin: 0 0 8px; font-size: clamp(1.4rem, 5vw, 2rem); }
+.fc-janela-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.fc-janela-topo p { margin: 0; font-size: .85rem; color: #5f5344; }
+.fc-janela-fechar { background: none; border: 0; font-size: 1.6rem; line-height: 1; color: var(--verde-escuro); cursor: pointer; padding: 0 4px; }
+.fc-janela-intro { margin: 0 0 14px; font-size: .95rem; line-height: 1.5; }
+.fc-janela-rotulo { margin: 14px 0 8px; font-family: var(--fonte-display); text-transform: uppercase; letter-spacing: .05em; font-size: .78rem; color: var(--laranja); }
+.fc-janela-dica { margin: 12px 0 0; font-size: .82rem; color: #5f5344; text-align: center; }
+.fc-janela-caixa { background: #f1efe8; border-radius: 10px; padding: 14px 16px; margin: 14px 0; }
+.fc-janela-caixa h3 { font-size: 1rem; margin: 0 0 10px; }
+.fc-janela-caixa dl { margin: 0; display: grid; grid-template-columns: minmax(110px, 35%) 1fr; gap: 8px 14px; }
+.fc-janela-caixa dt { font-weight: 600; font-size: .88rem; }
+.fc-janela-caixa dd { margin: 0; font-size: .92rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fc-janela-caixa dd.fc-vazio { opacity: .5; font-style: italic; }
+.fc-janela-botoes { position: sticky; bottom: -22px; background: var(--creme-claro); display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 0 22px; margin: 0 0 -22px; border-top: 1px solid rgba(42,31,22,.12); }
+.fc-janela-botoes .botao { flex: 1 1 100%; text-align: center; margin: 0; }
+
+@media (max-width: 600px) {
+  .fc .fc-bloco > summary { padding: 14px; gap: 4px 10px; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; }
+  .fc .fc-bloco-num { flex-basis: 30px; height: 30px; grid-row: 1 / span 2; }
+  .fc .fc-bloco-tit { grid-column: 2; }
+  .fc .fc-bloco-status { grid-column: 2; grid-row: 2; font-size: .74rem; }
+  .fc .fc-bloco-seta { grid-column: 3; grid-row: 1 / span 2; }
+  .fc .fc-bloco-corpo { padding: 4px 14px 18px; }
+  .fc .fc-bloco-rodape .fc-ver { flex: 1 1 100%; justify-content: center; }
+  .fc-janela { padding: 18px; }
+  .fc-janela-botoes { bottom: -18px; margin-bottom: -18px; padding-bottom: 18px; }
+  .fc-janela-caixa dl { grid-template-columns: 1fr; gap: 2px; }
+  .fc-janela-caixa dd { margin-bottom: 8px; }
+}
+
+/* Aviso de erro logo abaixo do campo (formulÃ¡rios em blocos) */
+.fc .fc-erro { margin: 0; font-size: .85rem; font-weight: 600; color: #b4471b; line-height: 1.4; }
+.fc .fc-erro::before { content: "âš  "; }
+.fc .fc-campo--erro input:not([type="checkbox"]):not([type="radio"]),
+.fc .fc-campo--erro select,
+.fc .fc-campo--erro textarea { border-color: #da7326; box-shadow: 0 0 0 1px #da7326; }
+.fc .fd-aceite.fc-campo--erro { border-color: #da7326; box-shadow: 0 0 0 1px #da7326; }
