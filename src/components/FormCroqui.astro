@@ -115,6 +115,8 @@ for (const l of locais ?? []) {
   const form = document.getElementById('form-croqui') as HTMLFormElement | null;
   const status = document.getElementById('fq-status');
   const btn = document.getElementById('fq-enviar');
+  // Arquivos que já subiram nesta visita (nome|tamanho|data → caminho no Storage).
+  const arquivosEnviados = new Map<string, string>();
   const selLocal = document.getElementById('fq-local') as HTMLSelectElement | null;
   const selSetor = document.getElementById('fq-setor') as HTMLSelectElement | null;
   const campoLocalOutro = document.getElementById('fq-local-outro-campo');
@@ -180,16 +182,27 @@ for (const l of locais ?? []) {
     status.textContent = arquivos.length ? 'Enviando o arquivo... pode levar um minutinho.' : 'Enviando...';
 
     const caminhos: string[] = [];
-    for (const arquivo of arquivos) {
+    for (const [i, arquivo] of arquivos.entries()) {
+      // Se esse arquivo já subiu numa tentativa anterior (deu erro em outro
+      // arquivo ou no envio), reaproveita em vez de subir de novo. Antes cada
+      // nova tentativa deixava cópias soltas no Storage (14/11/2026).
+      const chave = `${arquivo.name}|${arquivo.size}|${arquivo.lastModified}`;
+      const jaEnviado = arquivosEnviados.get(chave);
+      if (jaEnviado) { caminhos.push(jaEnviado); continue; }
+      if (arquivos.length > 1) status.textContent = `Enviando o arquivo ${i + 1} de ${arquivos.length}... pode levar um minutinho.`;
       const caminho = nomeArquivoUnico(arquivo);
       // Alguns celulares mandam foto HEIC sem tipo; sem isso o upload é recusado.
       const tipo = arquivo.type || (/\.hei[cf]$/i.test(arquivo.name) ? 'image/heic' : 'application/pdf');
       const { error: erroUpload } = await supabase.storage.from('croquis-envios').upload(caminho, arquivo, { contentType: tipo });
       if (erroUpload) {
-        status.textContent = `Não conseguimos enviar "${arquivo.name}". Tente de novo ou mande um link.`;
+        console.error('Croqui (arquivo):', erroUpload);
+        status.textContent = caminhos.length
+          ? `Não conseguimos enviar "${arquivo.name}". Os anteriores já foram, é só clicar em enviar de novo (ou trocar esse arquivo por um link).`
+          : `Não conseguimos enviar "${arquivo.name}". Tente de novo ou mande um link.`;
         btn.removeAttribute('disabled');
         return;
       }
+      arquivosEnviados.set(chave, caminho);
       caminhos.push(caminho);
     }
 
@@ -208,10 +221,12 @@ for (const l of locais ?? []) {
     }]);
 
     if (error) {
+      console.error('Croqui:', error);
       status.textContent = 'Ops, algo deu errado. Tente novamente ou escreva para contato@climbeiros.com.br';
       btn.removeAttribute('disabled');
       return;
     }
+    arquivosEnviados.clear();
     form.reset();
     atualizarSetores();
     status.textContent = 'Recebemos seu croqui, valeu demais! A gente confere e cadastra as vias. 🧗';
