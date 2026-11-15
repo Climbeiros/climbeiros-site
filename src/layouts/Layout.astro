@@ -115,6 +115,23 @@ const jsonLdTexto = todosBlocos.length
           navigator.serviceWorker.register('/sw.js').catch(() => {});
         });
       }
+
+      // Links "← Voltar" com data-voltar: se a pessoa veio exatamente da página de
+      // destino (ex.: da lista de Rotas filtrada), volta pelo histórico, mantendo
+      // filtro e posição na lista. Se veio de outro lugar, segue o link normal.
+      document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[data-voltar]');
+        if (!a || e.metaKey || e.ctrlKey || e.shiftKey || history.length < 2) return;
+        try {
+          var de = new URL(document.referrer);
+          var pra = new URL(a.href);
+          var limpa = function (c) { return c.replace(/\/$/, ''); };
+          if (de.origin === location.origin && limpa(de.pathname) === limpa(pra.pathname)) {
+            e.preventDefault();
+            history.back();
+          }
+        } catch (_) { /* sem referrer: segue o link */ }
+      });
     </script>
   </body>
 </html>
