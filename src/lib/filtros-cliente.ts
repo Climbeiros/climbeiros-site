@@ -74,6 +74,33 @@ export function ativarBusca(o: Opcoes) {
         : '';
     }
     o.aoFiltrar?.(visiveis);
+    salvarNoEndereco(texto, uf, cidade);
+  }
+
+  // Filtros ficam no endereço da página (ex.: /rotas/?uf=RJ). Assim, ao voltar de
+  // um local, a lista volta filtrada, e dá pra mandar o link já filtrado (14/11/2026).
+  function salvarNoEndereco(texto: string, uf: string, cidade: string) {
+    try {
+      const url = new URL(window.location.href);
+      const p = url.searchParams;
+      const pares: [string, string][] = [['q', texto.trim()], ['uf', uf], ['cidade', cidade],
+        ...extras.map((f) => [f.campo, f.select!.value] as [string, string])];
+      for (const [chave, valor] of pares) { if (valor) p.set(chave, valor); else p.delete(chave); }
+      if (url.href !== window.location.href) history.replaceState(history.state, '', url);
+    } catch { /* navegador antigo: segue sem guardar */ }
+  }
+
+  function lerDoEndereco(): boolean {
+    const p = new URLSearchParams(window.location.search);
+    const escolher = (sel: HTMLSelectElement | null, valor: string | null) => {
+      if (sel && valor && Array.from(sel.options).some((op) => op.value === valor)) sel.value = valor;
+    };
+    escolher(o.filtroUf, p.get('uf'));
+    atualizarCidades();
+    escolher(o.filtroCidade, p.get('cidade'));
+    extras.forEach((f) => escolher(f.select, p.get(f.campo)));
+    if (o.campoBusca && p.get('q')) o.campoBusca.value = p.get('q')!;
+    return ['q', 'uf', 'cidade', ...extras.map((f) => f.campo)].some((k) => p.get(k));
   }
 
   // Se a pessoa digitou um CEP, descobre a cidade no ViaCEP antes de filtrar.
@@ -113,4 +140,6 @@ export function ativarBusca(o: Opcoes) {
     aplicar();
     o.campoBusca?.focus();
   });
+
+  if (lerDoEndereco()) aoDigitar();
 }
