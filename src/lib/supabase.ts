@@ -56,6 +56,8 @@ export type Local = {
   videos?: { label: string; url: string; autor?: string | null }[] | null;
   // true = mapeamento revisado e completo: esconde o aviso de "página em construção".
   pagina_completa?: boolean | null;
+  // Regras e boas práticas do local (seção "Antes de escalar", que abre e fecha).
+  boas_praticas?: { itens: string[]; fonte?: string | null } | null;
   // Mapa aéreo com a área de cada setor clicável (pontos: largura da imagem = 1000).
   mapa_setores?: {
     imagem_url: string;

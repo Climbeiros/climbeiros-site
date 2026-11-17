@@ -74,6 +74,10 @@ const mapaSetores = local?.mapa_setores
     }
   : null;
 
+// Com o mapa, a lista de setores fica recolhida (o mapa já leva a cada setor).
+const temMapaSetores = !!(mapaSetores && mapaSetores.areas.length > 0);
+const ListaEnvelope = temMapaSetores ? 'details' : 'div';
+
 const semLado = (setores ?? []).filter((s) => !s.lado);
 const nomesLados = [...new Set((setores ?? []).filter((s) => s.lado).map((s) => s.lado as string))];
 const lados = nomesLados.map((lado) => ({
@@ -280,7 +284,7 @@ const jsonLdLocal = local
                 </svg>
               </div>
               <figcaption>
-                Toque num setor no mapa pra abrir o croqui dele.
+                <strong>Toque num setor no mapa</strong> pra ver o croqui com as vias e todos os detalhes.
                 {mapaSetores.credito && <span class="mapa-setores__credito"> Imagem: {mapaSetores.credito}</span>}
               </figcaption>
             </figure>
@@ -290,47 +294,50 @@ const jsonLdLocal = local
             <p class="vazio">Ainda não temos setores cadastrados aqui. Tem o croqui? <a href="/contato?motivo=croqui">Envie pra gente</a> que a gente cadastra as vias.</p>
           )}
 
-          {lados.length > 0 ? (
-            <>
-              {lados.map((l) => (
-                <div class="lado-grupo">
-                  <h3>Lado {l.lado}</h3>
-                  <ul class="setores-lista">
-                    {l.setores.map((s) => (
-                      <li>
-                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
-                        {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
-                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-              {semLado.length > 0 && (
-                <div class="lado-grupo">
-                  <ul class="setores-lista">
-                    {semLado.map((s) => (
-                      <li>
-                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
-                        {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
-                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
-          ) : (
-            <ul class="setores-lista">
-              {semLado.map((s) => (
-                <li>
-                  <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
-                  {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
-                  {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
+          <ListaEnvelope class:list={[{ "setores-em-lista": temMapaSetores }]}>
+            {temMapaSetores && <summary>Ver os setores em lista</summary>}
+            {lados.length > 0 ? (
+              <>
+                {lados.map((l) => (
+                  <div class="lado-grupo">
+                    <h3>Lado {l.lado}</h3>
+                    <ul class="setores-lista">
+                      {l.setores.map((s) => (
+                        <li>
+                          <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                          {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
+                          {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+                {semLado.length > 0 && (
+                  <div class="lado-grupo">
+                    <ul class="setores-lista">
+                      {semLado.map((s) => (
+                        <li>
+                          <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                          {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
+                          {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            ) : (
+              <ul class="setores-lista">
+                {semLado.map((s) => (
+                  <li>
+                    <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                    {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
+                    {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ListaEnvelope>
         </div>
         )}
 
@@ -369,6 +376,16 @@ const jsonLdLocal = local
             </div>
             <p class="previsao__fonte">Dados: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>. Na seca (a melhor época pra maioria dos setores) chove menos, mas vale sempre conferir antes de ir.</p>
           </div>
+        )}
+
+        {local.boas_praticas && local.boas_praticas.itens.length > 0 && (
+          <details class="bloco bloco--recolhivel">
+            <summary class="bloco__titulo"><h2>Antes de escalar</h2><span class="bloco__contagem">regras do local</span></summary>
+            <ul class="boas-praticas">
+              {local.boas_praticas.itens.map((item) => <li>{item}</li>)}
+            </ul>
+            {local.boas_praticas.fonte && <p class="boas-praticas__fonte">Fonte: {local.boas_praticas.fonte}</p>}
+          </details>
         )}
 
         <details class="bloco bloco--recolhivel">
@@ -900,7 +917,14 @@ const jsonLdLocal = local
   .videos-lista li { background: var(--creme-claro); border-radius: 8px; padding: 12px 14px; }
   .videos-lista__link { font-weight: 600; color: var(--verde-escuro); }
   .videos-lista__autor { display: block; margin-top: 2px; font-size: 0.85rem; opacity: 0.75; }
-  .mapa-setores { margin: 0 0 18px; }
+  .boas-praticas { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 0.92rem; }
+  .boas-praticas li::marker { color: var(--laranja); }
+  .boas-praticas__fonte { margin: 12px 0 0; font-size: 0.78rem; opacity: 0.7; }
+  .mapa-setores { margin: 0 0 12px; }
+  /* :global porque o envelope da lista é uma tag dinâmica (details ou div) */
+  :global(.setores-em-lista) { font-size: 0.9rem; }
+  :global(.setores-em-lista > summary) { cursor: pointer; color: var(--verde-escuro); font-weight: 600; padding: 6px 0; }
+  :global(.setores-em-lista[open] > summary) { margin-bottom: 10px; }
   .mapa-setores__quadro { position: relative; line-height: 0; border-radius: 10px; overflow: hidden; box-shadow: var(--sombra); }
   .mapa-setores__quadro img { display: block; width: 100%; height: auto; }
   .mapa-setores__quadro svg { position: absolute; inset: 0; width: 100%; height: 100%; }
