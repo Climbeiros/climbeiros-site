@@ -207,7 +207,7 @@ const jsonLdLocal = local
         </div>
         <p class="local-detalhe__local">{[local.regiao, local.cidade, local.estado].filter(Boolean).join(' · ')}</p>
 
-        <AvisoConstrucao />
+        {!local.croqui_so_externo && <AvisoConstrucao />}
 
         {local.tipos && local.tipos.length > 0 && (
           <div class="local-detalhe__tags">
@@ -220,7 +220,6 @@ const jsonLdLocal = local
         {local.croqui_so_externo && (
           <div class="bloco">
             <h2>Vias e croqui</h2>
-            <p class="croqui-externo__aviso">As vias e os setores daqui não ficam no Climbeiros: o croqui completo está no guia abaixo. Aqui você encontra como chegar, previsão do tempo, onde ficar e guias que atuam na região.</p>
             {local.guia_recomendado && <p class="guia-recomendado">📖 {local.guia_recomendado}</p>}
             {local.croqui_referencias && local.croqui_referencias.length > 0 && (
               <ul class="croqui-referencias">
@@ -286,6 +285,20 @@ const jsonLdLocal = local
             </ul>
           )}
         </div>
+        )}
+
+        {local.videos && local.videos.length > 0 && (
+          <div class="bloco">
+            <h2>Dica de quem já foi</h2>
+            <ul class="videos-lista">
+              {local.videos.map((v) => (
+                <li>
+                  <a href={v.url} target="_blank" rel="noopener" class="videos-lista__link">▶ {v.label}</a>
+                  {v.autor && <span class="videos-lista__autor">por {v.autor}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {(local.como_chegar || navegacao) && (
@@ -834,7 +847,10 @@ const jsonLdLocal = local
   .setores-lista li { background: var(--creme-claro); border-radius: 8px; padding: 12px 14px; }
   .setores-lista__link { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.95rem; color: var(--verde-escuro); text-decoration: none; }
   .setores-lista__link:hover { text-decoration: underline; }
-  .croqui-externo__aviso { margin: 0 0 12px; }
+  .videos-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .videos-lista li { background: var(--creme-claro); border-radius: 8px; padding: 12px 14px; }
+  .videos-lista__link { font-weight: 600; color: var(--verde-escuro); }
+  .videos-lista__autor { display: block; margin-top: 2px; font-size: 0.85rem; opacity: 0.75; }
   .setores-lista__resumo { display: block; margin-top: 2px; font-size: 0.82rem; font-weight: 600; color: var(--laranja); }
   .setores-resumo { margin: -4px 0 14px; font-size: 0.9rem; opacity: 0.8; }
   .navegacao { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }

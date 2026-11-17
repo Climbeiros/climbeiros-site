@@ -36,6 +36,8 @@ function rotasDoLocal(localId: string) {
 // Selo do card: "168 vias · 3º a 9º A · 15 setores", "4 setores · vias em breve"
 // ou "Em mapeamento" (local cadastrado, mas ainda sem setores).
 function seloDoLocal(localId: string) {
+  const local = (locais ?? []).find((l) => l.id === localId);
+  if (local?.croqui_so_externo) return { completo: false, texto: '📖 Croqui no guia da região' };
   const nSetores = setoresDoLocal(localId).length;
   const vias = rotasDoLocal(localId);
   const textoSetores = nSetores ? `${nSetores} ${nSetores === 1 ? 'setor' : 'setores'}` : '';

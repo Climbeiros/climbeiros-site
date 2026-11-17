@@ -52,6 +52,8 @@ export type Local = {
   croqui_referencias: { label: string; url: string }[] | null;
   // true = o site não lista setores/vias daqui; só informações gerais + link pro guia (ex: Serra do Cipó).
   croqui_so_externo?: boolean | null;
+  // Vídeos de quem já escalou aqui (com autorização de quem publicou).
+  videos?: { label: string; url: string; autor?: string | null }[] | null;
 };
 
 export type Setor = {
