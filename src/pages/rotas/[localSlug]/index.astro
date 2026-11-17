@@ -61,6 +61,19 @@ const pdfLocal = [
   ...(local?.croqui_referencias ?? []).map((c) => c.url).filter((u) => /\.pdf($|[?#])/i.test(u)),
 ].find(Boolean) ?? null;
 
+// Mapa dos setores (imagem aérea com cada setor clicável), quando o local tiver.
+const nomeCurto = (nome: string) => (local ? nome.replace(new RegExp(`^${local.nome}\\s*[-–]\\s*`, 'i'), '') : nome);
+const mapaSetores = local?.mapa_setores
+  ? {
+      ...local.mapa_setores,
+      alturaVB: Math.round((1000 * local.mapa_setores.altura) / local.mapa_setores.largura),
+      areas: local.mapa_setores.areas
+        .map((a) => ({ ...a, setor: (setores ?? []).find((s) => s.slug === a.slug) }))
+        .filter((a) => a.setor && a.pontos.length > 2)
+        .map((a) => ({ ...a, nome: nomeCurto(a.setor!.nome), d: a.pontos.map((p) => p.join(',')).join(' ') })),
+    }
+  : null;
+
 const semLado = (setores ?? []).filter((s) => !s.lado);
 const nomesLados = [...new Set((setores ?? []).filter((s) => s.lado).map((s) => s.lado as string))];
 const lados = nomesLados.map((lado) => ({
@@ -252,6 +265,26 @@ const jsonLdLocal = local
         <div class="bloco">
           <h2>Setores</h2>
           {resumoLocal && idsSetores.length > 1 && <p class="setores-resumo">{resumoLocal} no total</p>}
+
+          {mapaSetores && mapaSetores.areas.length > 0 && (
+            <figure class="mapa-setores">
+              <div class="mapa-setores__quadro">
+                <img src={mapaSetores.imagem_url} alt={`Vista aérea de ${local.nome} com a localização de cada setor`} width={mapaSetores.largura} height={mapaSetores.altura} loading="lazy" />
+                <svg viewBox={`0 0 1000 ${mapaSetores.alturaVB}`} preserveAspectRatio="none">
+                  {mapaSetores.areas.map((a) => (
+                    <a href={`/rotas/${local.slug}/${a.slug}`} aria-label={`Abrir o setor ${a.nome}`}>
+                      <title>{a.nome}</title>
+                      <polygon points={a.d} class="mapa-setores__area"></polygon>
+                    </a>
+                  ))}
+                </svg>
+              </div>
+              <figcaption>
+                Toque num setor no mapa pra abrir o croqui dele.
+                {mapaSetores.credito && <span class="mapa-setores__credito"> Imagem: {mapaSetores.credito}</span>}
+              </figcaption>
+            </figure>
+          )}
 
           {(!setores || setores.length === 0) && (
             <p class="vazio">Ainda não temos setores cadastrados aqui. Tem o croqui? <a href="/contato?motivo=croqui">Envie pra gente</a> que a gente cadastra as vias.</p>
@@ -867,6 +900,16 @@ const jsonLdLocal = local
   .videos-lista li { background: var(--creme-claro); border-radius: 8px; padding: 12px 14px; }
   .videos-lista__link { font-weight: 600; color: var(--verde-escuro); }
   .videos-lista__autor { display: block; margin-top: 2px; font-size: 0.85rem; opacity: 0.75; }
+  .mapa-setores { margin: 0 0 18px; }
+  .mapa-setores__quadro { position: relative; line-height: 0; border-radius: 10px; overflow: hidden; box-shadow: var(--sombra); }
+  .mapa-setores__quadro img { display: block; width: 100%; height: auto; }
+  .mapa-setores__quadro svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .mapa-setores__area { fill: transparent; stroke: transparent; stroke-width: 3; cursor: pointer; transition: fill 0.15s, stroke 0.15s; }
+  .mapa-setores a:hover .mapa-setores__area,
+  .mapa-setores a:focus-visible .mapa-setores__area { fill: rgba(255, 253, 247, 0.28); stroke: #fffdf7; }
+  .mapa-setores a { outline: none; }
+  .mapa-setores figcaption { margin-top: 8px; font-size: 0.85rem; opacity: 0.8; line-height: 1.4; }
+  .mapa-setores__credito { display: block; font-size: 0.78rem; opacity: 0.85; margin-top: 2px; }
   .setores-lista__resumo { display: block; margin-top: 2px; font-size: 0.82rem; font-weight: 600; color: var(--laranja); }
   .setores-resumo { margin: -4px 0 14px; font-size: 0.9rem; opacity: 0.8; }
   .navegacao { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
