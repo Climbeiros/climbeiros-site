@@ -128,6 +128,29 @@ export type Rota = {
   descricao: string | null;
 };
 
+// Croqui padrão Climbeiros: foto do paredão + traçado de cada via por cima.
+export type CroquiFoto = {
+  id: string;
+  setor_id: string;
+  titulo: string | null;
+  imagem_url: string;
+  largura: number;
+  altura: number;
+  ordem: number;
+  credito: string | null;
+  pdf_url: string | null;
+  pdf_pagina: number | null;
+};
+
+// pontos: [[x, y], ...] numa escala em que a largura da foto vale 1000.
+// O primeiro ponto é a base (onde a via começa).
+export type CroquiLinha = {
+  id: string;
+  foto_id: string;
+  rota_id: string;
+  pontos: [number, number][];
+};
+
 export type Artigo = {
   id: string;
   titulo: string;

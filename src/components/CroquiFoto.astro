@@ -1,0 +1,341 @@
+---
+// src/components/CroquiFoto.astro
+// Croqui padrão Climbeiros: foto do paredão com o traçado de cada via por cima
+// (cor = dificuldade, número na base, bolinhas da parada no topo). Tocar numa
+// via destaca ela na foto e na lista (ListaVias, que fica logo abaixo na página
+// do setor) e mostra uma ficha com os detalhes. Os dados vêm das tabelas
+// croqui_fotos e croqui_linhas (pontos numa escala em que a largura da foto = 1000).
+import type { CroquiFoto, CroquiLinha, Rota } from '../lib/supabase';
+import { FAIXAS_GRAU, faixaGrau } from '../lib/graus';
+
+interface Props {
+  fotos: CroquiFoto[];
+  linhas: CroquiLinha[];
+  rotas: Rota[];
+}
+
+const { fotos, linhas, rotas } = Astro.props;
+const porId = new Map(rotas.map((r) => [r.id, r]));
+
+// Caminho suave passando pelos pontos (curvas entre os pontos médios).
+function caminho(pts: [number, number][]): string {
+  if (pts.length === 0) return '';
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1];
+    const [x1, y1] = pts[i];
+    const mx = (x0 + x1) / 2;
+    const my = (y0 + y1) / 2;
+    d += i === 1 ? ` L ${mx} ${my}` : ` Q ${x0} ${y0} ${mx} ${my}`;
+  }
+  const u = pts[pts.length - 1];
+  return `${d} L ${u[0]} ${u[1]}`;
+}
+
+const nomeTipo: Record<string, string> = {
+  esportiva: 'Esportiva', trad: 'Tradicional', mista: 'Mista', artificial: 'Artificial', boulder: 'Boulder', top_rope: 'Top rope',
+};
+
+const fotosDesenhadas = [...fotos]
+  .sort((a, b) => a.ordem - b.ordem)
+  .map((f) => {
+    const altura = Math.round((1000 * f.altura) / f.largura);
+    const vias = linhas
+      .filter((l) => l.foto_id === f.id && porId.has(l.rota_id) && l.pontos?.length > 1)
+      .map((l) => {
+        const r = porId.get(l.rota_id)!;
+        const faixa = faixaGrau(r.grau, r.tipo);
+        const base = l.pontos[0];
+        const topo = l.pontos[l.pontos.length - 1];
+        return {
+          rotaId: r.id,
+          numero: r.numero ?? '',
+          nome: r.nome,
+          grau: r.grau ?? '?',
+          faixa,
+          d: caminho(l.pontos),
+          // número um pouco acima da base, pra não ser cortado na borda da foto
+          base: [base[0], Math.min(base[1], altura - 14)] as [number, number],
+          topo,
+        };
+      });
+    return { ...f, altura, vias };
+  })
+  .filter((f) => f.vias.length > 0);
+
+// Faixas de dificuldade que existem neste setor (pros botões de filtro)
+const idsDesenhados = new Set(fotosDesenhadas.flatMap((f) => f.vias.map((v) => v.rotaId)));
+const faixasPresentes = FAIXAS_GRAU.filter((fx) =>
+  rotas.some((r) => idsDesenhados.has(r.id) && faixaGrau(r.grau, r.tipo).id === fx.id),
+);
+
+// Dados de cada via pra ficha que aparece ao tocar (lidos pelo script abaixo)
+const fichas = Object.fromEntries(
+  rotas
+    .filter((r) => idsDesenhados.has(r.id))
+    .map((r) => {
+      const meta: string[] = [];
+      if (r.tipo && nomeTipo[r.tipo]) meta.push(nomeTipo[r.tipo]);
+      if (r.chapas != null) meta.push(`${r.chapas} ${r.chapas === 1 ? 'chapa' : 'chapas'}${r.paradas ? ' + parada' : ''}`);
+      if (r.altura_m != null) meta.push(`${String(r.altura_m).replace('.', ',')} m`);
+      const fx = faixaGrau(r.grau, r.tipo);
+      return [r.id, { n: r.numero ?? '', nome: r.nome, grau: r.grau ?? '', meta: meta.join(' · '), conq: r.conquistadores ?? '', cor: fx.cor, texto: fx.texto, faixa: fx.id }];
+    }),
+);
+
+const pdf = fotos.find((f) => f.pdf_url);
+const creditos = [...new Set(fotos.map((f) => f.credito).filter(Boolean))] as string[];
+---
+{fotosDesenhadas.length > 0 && (
+  <div class="croqui-foto" data-croqui>
+    <details class="croqui-legenda">
+      <summary>Como ler este croqui</summary>
+      <div class="croqui-legenda__corpo">
+        <div>
+          <p class="croqui-legenda__titulo">Cor da linha = dificuldade (graduação brasileira)</p>
+          <div class="croqui-legenda__cores">
+            {FAIXAS_GRAU.slice(0, 7).map((fx) => (
+              <span class="croqui-legenda__cor"><i style={`background: ${fx.cor}`}></i>{fx.rotulo}</span>
+            ))}
+          </div>
+        </div>
+        <ul class="croqui-legenda__simbolos">
+          <li>
+            <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="11" fill="#d62828" stroke="#2a1f16" stroke-width="2.5"></circle><text x="15" y="16" text-anchor="middle" dominant-baseline="central" font-family="Oswald, sans-serif" font-weight="700" font-size="12" fill="#fff">3</text></svg>
+            Número da via, no ponto onde ela começa
+          </li>
+          <li>
+            <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><line x1="5" y1="25" x2="25" y2="5" stroke="#2a1f16" stroke-width="7" stroke-linecap="round"></line><line x1="5" y1="25" x2="25" y2="5" stroke="#d62828" stroke-width="3.5" stroke-linecap="round"></line></svg>
+            Trajeto da via
+          </li>
+          <li>
+            <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="10" cy="15" r="5" fill="#fffdf7" stroke="#2a1f16" stroke-width="2"></circle><circle cx="20" cy="15" r="5" fill="#fffdf7" stroke="#2a1f16" stroke-width="2"></circle></svg>
+            Parada (fim da via)
+          </li>
+        </ul>
+        <p class="croqui-legenda__nota">“13 chapas + parada” = 13 proteções fixas no caminho e mais as da parada. Toque numa via na foto ou na lista pra ver os detalhes.</p>
+      </div>
+    </details>
+
+    {faixasPresentes.length > 1 && (
+      <div class="croqui-filtros" role="group" aria-label="Filtrar vias por dificuldade">
+        <span>Mostrar:</span>
+        <button type="button" class="croqui-filtro" data-filtro="todas" aria-pressed="true">Todas</button>
+        {faixasPresentes.map((fx) => (
+          <button type="button" class="croqui-filtro" data-filtro={fx.id} aria-pressed="false">
+            <i style={`background: ${fx.cor}`}></i>{fx.rotulo}
+          </button>
+        ))}
+      </div>
+    )}
+
+    {fotosDesenhadas.map((f) => (
+      <figure class="croqui-foto__figura">
+        {f.titulo && <figcaption class="croqui-foto__titulo">{f.titulo}</figcaption>}
+        <div class="croqui-foto__rolagem">
+          <div class="croqui-foto__quadro">
+            <img src={f.imagem_url} alt={`Foto do paredão${f.titulo ? ` (${f.titulo})` : ''} com o traçado das vias`} width={f.largura} height={f.altura} loading="lazy" />
+            <svg viewBox={`0 0 1000 ${f.altura}`} preserveAspectRatio="none" role="img" aria-label="Traçado das vias sobre a foto">
+              {f.vias.map((v) => (
+                <g class="croqui-via" data-rota-id={v.rotaId} data-faixa={v.faixa.id} tabindex="0" role="button" aria-label={`Via ${v.numero}, ${v.nome}, ${v.grau}`}>
+                  <path class="croqui-via__alvo" d={v.d}></path>
+                  <path class="croqui-via__contorno" d={v.d}></path>
+                  <path class="croqui-via__traco" d={v.d} stroke={v.faixa.cor}></path>
+                  <circle cx={v.topo[0] - 6} cy={v.topo[1]} r="4.5" class="croqui-via__parada"></circle>
+                  <circle cx={v.topo[0] + 6} cy={v.topo[1]} r="4.5" class="croqui-via__parada"></circle>
+                  <circle cx={v.base[0]} cy={v.base[1]} r={v.numero.length > 2 ? 15 : 12.5} fill={v.faixa.cor} class="croqui-via__bola"></circle>
+                  <text x={v.base[0]} y={v.base[1] + 1} fill={v.faixa.texto} font-size={v.numero.length > 2 ? 11 : 14}>{v.numero}</text>
+                </g>
+              ))}
+            </svg>
+          </div>
+        </div>
+      </figure>
+    ))}
+    <p class="croqui-foto__dica">Arraste a foto pro lado pra ver o paredão inteiro.</p>
+
+    <p class="croqui-foto__aviso">
+      <strong>Atenção:</strong> o traçado das vias na foto é uma reprodução do croqui original e pode ter pequenas diferenças.
+      {pdf?.pdf_url ? (
+        <>As informações completas estão no <a href={`${pdf.pdf_url}${pdf.pdf_pagina ? `#page=${pdf.pdf_pagina}` : ''}`} target="_blank" rel="noopener">croqui original em PDF ↗</a>. </>
+      ) : null}
+      Na dúvida, siga sempre o croqui dos autores.
+    </p>
+
+    <div class="croqui-foto__ficha croqui-foto__ficha--vazia" data-ficha aria-live="polite">
+      Toque numa via na foto ou na lista pra ver os detalhes.
+    </div>
+
+    {creditos.map((c) => <p class="croqui-foto__credito">Croqui: {c}</p>)}
+  </div>
+)}
+
+<script type="application/json" data-croqui-fichas set:html={JSON.stringify(fichas)}></script>
+
+<script>
+  function iniciarCroqui() {
+    const raiz = document.querySelector<HTMLElement>('[data-croqui]');
+    if (!raiz) return;
+    const fichas = JSON.parse(document.querySelector('[data-croqui-fichas]')?.textContent || '{}');
+    const ficha = raiz.querySelector<HTMLElement>('[data-ficha]')!;
+    const linhas = Array.from(raiz.querySelectorAll<SVGGElement>('.croqui-via'));
+    const itensLista = Array.from(document.querySelectorAll<HTMLElement>('li[data-rota-id]'))
+      .filter((li) => fichas[li.dataset.rotaId!]);
+    let ativa: string | null = null;
+    let filtro = 'todas';
+
+    const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+    function aplicar() {
+      raiz!.querySelectorAll<HTMLButtonElement>('.croqui-filtro').forEach((b) =>
+        b.setAttribute('aria-pressed', String(b.dataset.filtro === filtro)));
+      if (ativa && filtro !== 'todas' && fichas[ativa]?.faixa !== filtro) ativa = null;
+
+      linhas.forEach((g) => {
+        const id = g.dataset.rotaId!;
+        const visivel = filtro === 'todas' || g.dataset.faixa === filtro;
+        g.style.display = visivel ? '' : 'none';
+        g.classList.toggle('croqui-via--ativa', ativa === id);
+        g.classList.toggle('croqui-via--apagada', ativa !== null && ativa !== id);
+        if (ativa === id) g.parentNode?.appendChild(g); // traz pra frente
+      });
+      itensLista.forEach((li) => {
+        const id = li.dataset.rotaId!;
+        const visivel = filtro === 'todas' || fichas[id]?.faixa === filtro;
+        li.style.display = visivel ? '' : 'none';
+        li.classList.toggle('via--ativa', ativa === id);
+      });
+
+      const f = ativa ? fichas[ativa] : null;
+      if (!f) {
+        ficha.className = 'croqui-foto__ficha croqui-foto__ficha--vazia';
+        ficha.textContent = 'Toque numa via na foto ou na lista pra ver os detalhes.';
+        return;
+      }
+      ficha.className = 'croqui-foto__ficha';
+      ficha.innerHTML = `
+        <span class="croqui-foto__ficha-num" style="background:${f.cor};color:${f.texto}">${esc(f.n)}</span>
+        <div>
+          <p class="croqui-foto__ficha-nome">${esc(f.nome)}</p>
+          ${f.meta ? `<p class="croqui-foto__ficha-meta">${esc(f.meta)}</p>` : ''}
+          ${f.conq ? `<p class="croqui-foto__ficha-conq">Conquistadores: ${esc(f.conq)}</p>` : ''}
+        </div>
+        <span class="croqui-foto__ficha-grau">${esc(f.grau)}</span>`;
+    }
+
+    function selecionar(id: string) {
+      ativa = ativa === id ? null : id;
+      aplicar();
+    }
+
+    linhas.forEach((g) => {
+      g.addEventListener('click', () => selecionar(g.dataset.rotaId!));
+      g.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selecionar(g.dataset.rotaId!); }
+      });
+    });
+    itensLista.forEach((li) => {
+      li.classList.add('via--clicavel');
+      li.setAttribute('tabindex', '0');
+      const ir = () => {
+        selecionar(li.dataset.rotaId!);
+        if (ativa) {
+          const linha = raiz!.querySelector(`.croqui-via[data-rota-id="${li.dataset.rotaId}"]`);
+          (linha?.closest('figure') ?? raiz)!.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      };
+      li.addEventListener('click', ir);
+      li.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ir(); } });
+    });
+    raiz.querySelectorAll<HTMLButtonElement>('.croqui-filtro').forEach((b) =>
+      b.addEventListener('click', () => { filtro = b.dataset.filtro || 'todas'; aplicar(); }));
+
+    aplicar();
+  }
+  iniciarCroqui();
+</script>
+
+<style>
+  .croqui-foto { margin-top: 4px; }
+
+  .croqui-legenda { background: var(--creme-claro); border-radius: 10px; padding: 0 14px; margin-bottom: 14px; }
+  .croqui-legenda summary {
+    cursor: pointer; list-style: none; padding: 12px 0; display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.95rem; color: var(--verde-escuro);
+  }
+  .croqui-legenda summary::-webkit-details-marker { display: none; }
+  .croqui-legenda summary::after { content: '+'; font-size: 1.2rem; }
+  .croqui-legenda[open] summary::after { content: '−'; }
+  .croqui-legenda__corpo { display: grid; gap: 14px; padding-bottom: 14px; }
+  .croqui-legenda__titulo { margin: 0 0 8px; font-size: 0.88rem; font-weight: 600; }
+  .croqui-legenda__cores { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .croqui-legenda__cor { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; }
+  .croqui-legenda__cor i { display: inline-block; width: 24px; height: 7px; border-radius: 4px; border: 1px solid rgba(42, 31, 22, 0.25); }
+  .croqui-legenda__simbolos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 0.88rem; }
+  .croqui-legenda__simbolos li { display: flex; align-items: center; gap: 10px; }
+  .croqui-legenda__simbolos svg { flex: 0 0 auto; }
+  .croqui-legenda__nota { margin: 0; font-size: 0.82rem; opacity: 0.8; }
+
+  .croqui-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+  .croqui-filtros span { font-size: 0.85rem; opacity: 0.75; }
+  .croqui-filtro {
+    font: inherit; font-size: 0.85rem; font-weight: 600; min-height: 38px; padding: 4px 12px; border-radius: 999px; cursor: pointer;
+    border: 2px solid rgba(42, 31, 22, 0.15); background: var(--branco); color: var(--marrom);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .croqui-filtro i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; border: 1px solid rgba(42, 31, 22, 0.3); }
+  .croqui-filtro[aria-pressed='true'] { background: var(--verde-escuro); border-color: var(--verde-escuro); color: var(--branco); }
+
+  .croqui-foto__figura { margin: 0 0 14px; }
+  .croqui-foto__titulo {
+    font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.85rem; color: var(--marrom); opacity: 0.8; margin-bottom: 6px;
+  }
+  .croqui-foto__rolagem { overflow-x: auto; border-radius: 10px; box-shadow: var(--sombra); -webkit-overflow-scrolling: touch; }
+  .croqui-foto__quadro { position: relative; min-width: 680px; line-height: 0; background: #555; }
+  .croqui-foto__quadro img { display: block; width: 100%; height: auto; }
+  .croqui-foto__quadro svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .croqui-via { cursor: pointer; transition: opacity 0.2s; outline: none; }
+  .croqui-via path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .croqui-via__alvo { stroke: transparent; stroke-width: 24; }
+  .croqui-via__contorno { stroke: rgba(20, 14, 8, 0.85); stroke-width: 7.5; }
+  .croqui-via__traco { stroke-width: 4; }
+  .croqui-via__parada { fill: #fffdf7; stroke: #2a1f16; stroke-width: 2; }
+  .croqui-via__bola { stroke: #2a1f16; stroke-width: 2.5; }
+  .croqui-via text {
+    font-family: var(--fonte-display); font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none;
+  }
+  .croqui-via--apagada { opacity: 0.2; }
+  .croqui-via--ativa .croqui-via__contorno { stroke-width: 11; }
+  .croqui-via--ativa .croqui-via__traco { stroke-width: 6.5; }
+  .croqui-via:focus-visible .croqui-via__contorno { stroke: var(--laranja); }
+
+  .croqui-foto__dica { display: none; margin: -6px 0 10px; font-size: 0.8rem; opacity: 0.7; }
+  @media (max-width: 720px) { .croqui-foto__dica { display: block; } }
+
+  .croqui-foto__aviso {
+    margin: 4px 0 12px; padding: 12px 14px; border-radius: 10px; font-size: 0.86rem; line-height: 1.45;
+    background: #fbeee0; border: 1px solid rgba(218, 115, 38, 0.45);
+  }
+  .croqui-foto__aviso strong { color: #a04e12; }
+
+  .croqui-foto__ficha {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start;
+    background: var(--creme-claro); border-radius: 10px; padding: 14px 16px; min-height: 64px;
+  }
+  .croqui-foto__ficha--vazia { display: block; font-size: 0.9rem; opacity: 0.85; }
+  .croqui-foto__credito { margin: 10px 0 0; font-size: 0.78rem; opacity: 0.7; }
+</style>
+
+<style is:global>
+  /* elementos da ficha são criados pelo script, então os estilos ficam globais */
+  .croqui-foto__ficha-num {
+    display: inline-flex; align-items: center; justify-content: center; min-width: 2.2rem; height: 2.2rem; padding: 0 4px;
+    border-radius: 999px; border: 2px solid var(--marrom); font-family: var(--fonte-display); font-weight: 700; font-size: 0.9rem;
+  }
+  .croqui-foto__ficha p { margin: 0; }
+  .croqui-foto__ficha-nome { font-family: var(--fonte-display); text-transform: uppercase; font-size: 1.1rem; color: var(--verde-escuro); }
+  .croqui-foto__ficha-meta { font-size: 0.88rem; margin-top: 2px !important; }
+  .croqui-foto__ficha-conq { font-size: 0.8rem; opacity: 0.75; margin-top: 4px !important; }
+  .croqui-foto__ficha-grau { font-family: var(--fonte-display); font-size: 1.25rem; white-space: nowrap; }
+</style>

@@ -57,6 +57,30 @@ export function resumoVias(rotas: ViaResumo[]): string | null {
   return f ? `${c} · ${f}` : c;
 }
 
+// Cores por dificuldade (mesma legenda do guia da Pedreira do Dib), usadas no
+// croqui sobre foto e na lista de vias. "texto" é a cor do número em cima da cor.
+export const FAIXAS_GRAU = [
+  { id: '4', rotulo: 'até 4º', cor: '#f2d21b', texto: '#2a1f16' },
+  { id: '5', rotulo: '5º', cor: '#f6b950', texto: '#2a1f16' },
+  { id: '6', rotulo: '6º', cor: '#5e9e3f', texto: '#ffffff' },
+  { id: '7', rotulo: '7º', cor: '#d62828', texto: '#ffffff' },
+  { id: '8', rotulo: '8º', cor: '#1c8fd6', texto: '#ffffff' },
+  { id: '9', rotulo: '9º ou mais', cor: '#7b3fa0', texto: '#ffffff' },
+  { id: 'A', rotulo: 'Artificial', cor: '#9a9a9a', texto: '#2a1f16' },
+  { id: '?', rotulo: 'Sem grau', cor: '#fffdf7', texto: '#2a1f16' },
+] as const;
+export type FaixaGrau = (typeof FAIXAS_GRAU)[number];
+
+export function faixaGrau(grau: string | null, tipo?: string | null): FaixaGrau {
+  const g = (grau ?? '').trim().toUpperCase();
+  if (tipo === 'artificial' || /^A\d/.test(g)) return FAIXAS_GRAU[6];
+  const n = parseInt(g, 10);
+  if (!n) return FAIXAS_GRAU[7];
+  if (n <= 4) return FAIXAS_GRAU[0];
+  if (n >= 9) return FAIXAS_GRAU[5];
+  return FAIXAS_GRAU[n - 4];
+}
+
 // Links pra abrir a rota até o lugar no celular.
 export function linksNavegacao(lat: number | null, lon: number | null) {
   if (lat == null || lon == null) return null;

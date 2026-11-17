@@ -5,6 +5,7 @@
 // pra reaproveitar em outros lugares. Pensado pro celular primeiro: cada via
 // é um cartão em linha (número · nome e detalhes · grau), sem tabela larga.
 import type { Rota, Bloco } from '../lib/supabase';
+import { faixaGrau } from '../lib/graus';
 
 interface Props {
   rotas: Rota[];
@@ -78,8 +79,13 @@ const grupos = [
             const pai = r.variante_de ? porId.get(r.variante_de) : undefined;
             const d = detalhes(r);
             const est = estrelas(r.estrelas);
+            const faixa = faixaGrau(r.grau, r.tipo);
             return (
-              <li class:list={['via', { 'via--variante': !!r.variante_de, 'via--inativa': r.situacao === 'quebrada' }]}>
+              <li
+                class:list={['via', { 'via--variante': !!r.variante_de, 'via--inativa': r.situacao === 'quebrada' }]}
+                data-rota-id={r.id}
+                style={`--faixa: ${faixa.cor}; --faixa-texto: ${faixa.texto}`}
+              >
                 <span class="via__num" aria-label={r.numero ? `Número ${r.numero} no croqui` : undefined}>{r.numero ?? '·'}</span>
                 <div class="via__corpo">
                   <p class="via__nome">
@@ -127,15 +133,22 @@ const grupos = [
 
   .via {
     display: grid; grid-template-columns: 2.1rem 1fr auto; gap: 12px; align-items: start;
-    background: var(--creme-claro); border-radius: 8px; padding: 12px 14px;
+    background: var(--creme-claro); border-radius: 8px; padding: 12px 14px 12px 18px;
+    position: relative; overflow: hidden;
   }
+  /* faixa colorida na lateral = dificuldade (mesma cor da linha no croqui) */
+  .via::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--faixa, transparent); }
+  .via--ativa { outline: 3px solid var(--verde-escuro); outline-offset: -3px; }
+  .via--clicavel { cursor: pointer; }
+  .via--clicavel:hover { background: #ead9a0; }
   .via--variante { margin-left: 1.4rem; background: rgba(240, 226, 178, 0.55); }
   .via--inativa { opacity: 0.6; }
 
   .via__num {
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 2.1rem; height: 2.1rem; padding: 0 4px; border-radius: 999px;
-    background: var(--verde-escuro); color: var(--branco);
+    background: var(--faixa, var(--verde-escuro)); color: var(--faixa-texto, var(--branco));
+    border: 2px solid var(--marrom);
     font-family: var(--fonte-display); font-size: 0.85rem; line-height: 1;
   }
   .via__corpo { min-width: 0; }
