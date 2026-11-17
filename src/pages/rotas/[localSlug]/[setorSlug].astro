@@ -63,6 +63,10 @@ const idsFotos = (fotosCroqui ?? []).map((f) => f.id);
 const { data: linhasCroqui } = idsFotos.length
   ? await supabase.from('croqui_linhas').select('*').in('foto_id', idsFotos) as { data: CroquiLinha[] | null }
   : { data: null };
+// Croqui em PDF (botão no topo da página): o do setor ou o usado pelo croqui sobre foto.
+const pdfSetor = (croquis ?? []).find((c) => c.tipo === 'pdf' && c.url)?.url
+  ?? (fotosCroqui ?? []).find((f) => f.pdf_url)?.pdf_url
+  ?? null;
 const temCroquiFoto = (fotosCroqui ?? []).length > 0 && (linhasCroqui ?? []).length > 0;
 
 // Croquis que só existem pra dar crédito (referência + texto de crédito)
@@ -110,8 +114,11 @@ const jsonLdSetor = encontrado && setor && local
         <h1>{setor.nome}</h1>
         <p class="setor-detalhe__local">
           {setor.lado && <span class="setor-detalhe__lado">Lado {setor.lado} · </span>}
-          {[setor.regiao, setor.cidade, setor.estado].filter(Boolean).join(' · ')}
+          {[...new Set([setor.regiao, setor.cidade, setor.estado].filter(Boolean))].join(' · ')}
         </p>
+        {pdfSetor && (
+          <a href={pdfSetor} target="_blank" rel="noopener" class="botao-pdf-topo" title="Abrir o croqui completo em PDF">📄 Croqui em PDF</a>
+        )}
 
         <AvisoConstrucao />
 
@@ -181,6 +188,12 @@ const jsonLdSetor = encontrado && setor && local
   .setor-detalhe__local { opacity: 0.7; font-size: 0.95rem; margin-top: -8px; }
   .setor-detalhe__lado { color: var(--laranja); font-weight: 600; opacity: 1; }
   .setor-detalhe__descricao { margin-top: 12px; }
+  .botao-pdf-topo {
+    display: inline-flex; align-items: center; margin-top: 10px; padding: 8px 16px; border-radius: 30px;
+    background: var(--laranja); color: var(--branco); text-decoration: none;
+    font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.03em;
+  }
+  .botao-pdf-topo:hover { color: var(--branco); transform: translateY(-2px); }
 
   .bloco { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(42, 31, 22, 0.12); }
   .bloco h2 { font-family: var(--fonte-display); text-transform: uppercase; font-size: 1.2rem; color: var(--verde-escuro); margin-bottom: 10px; }

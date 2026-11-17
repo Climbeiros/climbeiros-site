@@ -50,6 +50,17 @@ const { data: setores } = local
       .order('nome') as { data: Setor[] | null }
   : { data: null };
 
+// Croqui em PDF do local (pro botão no topo da página, ao lado de "Salvar offline").
+// Vem dos croquis em PDF dos setores ou das referências do próprio local.
+const { data: croquisPdf } = (setores ?? []).length
+  ? await supabase.from('croquis').select('url').eq('tipo', 'pdf')
+      .in('setor_id', (setores ?? []).map((s) => s.id)) as { data: { url: string | null }[] | null }
+  : { data: null };
+const pdfLocal = [
+  ...(croquisPdf ?? []).map((c) => c.url),
+  ...(local?.croqui_referencias ?? []).map((c) => c.url).filter((u) => /\.pdf($|[?#])/i.test(u)),
+].find(Boolean) ?? null;
+
 const semLado = (setores ?? []).filter((s) => !s.lado);
 const nomesLados = [...new Set((setores ?? []).filter((s) => s.lado).map((s) => s.lado as string))];
 const lados = nomesLados.map((lado) => ({
@@ -203,9 +214,12 @@ const jsonLdLocal = local
             title="Guardar este local e os setores no celular, pra abrir sem internet"
             hidden
           >⤓ Salvar offline</button>
+          {pdfLocal && (
+            <a href={pdfLocal} target="_blank" rel="noopener" class="botao-compartilhar botao-pdf" title="Abrir o croqui completo em PDF">📄 Croqui em PDF</a>
+          )}
           </div>
         </div>
-        <p class="local-detalhe__local">{[local.regiao, local.cidade, local.estado].filter(Boolean).join(' · ')}</p>
+        <p class="local-detalhe__local">{[...new Set([local.regiao, local.cidade, local.estado].filter(Boolean))].join(' · ')}</p>
 
         {!local.croqui_so_externo && <AvisoConstrucao />}
 
@@ -756,6 +770,8 @@ const jsonLdLocal = local
   }
   .local-detalhe__local { opacity: 0.7; font-size: 0.95rem; margin-top: 6px; }
   .local-detalhe__descricao { margin-top: 12px; }
+  .botao-compartilhar.botao-pdf { background: var(--laranja); border-color: var(--laranja); color: var(--branco); text-decoration: none; display: inline-flex; align-items: center; }
+  .botao-compartilhar.botao-pdf:hover { color: var(--branco); }
   .botao-compartilhar {
     flex: 0 0 auto;
     border-radius: 30px;
