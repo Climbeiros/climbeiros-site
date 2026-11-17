@@ -120,7 +120,7 @@ const jsonLdSetor = encontrado && setor && local
           <a href={pdfSetor} target="_blank" rel="noopener" class="botao-pdf-topo" title="Abrir o croqui completo em PDF">📄 Croqui em PDF</a>
         )}
 
-        <AvisoConstrucao />
+        {!local.pagina_completa && <AvisoConstrucao />}
 
         {setor.descricao && <p class="setor-detalhe__descricao">{setor.descricao}</p>}
 

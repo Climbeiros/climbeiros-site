@@ -234,7 +234,7 @@ const jsonLdLocal = local
         </div>
         <p class="local-detalhe__local">{[...new Set([local.regiao, local.cidade, local.estado].filter(Boolean))].join(' · ')}</p>
 
-        {!local.croqui_so_externo && <AvisoConstrucao />}
+        {!local.croqui_so_externo && !local.pagina_completa && <AvisoConstrucao />}
 
         {local.tipos && local.tipos.length > 0 && (
           <div class="local-detalhe__tags">

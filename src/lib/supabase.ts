@@ -54,6 +54,8 @@ export type Local = {
   croqui_so_externo?: boolean | null;
   // Vídeos de quem já escalou aqui (com autorização de quem publicou).
   videos?: { label: string; url: string; autor?: string | null }[] | null;
+  // true = mapeamento revisado e completo: esconde o aviso de "página em construção".
+  pagina_completa?: boolean | null;
   // Mapa aéreo com a área de cada setor clicável (pontos: largura da imagem = 1000).
   mapa_setores?: {
     imagem_url: string;
