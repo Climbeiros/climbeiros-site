@@ -5,6 +5,7 @@ import type { Local, Setor } from '../lib/supabase';
 import AvisoConstrucao from '../components/AvisoConstrucao.astro';
 import BotaoFeedback from '../components/BotaoFeedback.astro';
 import { normalizar, siglaEstado, textoEstado, listarCidades } from '../lib/busca';
+import { resumoVias } from '../lib/graus';
 
 const { data: locais } = await supabase
   .from('locais')
@@ -18,7 +19,40 @@ const { data: setores } = await supabase
   .select('*')
   .not('local_id', 'is', null) as { data: Setor[] | null };
 
-const locaisComCoordenadas = (locais ?? []).filter((l) => l.latitude && l.longitude);
+// Vias/boulders (só grau, tipo e setor), pra mostrar no card quanto cada
+// local já tem cadastrado. Busca em páginas de 1000 (limite do Supabase).
+const rotasResumo: { setor_id: string | null; grau: string | null; tipo: string | null }[] = [];
+for (let inicio = 0; ; inicio += 1000) {
+  const { data } = await supabase.from('rotas').select('setor_id, grau, tipo').range(inicio, inicio + 999);
+  rotasResumo.push(...(data ?? []));
+  if (!data || data.length < 1000) break;
+}
+
+function rotasDoLocal(localId: string) {
+  const ids = new Set(setoresDoLocal(localId).map((s) => s.id));
+  return rotasResumo.filter((r) => r.setor_id && ids.has(r.setor_id));
+}
+
+// Selo do card: "168 vias · 3º a 9º A · 15 setores", "4 setores · vias em breve"
+// ou "Em mapeamento" (local cadastrado, mas ainda sem setores).
+function seloDoLocal(localId: string) {
+  const nSetores = setoresDoLocal(localId).length;
+  const vias = rotasDoLocal(localId);
+  const textoSetores = nSetores ? `${nSetores} ${nSetores === 1 ? 'setor' : 'setores'}` : '';
+  if (vias.length) return { completo: true, texto: [resumoVias(vias), textoSetores].filter(Boolean).join(' · ') };
+  if (nSetores) return { completo: false, texto: `${textoSetores} · vias em breve` };
+  return { completo: false, texto: 'Em mapeamento' };
+}
+
+// Locais com vias cadastradas aparecem primeiro (os mais completos no topo);
+// o resto segue na ordem de estado, cidade e nome.
+const locaisOrdenados = [...(locais ?? [])].sort(
+  (a, b) => rotasDoLocal(b.id).length - rotasDoLocal(a.id).length,
+);
+
+const locaisComCoordenadas = locaisOrdenados
+  .filter((l) => l.latitude && l.longitude)
+  .map((l) => ({ ...l, selo: seloDoLocal(l.id).texto }));
 
 // Opções pros filtros: estados e tipos de escalada realmente presentes nos locais cadastrados.
 const estadosDisponiveis = [...new Set((locais ?? []).map((l) => siglaEstado(l.estado)).filter(Boolean))].sort();
@@ -49,7 +83,7 @@ function ladosDoLocal(localId: string) {
     <div class="container">
       <p class="eyebrow">Onde escalar</p>
       <h1>Rotas & Setores</h1>
-      <p>Explore os locais de escalada catalogados pela comunidade. Cada local pode ter um ou mais setores, cada um com croqui e dicas de acesso; hospedagens, guias e avaliações ficam na página do local. Clique num pin do mapa, busque pelo nome do local, setor, cidade, estado ou CEP, ou filtre por tipo, estado e cidade.</p>
+      <p>Encontre onde escalar: busque por local, cidade ou CEP, filtre por tipo, ou clique num pin do mapa. Os locais com vias já cadastradas aparecem primeiro.</p>
 
       <AvisoConstrucao />
 
@@ -111,8 +145,9 @@ function ladosDoLocal(localId: string) {
       )}
 
       <div class="lista-setores" id="lista-setores">
-        {locais?.map((local) => {
+        {locaisOrdenados.map((local) => {
           const { semLado, lados } = ladosDoLocal(local.id);
+          const selo = seloDoLocal(local.id);
           const totalSetores = semLado.length + lados.reduce((n, l) => n + l.setores.length, 0);
           return (
             <article
@@ -126,10 +161,8 @@ function ladosDoLocal(localId: string) {
               data-cidade={normalizar(local.cidade)}
               data-tipos={(local.tipos ?? []).map((t) => normalizar(t)).join('|')}
             >
-              {local.imagem_capa_url ? (
+              {local.imagem_capa_url && (
                 <img class="setor-card__capa" src={local.imagem_capa_url} alt={local.nome} loading="lazy" />
-              ) : (
-                <div class="setor-card__capa setor-card__capa--vazia" aria-hidden="true">🏔️</div>
               )}
               <div class="setor-card__corpo">
                 <div class="setor-card__cabecalho">
@@ -152,6 +185,9 @@ function ladosDoLocal(localId: string) {
                     aria-label={`Compartilhar ${local.nome}`}
                   >↗</button>
                 </div>
+                <p class:list={['setor-card__selo', { 'setor-card__selo--completo': selo.completo }]}>
+                  {selo.completo ? '✓ ' : ''}{selo.texto}
+                </p>
                 {local.tipos && local.tipos.length > 0 && (
                   <div class="setor-card__tags">
                     {local.tipos.map((t) => <span class="tag-tipo">{t}</span>)}
@@ -177,7 +213,7 @@ function ladosDoLocal(localId: string) {
 
                 {local.slug && (
                   <a href={`/rotas/${local.slug}`} class="botao botao--pequeno setor-card__detalhes">
-                    Ver setores e croquis →
+                    {totalSetores > 0 ? 'Ver setores e croquis →' : 'Ver local →'}
                   </a>
                 )}
               </div>
@@ -282,7 +318,17 @@ function ladosDoLocal(localId: string) {
       const bounds = [];
       locais.forEach((l) => {
         const marker = L.marker([l.latitude, l.longitude], { icon: iconePin }).addTo(mapa);
-        marker.bindPopup(`<strong>${l.nome}</strong><br/><a href="#local-${l.id}">Ver detalhes</a>`);
+        const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const lugar = [l.cidade, l.estado].filter(Boolean).join('/');
+        const tipos = (l.tipos ?? []).join(', ');
+        const link = l.slug ? `/rotas/${l.slug}` : `#local-${l.id}`;
+        marker.bindPopup(
+          `<strong>${esc(l.nome)}</strong>` +
+          (lugar ? `<br/><small>${esc(lugar)}</small>` : '') +
+          (tipos ? `<br/>${esc(tipos)}` : '') +
+          (l.selo ? `<br/><em>${esc(l.selo)}</em>` : '') +
+          `<br/><a href="${link}">Ver local →</a>`
+        );
         marcadores[l.id] = marker;
         bounds.push([l.latitude, l.longitude]);
       });
@@ -322,13 +368,6 @@ function ladosDoLocal(localId: string) {
     height: 160px;
     object-fit: cover;
   }
-  .setor-card__capa--vazia {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.4rem;
-    background: linear-gradient(150deg, var(--verde-escuro), var(--marrom));
-  }
   .setor-card__corpo { padding: 24px; }
   .setor-card__cabecalho {
     display: flex;
@@ -339,6 +378,15 @@ function ladosDoLocal(localId: string) {
   .setor-card__local { opacity: 0.7; font-size: 0.9rem; margin-top: -8px; }
   .setor-card__link { color: inherit; text-decoration: none; }
   .setor-card__link:hover { text-decoration: underline; }
+  .setor-card__selo {
+    display: inline-block;
+    margin: 6px 0 2px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--marrom);
+    opacity: 0.8;
+  }
+  .setor-card__selo--completo { color: var(--verde-escuro); opacity: 1; }
   .setor-card__tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
   .tag-tipo {
     font-size: 0.72rem;

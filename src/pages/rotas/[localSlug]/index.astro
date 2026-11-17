@@ -21,6 +21,7 @@ import type {
   FotoAvaliacaoLocalPublica,
 } from '../../../lib/supabase';
 import AvisoConstrucao from '../../../components/AvisoConstrucao.astro';
+import { resumoVias, linksNavegacao } from '../../../lib/graus';
 import BotaoFeedback from '../../../components/BotaoFeedback.astro';
 import FormHospedagem from '../../../components/FormHospedagem.astro';
 
@@ -55,6 +56,24 @@ const lados = nomesLados.map((lado) => ({
   lado,
   setores: (setores ?? []).filter((s) => s.lado === lado),
 }));
+
+// Vias/boulders dos setores deste local (só grau e tipo), pra mostrar
+// ao lado de cada setor um resumo tipo "12 vias · 4º a 7º B".
+const idsSetores = (setores ?? []).map((s) => s.id);
+const rotasDoLocal: { setor_id: string | null; grau: string | null; tipo: string | null }[] = [];
+if (idsSetores.length) {
+  for (let inicio = 0; ; inicio += 1000) {
+    const { data } = await supabase.from('rotas').select('setor_id, grau, tipo')
+      .in('setor_id', idsSetores).range(inicio, inicio + 999);
+    rotasDoLocal.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+}
+function resumoDoSetor(setorId: string) {
+  return resumoVias(rotasDoLocal.filter((r) => r.setor_id === setorId));
+}
+const resumoLocal = resumoVias(rotasDoLocal);
+const navegacao = local ? linksNavegacao(local.latitude, local.longitude) : null;
 
 // Hospedagens, guias e avaliações são vinculados ao Local (não mais ao setor
 // específico), já que uma hospedagem/guia costuma atender o lugar inteiro.
@@ -157,13 +176,9 @@ const jsonLdLocal = local
 >
   {local ? (
     <section class="secao">
-      {local.imagem_capa_url ? (
+      {local.imagem_capa_url && (
         <div class="container">
           <img class="local-detalhe__capa" src={local.imagem_capa_url} alt={local.nome} />
-        </div>
-      ) : (
-        <div class="container">
-          <div class="local-detalhe__capa local-detalhe__capa--vazia" aria-hidden="true">🏔️</div>
         </div>
       )}
       <div class="container local-detalhe">
@@ -202,10 +217,67 @@ const jsonLdLocal = local
 
         {local.descricao && <p class="local-detalhe__descricao">{local.descricao}</p>}
 
-        {local.como_chegar && (
+        <div class="bloco">
+          <h2>Setores</h2>
+          {resumoLocal && idsSetores.length > 1 && <p class="setores-resumo">{resumoLocal} no total</p>}
+
+          {(!setores || setores.length === 0) && (
+            <p class="vazio">Ainda não temos setores cadastrados aqui. Tem o croqui? <a href="/contato?motivo=croqui">Envie pra gente</a> que a gente cadastra as vias.</p>
+          )}
+
+          {lados.length > 0 ? (
+            <>
+              {lados.map((l) => (
+                <div class="lado-grupo">
+                  <h3>Lado {l.lado}</h3>
+                  <ul class="setores-lista">
+                    {l.setores.map((s) => (
+                      <li>
+                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                        {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
+                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              {semLado.length > 0 && (
+                <div class="lado-grupo">
+                  <ul class="setores-lista">
+                    {semLado.map((s) => (
+                      <li>
+                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                        {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
+                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            <ul class="setores-lista">
+              {semLado.map((s) => (
+                <li>
+                  <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                  {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
+                  {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {(local.como_chegar || navegacao) && (
           <div class="bloco">
             <h2>Como chegar</h2>
-            <p>{local.como_chegar}</p>
+            {local.como_chegar && <p>{local.como_chegar}</p>}
+            {navegacao && (
+              <div class="navegacao">
+                <a href={navegacao.google} target="_blank" rel="noopener" class="botao botao--pequeno">📍 Abrir no Google Maps</a>
+                <a href={navegacao.waze} target="_blank" rel="noopener" class="botao botao--pequeno botao--secundario">🚗 Abrir no Waze</a>
+              </div>
+            )}
           </div>
         )}
 
@@ -270,53 +342,6 @@ const jsonLdLocal = local
           <p class="cta-guia">
             Você é guia e atua aqui? <a href="/cursos#seja-guia">Cadastre-se na nossa rede de guias →</a>
           </p>
-        </div>
-
-        <div class="bloco">
-          <h2>Setores</h2>
-
-          {(!setores || setores.length === 0) && (
-            <p class="vazio">Ainda não temos setores cadastrados aqui. Tem o croqui? <a href="/contato?motivo=croqui">Envie pra gente</a> que a gente cadastra as vias.</p>
-          )}
-
-          {lados.length > 0 ? (
-            <>
-              {lados.map((l) => (
-                <div class="lado-grupo">
-                  <h3>Lado {l.lado}</h3>
-                  <ul class="setores-lista">
-                    {l.setores.map((s) => (
-                      <li>
-                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
-                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-              {semLado.length > 0 && (
-                <div class="lado-grupo">
-                  <ul class="setores-lista">
-                    {semLado.map((s) => (
-                      <li>
-                        <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
-                        {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
-          ) : (
-            <ul class="setores-lista">
-              {semLado.map((s) => (
-                <li>
-                  <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
-                  {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
 
         {(local.guia_recomendado || (local.croqui_referencias && local.croqui_referencias.length > 0)) && (
@@ -680,13 +705,6 @@ const jsonLdLocal = local
     margin: 8px auto 0;
     box-shadow: var(--sombra);
   }
-  .local-detalhe__capa--vazia {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3.4rem;
-    background: linear-gradient(150deg, var(--verde-escuro), var(--marrom));
-  }
   .local-detalhe__titulo { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .local-detalhe__titulo h1 { margin: 0; }
   .local-detalhe__acoes { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -782,6 +800,9 @@ const jsonLdLocal = local
   .setores-lista li { background: var(--creme-claro); border-radius: 8px; padding: 12px 14px; }
   .setores-lista__link { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.95rem; color: var(--verde-escuro); text-decoration: none; }
   .setores-lista__link:hover { text-decoration: underline; }
+  .setores-lista__resumo { display: block; margin-top: 2px; font-size: 0.82rem; font-weight: 600; color: var(--laranja); }
+  .setores-resumo { margin: -4px 0 14px; font-size: 0.9rem; opacity: 0.8; }
+  .navegacao { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
   .setores-lista__desc { margin: 6px 0 0; font-size: 0.88rem; opacity: 0.85; }
 
   .guia-recomendado { background: var(--creme-claro); border-radius: var(--raio, 10px); padding: 12px 14px; font-size: 0.92rem; }

@@ -11,6 +11,7 @@ import type { Local, Setor, Croqui, Rota, Bloco } from '../../../lib/supabase';
 import AvisoConstrucao from '../../../components/AvisoConstrucao.astro';
 import BotaoFeedback from '../../../components/BotaoFeedback.astro';
 import ListaVias from '../../../components/ListaVias.astro';
+import { linksNavegacao } from '../../../lib/graus';
 
 export async function getStaticPaths() {
   const { data: setores } = await supabase
@@ -66,6 +67,11 @@ const rotuloCroqui: Record<string, string> = {
 
 const encontrado = Boolean(local && setor && setor.local_id === local.id);
 
+// Botões de Google Maps / Waze: usa a coordenada do setor; se não tiver, a do local.
+const navegacao = setor
+  ? (linksNavegacao(setor.latitude, setor.longitude) ?? linksNavegacao(local?.latitude ?? null, local?.longitude ?? null))
+  : null;
+
 // --- Dados estruturados (trilha de navegação) pro Google (ver Layout.astro) ---
 const jsonLdSetor = encontrado && setor && local
   ? {
@@ -100,18 +106,16 @@ const jsonLdSetor = encontrado && setor && local
 
         {setor.descricao && <p class="setor-detalhe__descricao">{setor.descricao}</p>}
 
-        {setor.como_chegar && (
+        {(setor.como_chegar || navegacao) && (
           <div class="bloco">
             <h2>Como chegar</h2>
-            <p>{setor.como_chegar}</p>
-          </div>
-        )}
-
-        {rotas && rotas.length > 0 && (
-          <div class="bloco">
-            <h2>{rotas.every((r) => r.tipo === 'boulder') ? 'Boulders' : 'Vias'}</h2>
-            <ListaVias rotas={rotas} blocos={blocos ?? []} />
-            {creditos.map((t) => <p class="setor-detalhe__credito">Fonte: {t}</p>)}
+            {setor.como_chegar && <p>{setor.como_chegar}</p>}
+            {navegacao && (
+              <div class="navegacao">
+                <a href={navegacao.google} target="_blank" rel="noopener" class="botao botao--pequeno">📍 Abrir no Google Maps</a>
+                <a href={navegacao.waze} target="_blank" rel="noopener" class="botao botao--pequeno botao--secundario">🚗 Abrir no Waze</a>
+              </div>
+            )}
           </div>
         )}
 
@@ -129,6 +133,14 @@ const jsonLdSetor = encontrado && setor && local
                 )
               ))}
             </div>
+          </div>
+        )}
+
+        {rotas && rotas.length > 0 && (
+          <div class="bloco">
+            <h2>{rotas.every((r) => r.tipo === 'boulder') ? 'Boulders' : 'Vias'}</h2>
+            <ListaVias rotas={rotas} blocos={blocos ?? []} />
+            {creditos.map((t) => <p class="setor-detalhe__credito">Fonte: {t}</p>)}
           </div>
         )}
 
@@ -161,6 +173,8 @@ const jsonLdSetor = encontrado && setor && local
   .bloco { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(42, 31, 22, 0.12); }
   .bloco h2 { font-family: var(--fonte-display); text-transform: uppercase; font-size: 1.2rem; color: var(--verde-escuro); margin-bottom: 10px; }
 
+  .navegacao { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .botao--pequeno { padding: 8px 16px; font-size: 0.85rem; }
   .setor-detalhe__croquis { display: flex; flex-wrap: wrap; gap: 10px; }
   .setor-detalhe__cta-croqui { margin-top: 10px; font-size: 0.92rem; opacity: 0.85; }
   .setor-detalhe__credito { margin-top: 16px; font-size: 0.8rem; opacity: 0.7; }
