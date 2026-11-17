@@ -50,6 +50,8 @@ export type Local = {
   tipos: string[] | null;
   guia_recomendado: string | null;
   croqui_referencias: { label: string; url: string }[] | null;
+  // true = o site não lista setores/vias daqui; só informações gerais + link pro guia (ex: Serra do Cipó).
+  croqui_so_externo?: boolean | null;
 };
 
 export type Setor = {

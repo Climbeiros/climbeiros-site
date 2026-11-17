@@ -217,6 +217,25 @@ const jsonLdLocal = local
 
         {local.descricao && <p class="local-detalhe__descricao">{local.descricao}</p>}
 
+        {local.croqui_so_externo && (
+          <div class="bloco">
+            <h2>Vias e croqui</h2>
+            <p class="croqui-externo__aviso">As vias e os setores daqui não ficam no Climbeiros: o croqui completo está no guia abaixo. Aqui você encontra como chegar, previsão do tempo, onde ficar e guias que atuam na região.</p>
+            {local.guia_recomendado && <p class="guia-recomendado">📖 {local.guia_recomendado}</p>}
+            {local.croqui_referencias && local.croqui_referencias.length > 0 && (
+              <ul class="croqui-referencias">
+                {local.croqui_referencias.map((c) => (
+                  <li>
+                    <a href={c.url} target="_blank" rel="noopener">{c.label} ↗</a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p class="croqui-referencias__aviso">Os croquis são de quem os produziu: quando o arquivo está hospedado no Climbeiros, é porque os autores autorizaram; os demais links levam pra fonte original (redirecionamos, não copiamos o conteúdo). Sempre confira a versão mais recente antes de ir.</p>
+          </div>
+        )}
+
+        {!local.croqui_so_externo && (
         <div class="bloco">
           <h2>Setores</h2>
           {resumoLocal && idsSetores.length > 1 && <p class="setores-resumo">{resumoLocal} no total</p>}
@@ -267,6 +286,7 @@ const jsonLdLocal = local
             </ul>
           )}
         </div>
+        )}
 
         {(local.como_chegar || navegacao) && (
           <div class="bloco">
@@ -291,8 +311,8 @@ const jsonLdLocal = local
           </div>
         )}
 
-        <div class="bloco">
-          <h2>Onde ficar</h2>
+        <details class="bloco bloco--recolhivel">
+          <summary class="bloco__titulo"><h2>Onde ficar</h2><span class="bloco__contagem">{hospedagensDoLocal.length > 0 ? `${hospedagensDoLocal.length} ${hospedagensDoLocal.length === 1 ? 'opção' : 'opções'}` : 'nenhuma ainda'}</span></summary>
           {hospedagensDoLocal.length > 0 ? (
             <ul class="hospedagens-lista">
               {hospedagensDoLocal.map((h) => (
@@ -317,10 +337,10 @@ const jsonLdLocal = local
             <summary>Tem uma hospedagem por aqui? Cadastre-se</summary>
             <FormHospedagem localId={local.id} />
           </details>
-        </div>
+        </details>
 
-        <div class="bloco">
-          <h2>Guias que atuam aqui</h2>
+        <details class="bloco bloco--recolhivel">
+          <summary class="bloco__titulo"><h2>Guias que atuam aqui</h2><span class="bloco__contagem">{guiasDoLocal.length > 0 ? `${guiasDoLocal.length} ${guiasDoLocal.length === 1 ? 'guia' : 'guias'}` : 'nenhum ainda'}</span></summary>
           {guiasDoLocal.length > 0 ? (
             <ul class="guias-lista">
               {guiasDoLocal.map((g) => (
@@ -342,9 +362,9 @@ const jsonLdLocal = local
           <p class="cta-guia">
             Você é guia e atua aqui? <a href="/cursos#seja-guia">Cadastre-se na nossa rede de guias →</a>
           </p>
-        </div>
+        </details>
 
-        {(local.guia_recomendado || (local.croqui_referencias && local.croqui_referencias.length > 0)) && (
+        {!local.croqui_so_externo && (local.guia_recomendado || (local.croqui_referencias && local.croqui_referencias.length > 0)) && (
           <div class="bloco">
             <h2>Croqui e guia</h2>
             {local.guia_recomendado && <p class="guia-recomendado">📖 {local.guia_recomendado}</p>}
@@ -361,8 +381,8 @@ const jsonLdLocal = local
           </div>
         )}
 
-        <div class="bloco">
-          <h2>Avaliações da comunidade</h2>
+        <details class="bloco bloco--recolhivel">
+          <summary class="bloco__titulo"><h2>Avaliações da comunidade</h2><span class="bloco__contagem">{resumoAvaliacoes ? `★ ${resumoAvaliacoes.media} · ${resumoAvaliacoes.total}` : 'nenhuma ainda'}</span></summary>
           {resumoAvaliacoes ? (
             <p class="avaliacao-resumo">
               <span class="avaliacao-resumo__estrelas" aria-hidden="true">★</span>
@@ -442,7 +462,7 @@ const jsonLdLocal = local
               <p class="form-aviso">Sua avaliação (e fotos) passam por uma checagem da equipe do Climbeiros antes de aparecer aqui.</p>
             </form>
           </details>
-        </div>
+        </details>
       </div>
     </section>
   ) : (
@@ -783,6 +803,20 @@ const jsonLdLocal = local
 
   .bloco { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(42, 31, 22, 0.12); }
   .bloco h2 { font-family: var(--fonte-display); text-transform: uppercase; font-size: 1.2rem; color: var(--verde-escuro); margin-bottom: 10px; }
+  .bloco--recolhivel > .bloco__titulo {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    cursor: pointer; list-style: none;
+  }
+  .bloco--recolhivel > .bloco__titulo::-webkit-details-marker { display: none; }
+  .bloco--recolhivel > .bloco__titulo h2 { margin: 0; }
+  .bloco--recolhivel > .bloco__titulo::after {
+    content: '+'; flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--creme-claro); color: var(--verde-escuro); font-weight: 700; font-size: 1.1rem;
+  }
+  .bloco--recolhivel[open] > .bloco__titulo::after { content: '−'; }
+  .bloco--recolhivel[open] > .bloco__titulo { margin-bottom: 10px; }
+  .bloco__contagem { margin-left: auto; font-size: 0.85rem; opacity: 0.7; white-space: nowrap; }
 
   .vazio { opacity: 0.65; font-style: italic; }
 
@@ -800,6 +834,7 @@ const jsonLdLocal = local
   .setores-lista li { background: var(--creme-claro); border-radius: 8px; padding: 12px 14px; }
   .setores-lista__link { font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.95rem; color: var(--verde-escuro); text-decoration: none; }
   .setores-lista__link:hover { text-decoration: underline; }
+  .croqui-externo__aviso { margin: 0 0 12px; }
   .setores-lista__resumo { display: block; margin-top: 2px; font-size: 0.82rem; font-weight: 600; color: var(--laranja); }
   .setores-resumo { margin: -4px 0 14px; font-size: 0.9rem; opacity: 0.8; }
   .navegacao { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
