@@ -13,6 +13,7 @@ import BotaoFeedback from '../../../components/BotaoFeedback.astro';
 import ListaVias from '../../../components/ListaVias.astro';
 import CroquiFoto from '../../../components/CroquiFoto.astro';
 import { linksNavegacao } from '../../../lib/graus';
+import { nomeSetorCurto, juntarLugar } from '../../../lib/nomes';
 
 export async function getStaticPaths() {
   const { data: setores } = await supabase
@@ -101,7 +102,7 @@ const jsonLdSetor = encontrado && setor && local
   : undefined;
 ---
 <Layout
-  titulo={setor && local ? `${setor.nome} · ${local.nome}` : (setor?.nome || 'Setor')}
+  titulo={setor && local ? `${nomeSetorCurto(setor.nome, local.nome)} · ${local.nome}` : (setor?.nome || 'Setor')}
   descricao={setor?.descricao || (setor && local ? `Setor ${setor.nome}, em ${local.nome}: croqui, como chegar e informações pra escalar.` : undefined)}
   imagem={local?.imagem_capa_url || undefined}
   jsonLd={jsonLdSetor}
@@ -111,10 +112,10 @@ const jsonLdSetor = encontrado && setor && local
       <div class="container setor-detalhe">
         <a href={`/rotas/${local.slug}`} class="voltar" data-voltar>← {local.nome}</a>
 
-        <h1>{setor.nome}</h1>
+        <h1>{nomeSetorCurto(setor.nome, local.nome)}</h1>
         <p class="setor-detalhe__local">
           {setor.lado && <span class="setor-detalhe__lado">Lado {setor.lado} · </span>}
-          {[...new Set([setor.regiao, setor.cidade, setor.estado].filter(Boolean))].join(' · ')}
+          {juntarLugar([setor.regiao, setor.cidade, setor.estado])}
         </p>
         {pdfSetor && (
           <a href={pdfSetor} target="_blank" rel="noopener" class="botao-pdf-topo" title="Abrir o croqui completo em PDF">📄 Croqui em PDF</a>

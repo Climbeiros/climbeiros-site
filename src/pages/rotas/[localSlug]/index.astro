@@ -22,6 +22,7 @@ import type {
 } from '../../../lib/supabase';
 import AvisoConstrucao from '../../../components/AvisoConstrucao.astro';
 import { resumoVias, linksNavegacao } from '../../../lib/graus';
+import { nomeSetorCurto } from '../../../lib/nomes';
 import BotaoFeedback from '../../../components/BotaoFeedback.astro';
 import FormHospedagem from '../../../components/FormHospedagem.astro';
 
@@ -62,7 +63,7 @@ const pdfLocal = [
 ].find(Boolean) ?? null;
 
 // Mapa dos setores (imagem aérea com cada setor clicável), quando o local tiver.
-const nomeCurto = (nome: string) => (local ? nome.replace(new RegExp(`^${local.nome}\\s*[-–]\\s*`, 'i'), '') : nome);
+const nomeCurto = (nome: string) => nomeSetorCurto(nome, local?.nome);
 const mapaSetores = local?.mapa_setores
   ? {
       ...local.mapa_setores,
@@ -304,7 +305,7 @@ const jsonLdLocal = local
                     <ul class="setores-lista">
                       {l.setores.map((s) => (
                         <li>
-                          <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                          <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{nomeSetorCurto(s.nome, local.nome)}</a>
                           {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
                           {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
                         </li>
@@ -317,7 +318,7 @@ const jsonLdLocal = local
                     <ul class="setores-lista">
                       {semLado.map((s) => (
                         <li>
-                          <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                          <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{nomeSetorCurto(s.nome, local.nome)}</a>
                           {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
                           {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
                         </li>
@@ -330,7 +331,7 @@ const jsonLdLocal = local
               <ul class="setores-lista">
                 {semLado.map((s) => (
                   <li>
-                    <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{s.nome}</a>
+                    <a href={`/rotas/${local.slug}/${s.slug}`} class="setores-lista__link">{nomeSetorCurto(s.nome, local.nome)}</a>
                     {resumoDoSetor(s.id) && <span class="setores-lista__resumo">{resumoDoSetor(s.id)}</span>}
                     {s.descricao && <p class="setores-lista__desc">{s.descricao}</p>}
                   </li>
@@ -921,6 +922,15 @@ const jsonLdLocal = local
   .boas-praticas li::marker { color: var(--laranja); }
   .boas-praticas__fonte { margin: 12px 0 0; font-size: 0.78rem; opacity: 0.7; }
   .mapa-setores { margin: 0 0 12px; }
+  /* No computador o mapa fica mais largo que a coluna de texto */
+  @media (min-width: 900px) {
+    .mapa-setores__quadro {
+      width: min(1100px, calc(100vw - 64px));
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  }
   /* :global porque o envelope da lista é uma tag dinâmica (details ou div) */
   :global(.setores-em-lista) { font-size: 0.9rem; }
   :global(.setores-em-lista > summary) { cursor: pointer; color: var(--verde-escuro); font-weight: 600; padding: 6px 0; }

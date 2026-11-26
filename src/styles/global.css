@@ -79,6 +79,9 @@ img { max-width: 100%; display: block; }
   color: var(--creme-claro);
 }
 .secao--verde h1, .secao--verde h2, .secao--verde h3 { color: var(--creme); }
+/* Quando a página termina numa seção colorida, o rodapé encosta nela (sem faixa branca no meio) */
+main:has(> .secao--verde:last-child) + .rodape,
+main:has(> .secao--creme:last-child) + .rodape { margin-top: 0; }
 
 .eyebrow {
   display: inline-flex;

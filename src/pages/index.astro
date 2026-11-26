@@ -102,7 +102,7 @@ const trilhas = [
   </section>
 
   {(eventosFuturos.length > 0 || cardsNovidades.length > 0) && (
-    <section class="secao secao--creme">
+    <section class="secao secao--creme chegou">
       <div class="container">
         <div class="chegou__topo">
           <h2>Novidades</h2>
@@ -111,7 +111,7 @@ const trilhas = [
         <div class="chegou__grade">
           {eventosFuturos.map((e) => { const d = partesData(e.data); return (
             <a href="/acontece#agenda" class={`chegou__card chegou__card--evento chegou__card--${e.organizador_tipo}`} data-data={e.data} data-fim={fimDoEvento(e)} hidden>
-              <span class="chegou__tipo">Próximo evento</span>
+              <span class="chegou__tipo" data-rotulo-evento>Próximo evento</span>
               <strong>{e.titulo}</strong>
               <span>{Number(d.dia)} {d.mes.toLowerCase()}{fimDoEvento(e) !== e.data ? ` a ${dataCurta(fimDoEvento(e))}` : ''} · {e.organizador}</span>
             </a>
@@ -131,7 +131,9 @@ const trilhas = [
     </section>
   )}
 
-  <RopeDivider />
+  <div class="divisor-home">
+    <RopeDivider />
+  </div>
 
   <section class="secao secao--verde">
     <div class="container secao-cta">
@@ -229,6 +231,10 @@ const trilhas = [
   .chegou__card--evento .chegou__tipo { color: var(--c); }
   .chegou__wpp { margin: 18px 0 0; }
 
+  /* Duas seções creme seguidas: tira o espaço dobrado entre elas */
+  .comecou + .chegou { padding-top: 8px; }
+  /* A corda divisória fica sobre o creme, sem faixa branca sobrando */
+  .divisor-home { background: var(--creme-claro); padding: 0 0 28px; }
   .secao-cta {
     text-align: center;
   }
@@ -281,6 +287,11 @@ const trilhas = [
     .find((c) => (c.dataset.fim || c.dataset.data || '') >= hoje);
   if (proximo) {
     proximo.hidden = false;
+    // Se o evento já começou e ainda não terminou, o rótulo muda pra "Acontecendo agora".
+    if ((proximo.dataset.data || '') <= hoje) {
+      const rotulo = proximo.querySelector<HTMLElement>('[data-rotulo-evento]');
+      if (rotulo) rotulo.textContent = 'Acontecendo agora';
+    }
     const terceira = document.querySelector<HTMLElement>('.chegou__card[data-novidade="2"]');
     if (terceira) terceira.hidden = true;
   }

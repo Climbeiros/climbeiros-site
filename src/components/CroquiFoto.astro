@@ -287,6 +287,16 @@ const creditos = [...new Set(fotos.map((f) => f.credito).filter(Boolean))] as st
   .croqui-filtro[aria-pressed='true'] { background: var(--verde-escuro); border-color: var(--verde-escuro); color: var(--branco); }
 
   .croqui-foto__figura { margin: 0 0 14px; }
+  /* No computador a foto "sai" da coluna de texto e fica bem mais larga,
+     pra os números e as linhas ficarem legíveis. */
+  @media (min-width: 900px) {
+    .croqui-foto__figura {
+      width: min(1100px, calc(100vw - 64px));
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  }
   .croqui-foto__titulo {
     font-family: var(--fonte-display); text-transform: uppercase; font-size: 0.85rem; color: var(--marrom); opacity: 0.8; margin-bottom: 6px;
   }

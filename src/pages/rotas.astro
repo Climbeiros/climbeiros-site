@@ -6,6 +6,7 @@ import AvisoConstrucao from '../components/AvisoConstrucao.astro';
 import BotaoFeedback from '../components/BotaoFeedback.astro';
 import { normalizar, siglaEstado, textoEstado, listarCidades } from '../lib/busca';
 import { resumoVias } from '../lib/graus';
+import { nomeSetorCurto, juntarLugar } from '../lib/nomes';
 
 const { data: locais } = await supabase
   .from('locais')
@@ -176,7 +177,7 @@ function ladosDoLocal(localId: string) {
                         local.nome
                       )}
                     </h2>
-                    <p class="setor-card__local">{[local.regiao, local.cidade, siglaEstado(local.estado)].filter(Boolean).join(' · ')}</p>
+                    <p class="setor-card__local">{juntarLugar([local.regiao, local.cidade, siglaEstado(local.estado)])}</p>
                   </div>
                   <button
                     type="button"
@@ -195,23 +196,19 @@ function ladosDoLocal(localId: string) {
                     {local.tipos.map((t) => <span class="tag-tipo">{t}</span>)}
                   </div>
                 )}
-                {local.descricao && <p>{local.descricao}</p>}
+                {local.descricao && <p class="setor-card__descricao">{local.descricao}</p>}
 
-                {totalSetores > 1 && (
-                  <div class="setor-card__setores">
-                    {lados.map((l) => (
-                      <p class="setor-card__lado">
-                        <strong>Lado {l.lado}:</strong> {l.setores.map((s) => s.nome).join(', ')}
-                      </p>
-                    ))}
-                    {semLado.length > 0 && lados.length > 0 && (
-                      <p class="setor-card__lado">{semLado.map((s) => s.nome).join(', ')}</p>
-                    )}
-                    {lados.length === 0 && (
-                      <p class="setor-card__lado">Setores: {semLado.map((s) => s.nome).join(', ')}</p>
-                    )}
-                  </div>
-                )}
+                {totalSetores > 1 && (() => {
+                  // Só os 3 primeiros setores (sem o nome do local na frente) e "e mais N"
+                  const nomes = [...semLado, ...lados.flatMap((l) => l.setores)].map((s) => nomeSetorCurto(s.nome, local.nome));
+                  const mostrar = nomes.slice(0, 3);
+                  const resto = nomes.length - mostrar.length;
+                  return (
+                    <p class="setor-card__setores">
+                      <strong>{nomes.length} setores:</strong> {mostrar.join(', ')}{resto > 0 ? ` e mais ${resto}` : ''}
+                    </p>
+                  );
+                })()}
 
                 {local.slug && (
                   <a href={`/rotas/${local.slug}`} class="botao botao--pequeno setor-card__detalhes">
@@ -312,7 +309,11 @@ function ladosDoLocal(localId: string) {
         shadowSize: [41, 41],
       });
 
-      mapa = L.map('mapa').setView([locais[0].latitude, locais[0].longitude], 6);
+      // scrollWheelZoom desligado: rolar a página com o mouse em cima do mapa não dá zoom.
+      // O zoom pela roda liga depois de um clique no mapa e desliga quando o mouse sai.
+      mapa = L.map('mapa', { scrollWheelZoom: false }).setView([locais[0].latitude, locais[0].longitude], 6);
+      mapa.on('click', () => mapa.scrollWheelZoom.enable());
+      mapa.on('mouseout', () => mapa.scrollWheelZoom.disable());
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
       }).addTo(mapa);
@@ -352,12 +353,20 @@ function ladosDoLocal(localId: string) {
     position: relative;
     z-index: 0;
   }
+  /* No celular: um card por linha. No computador: grade com 2 ou 3 colunas. */
   .lista-setores {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    align-items: stretch;
+  }
+  @media (max-width: 720px) {
+    .lista-setores { grid-template-columns: 1fr; }
+  }
+  .setor-card[hidden] { display: none; }
+  .setor-card {
     display: flex;
     flex-direction: column;
-    gap: 24px;
-  }
-  .setor-card {
     background: var(--branco);
     border: 1px solid rgba(42,31,22,0.08);
     border-radius: var(--raio);
@@ -370,7 +379,13 @@ function ladosDoLocal(localId: string) {
     height: 160px;
     object-fit: cover;
   }
-  .setor-card__corpo { padding: 24px; }
+  .setor-card__corpo { padding: 22px; display: flex; flex-direction: column; flex: 1; }
+  .setor-card h2 { font-size: clamp(1.35rem, 2.2vw, 1.7rem); line-height: 1.1; margin-bottom: 10px; }
+  /* descrição cortada em 3 linhas pra os cards ficarem do mesmo tamanho */
+  .setor-card__descricao {
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    font-size: 0.93rem; margin: 6px 0 0;
+  }
   .setor-card__cabecalho {
     display: flex;
     justify-content: space-between;
@@ -401,9 +416,11 @@ function ladosDoLocal(localId: string) {
     padding: 3px 9px;
     border-radius: 30px;
   }
-  .setor-card__setores { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
-  .setor-card__lado { font-size: 0.9rem; opacity: 0.85; }
-  .setor-card__detalhes { display: inline-block; margin-top: 14px; }
+  .setor-card__setores { margin: 10px 0 0; font-size: 0.86rem; opacity: 0.85; }
+  /* botão sempre no pé do card, com um respiro acima */
+  .setor-card__detalhes { display: inline-block; align-self: flex-start; margin-top: auto; }
+  .setor-card__corpo > .setor-card__detalhes { margin-top: auto; }
+  .setor-card__corpo > :nth-last-child(2) { margin-bottom: 18px; }
   .botao-compartilhar {
     flex: 0 0 auto;
     width: 34px;
