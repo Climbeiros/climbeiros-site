@@ -5,7 +5,8 @@
 // mandar sugestões pelo botão de feedback (ver BotaoFeedback.astro).
 ---
 <p class="aviso-construcao">
-  🚧 Essa página está em construção, estamos catalogando os locais aos poucos. Notou algo errado, faltando ou tem uma sugestão? Fica à vontade pra mandar pra gente pelo botão de feedback, no canto da tela.
+  <span class="aviso-construcao__longo">🚧 Essa página está em construção, estamos catalogando os locais aos poucos. Notou algo errado, faltando ou tem uma sugestão? Fica à vontade pra mandar pra gente pelo botão de feedback, no canto da tela.</span>
+  <span class="aviso-construcao__curto">🚧 Em construção. Viu algo errado? Use o botão de feedback no canto da tela.</span>
 </p>
 
 <style>
@@ -18,5 +19,12 @@
     color: var(--marrom);
     opacity: 0.9;
     margin: 16px 0;
+  }
+  /* No celular, versão curta (uma ou duas linhas) */
+  .aviso-construcao__curto { display: none; }
+  @media (max-width: 720px) {
+    .aviso-construcao { padding: 8px 12px; font-size: 0.82rem; margin: 12px 0; }
+    .aviso-construcao__longo { display: none; }
+    .aviso-construcao__curto { display: inline; }
   }
 </style>

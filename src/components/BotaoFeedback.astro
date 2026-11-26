@@ -173,7 +173,8 @@ const { pagina } = Astro.props;
 
   @media (max-width: 520px) {
     .botao-fb span.texto-botao { display: none; }
-    .botao-fb { padding: 14px; border-radius: 50%; }
+    /* menor e mais no cantinho, pra cobrir menos os botões da página */
+    .botao-fb { padding: 11px; border-radius: 50%; right: 12px; bottom: 12px; opacity: 0.92; }
   }
 
   .fb-overlay {
@@ -212,10 +213,13 @@ const { pagina } = Astro.props;
   }
   .fb-painel .fb-sub { font-size: 0.8rem; color: #6b5d4f; margin: 0 0 16px; }
   .fb-fechar {
-    position: absolute; top: 14px; right: 14px;
-    background: none; border: none;
+    position: absolute; top: 6px; right: 6px;
+    width: 44px; height: 44px; /* área de toque confortável no celular */
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; border-radius: 50%;
     font-size: 1.1rem; color: #8a7a68; cursor: pointer; line-height: 1;
   }
+  .fb-fechar:hover { background: rgba(42, 31, 22, 0.06); }
   .fb-tipos { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
   .fb-tipos label {
     display: flex; align-items: center; gap: 8px;

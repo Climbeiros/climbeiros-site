@@ -47,6 +47,10 @@ function seloDoLocal(localId: string) {
   return { completo: false, texto: 'Em mapeamento' };
 }
 
+// No celular, a lista começa com só os primeiros locais e um botão "Ver mais"
+// (a página ficava com 40+ cards seguidos). Buscar ou filtrar mostra tudo.
+const LIMITE_CELULAR = 10;
+
 // Locais com vias cadastradas aparecem primeiro (os mais completos no topo);
 // o resto segue na ordem de estado, cidade e nome.
 const locaisOrdenados = [...(locais ?? [])].sort(
@@ -147,7 +151,7 @@ function ladosDoLocal(localId: string) {
         <p>Ainda estamos catalogando os primeiros locais. Volte em breve!</p>
       )}
 
-      <div class="lista-setores" id="lista-setores">
+      <div class="lista-setores" id="lista-setores" data-limitado>
         {locaisOrdenados.map((local) => {
           const { semLado, lados } = ladosDoLocal(local.id);
           const selo = seloDoLocal(local.id);
@@ -220,6 +224,11 @@ function ladosDoLocal(localId: string) {
           );
         })}
       </div>
+      {(locais ?? []).length > LIMITE_CELULAR && (
+        <button type="button" class="botao botao--secundario ver-mais-locais" id="ver-mais-locais">
+          Ver mais locais ({(locais ?? []).length - LIMITE_CELULAR})
+        </button>
+      )}
       <p class="vazio-busca" id="sem-resultado" hidden>Nenhum local encontrado com esses filtros. Tente limpar a busca.</p>
     </div>
   </section>
@@ -270,6 +279,22 @@ function ladosDoLocal(localId: string) {
     rotulo: ['local encontrado', 'locais encontrados'],
     aoFiltrar: atualizarMapa,
   });
+
+  // "Ver mais locais" (celular): mostra a lista toda. Buscar ou filtrar também
+  // mostra tudo, pra nenhum resultado ficar escondido depois do 10º card.
+  const listaLocais = document.getElementById('lista-setores');
+  const mostrarTodos = () => listaLocais?.removeAttribute('data-limitado');
+  document.getElementById('ver-mais-locais')?.addEventListener('click', mostrarTodos);
+  ['busca-local', 'filtro-uf', 'filtro-cidade', 'filtro-tipo'].forEach((id) => {
+    const campo = document.getElementById(id);
+    campo?.addEventListener('input', mostrarTodos);
+    campo?.addEventListener('change', mostrarTodos);
+  });
+  // Lista já filtrada pelo endereço (ex.: /rotas/?uf=RJ, ao voltar de um local): mostra tudo
+  if (['q', 'uf', 'cidade', 'tipos'].some((k) => new URLSearchParams(location.search).get(k))) mostrarTodos();
+  // Quem chega por um link #local-... (ex.: popup do mapa) também precisa ver o card
+  if (location.hash.startsWith('#local-')) mostrarTodos();
+  window.addEventListener('hashchange', () => { if (location.hash.startsWith('#local-')) mostrarTodos(); });
 
   // ---- Botão de compartilhar (Web Share API, com fallback pra copiar o link) ----
   document.querySelectorAll('.botao-compartilhar').forEach((botao) => {
@@ -364,6 +389,13 @@ function ladosDoLocal(localId: string) {
     .lista-setores { grid-template-columns: 1fr; }
   }
   .setor-card[hidden] { display: none; }
+  /* "Ver mais locais": só no celular, enquanto a lista estiver limitada */
+  .ver-mais-locais { display: none; }
+  @media (max-width: 720px) {
+    .lista-setores[data-limitado] > .setor-card:nth-child(n + 11) { display: none; }
+    .lista-setores[data-limitado] + .ver-mais-locais { display: block; width: 100%; margin-top: 20px; }
+    .setor-card__descricao { -webkit-line-clamp: 2; }
+  }
   .setor-card {
     display: flex;
     flex-direction: column;

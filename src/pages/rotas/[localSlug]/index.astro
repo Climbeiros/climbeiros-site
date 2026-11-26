@@ -295,6 +295,14 @@ const jsonLdLocal = local
             <p class="vazio">Ainda não temos setores cadastrados aqui. Tem o croqui? <a href="/contato?motivo=croqui">Envie pra gente</a> que a gente cadastra as vias.</p>
           )}
 
+          {temMapaSetores && (
+            <nav class="setores-pilulas" aria-label="Setores deste local">
+              {(setores ?? []).map((s) => (
+                <a href={`/rotas/${local.slug}/${s.slug}`}>{nomeSetorCurto(s.nome, local.nome)}</a>
+              ))}
+            </nav>
+          )}
+
           <ListaEnvelope class:list={[{ "setores-em-lista": temMapaSetores }]}>
             {temMapaSetores && <summary>Ver os setores em lista</summary>}
             {lados.length > 0 ? (
@@ -806,6 +814,10 @@ const jsonLdLocal = local
   .local-detalhe__titulo { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .local-detalhe__titulo h1 { margin: 0; }
   .local-detalhe__acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  @media (max-width: 720px) {
+    /* botões do topo com altura boa pro dedo */
+    .local-detalhe__acoes .botao-compartilhar { min-height: 44px; display: inline-flex; align-items: center; }
+  }
   .botao-offline:disabled { opacity: 0.6; cursor: wait; }
   .local-detalhe__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .tag-tipo {
@@ -935,6 +947,19 @@ const jsonLdLocal = local
   :global(.setores-em-lista) { font-size: 0.9rem; }
   :global(.setores-em-lista > summary) { cursor: pointer; color: var(--verde-escuro); font-weight: 600; padding: 6px 0; }
   :global(.setores-em-lista[open] > summary) { margin-bottom: 10px; }
+  /* No celular o mapa fica pequeno pro dedo: os setores aparecem como botões
+     logo abaixo dele (e a lista recolhida some, porque seria repetida). */
+  .setores-pilulas { display: none; }
+  @media (max-width: 720px) {
+    .setores-pilulas { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; }
+    .setores-pilulas a {
+      display: inline-flex; align-items: center; min-height: 44px; padding: 8px 14px; border-radius: 999px;
+      background: var(--creme-claro); border: 1px solid rgba(42, 31, 22, 0.15);
+      color: var(--verde-escuro); font-weight: 600; font-size: 0.88rem; text-decoration: none;
+    }
+    .setores-pilulas a:active { background: var(--creme); }
+    :global(.setores-em-lista) { display: none; }
+  }
   .mapa-setores__quadro { position: relative; line-height: 0; border-radius: 10px; overflow: hidden; box-shadow: var(--sombra); }
   .mapa-setores__quadro img { display: block; width: 100%; height: auto; }
   .mapa-setores__quadro svg { position: absolute; inset: 0; width: 100%; height: 100%; }

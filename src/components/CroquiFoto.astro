@@ -154,6 +154,11 @@ const creditos = [...new Set(fotos.map((f) => f.credito).filter(Boolean))] as st
     ))}
     <p class="croqui-foto__dica">Arraste a foto pro lado pra ver o paredão inteiro.</p>
 
+    <!-- ficha logo abaixo da foto, pra quem toca numa via ver os detalhes sem rolar -->
+    <div class="croqui-foto__ficha croqui-foto__ficha--vazia" data-ficha aria-live="polite">
+      Toque numa via na foto ou na lista pra ver os detalhes.
+    </div>
+
     <p class="croqui-foto__aviso">
       <strong>Atenção:</strong> o traçado das vias na foto é uma reprodução do croqui original e pode ter pequenas diferenças.
       {pdf?.pdf_url ? (
@@ -161,10 +166,6 @@ const creditos = [...new Set(fotos.map((f) => f.credito).filter(Boolean))] as st
       ) : null}
       Na dúvida, siga sempre o croqui dos autores.
     </p>
-
-    <div class="croqui-foto__ficha croqui-foto__ficha--vazia" data-ficha aria-live="polite">
-      Toque numa via na foto ou na lista pra ver os detalhes.
-    </div>
 
     {creditos.map((c) => <p class="croqui-foto__credito">Croqui: {c}</p>)}
   </div>
@@ -223,9 +224,22 @@ const creditos = [...new Set(fotos.map((f) => f.credito).filter(Boolean))] as st
         <span class="croqui-foto__ficha-grau">${esc(f.grau)}</span>`;
     }
 
+    // No celular a foto é mais larga que a tela (rola pro lado): centraliza a via escolhida.
+    function centralizar(id: string) {
+      const g = linhas.find((l) => l.dataset.rotaId === id && l.style.display !== 'none');
+      const rolagem = g?.closest<HTMLElement>('.croqui-foto__rolagem');
+      const svg = g?.ownerSVGElement;
+      if (!g || !rolagem || !svg || rolagem.scrollWidth <= rolagem.clientWidth + 4) return;
+      const caixa = g.getBBox();
+      const escala = svg.getBoundingClientRect().width / 1000;
+      const centro = (caixa.x + caixa.width / 2) * escala;
+      rolagem.scrollTo({ left: Math.max(0, centro - rolagem.clientWidth / 2), behavior: 'smooth' });
+    }
+
     function selecionar(id: string) {
       ativa = ativa === id ? null : id;
       aplicar();
+      if (ativa) centralizar(ativa);
     }
 
     linhas.forEach((g) => {
@@ -241,7 +255,8 @@ const creditos = [...new Set(fotos.map((f) => f.credito).filter(Boolean))] as st
         selecionar(li.dataset.rotaId!);
         if (ativa) {
           const linha = raiz!.querySelector(`.croqui-via[data-rota-id="${li.dataset.rotaId}"]`);
-          (linha?.closest('figure') ?? raiz)!.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // sobe até a foto deixando espaço pro cabeçalho e pra ficha logo abaixo
+          (linha?.closest('figure') ?? raiz)!.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       };
       li.addEventListener('click', ir);
@@ -286,7 +301,7 @@ const creditos = [...new Set(fotos.map((f) => f.credito).filter(Boolean))] as st
   .croqui-filtro i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; border: 1px solid rgba(42, 31, 22, 0.3); }
   .croqui-filtro[aria-pressed='true'] { background: var(--verde-escuro); border-color: var(--verde-escuro); color: var(--branco); }
 
-  .croqui-foto__figura { margin: 0 0 14px; }
+  .croqui-foto__figura { margin: 0 0 14px; scroll-margin-top: 84px; }
   /* No computador a foto "sai" da coluna de texto e fica bem mais larga,
      pra os números e as linhas ficarem legíveis. */
   @media (min-width: 900px) {
@@ -330,6 +345,7 @@ const creditos = [...new Set(fotos.map((f) => f.credito).filter(Boolean))] as st
   .croqui-foto__aviso strong { color: #a04e12; }
 
   .croqui-foto__ficha {
+    margin-bottom: 12px;
     display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start;
     background: var(--creme-claro); border-radius: 10px; padding: 14px 16px; min-height: 64px;
   }
