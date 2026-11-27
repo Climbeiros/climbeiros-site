@@ -1,0 +1,628 @@
+---
+// src/pages/editor.astro
+// Editor de croquis: os responsáveis pelos croquis (ex.: Silvio, da Pedreira do Dib)
+// entram com WhatsApp + senha de 6 números (mesmo esquema da área dos guias) e
+// editam só os locais liberados pra eles: vias, traços sobre a foto e textos.
+// Tudo que é enviado fica pendente no painel ("Edição de croqui"); quando a
+// equipe aprova, o banco aplica a mudança e o site republica sozinho.
+//
+// Banco (Supabase): tabelas editores_locais, edicoes_croqui, pedidos_senha_editores
+// e as funções editor_entrar, editor_criar_senha, editor_pedir_senha e
+// editor_enviar_edicao. Acesso novo (só a equipe, no SQL Editor):
+//   select * from novo_acesso_editor('Nome', '(11) 99999-9999', array['slug-do-local']);
+import Layout from '../layouts/Layout.astro';
+---
+<Layout titulo="Editor de croquis" descricao="Área dos responsáveis pelos croquis do Climbeiros." semIndice>
+  <section class="ed-login" id="ed-login">
+    <div class="ed-login__caixa">
+      <h1>Editor de croquis</h1>
+      <form id="ed-form-login" class="ed-form">
+        <p>Área dos responsáveis pelos croquis. Entre com o WhatsApp do seu cadastro e a sua senha. Primeira vez aqui? Use o código de 6 números que a gente te mandou.</p>
+        <label>WhatsApp <input type="tel" id="ed-whats" inputmode="numeric" maxlength="15" placeholder="(11)991721313" required autocomplete="tel" /></label>
+        <label>Senha ou código (6 números) <input type="password" id="ed-senha" inputmode="numeric" maxlength="6" required autocomplete="current-password" placeholder="••••••" /></label>
+        <button type="submit" class="botao">Entrar</button>
+        <p class="ed-msg" id="ed-msg" role="status"></p>
+        <p class="ed-ajuda"><button type="button" class="ed-link" id="ed-abrir-esqueci">Esqueci a senha</button></p>
+      </form>
+      <form id="ed-form-esqueci" class="ed-form" hidden>
+        <p>Sem problema! Digite o WhatsApp do seu cadastro. A equipe vai te mandar uma senha provisória por lá, e com ela você cria uma senha nova.</p>
+        <label>WhatsApp <input type="tel" id="ed-esq-whats" inputmode="numeric" maxlength="15" placeholder="(11)991721313" required autocomplete="tel" /></label>
+        <button type="submit" class="botao">Pedir nova senha</button>
+        <p class="ed-msg" id="ed-esq-msg" role="status"></p>
+        <p class="ed-ajuda"><button type="button" class="ed-link" id="ed-voltar">Voltar</button></p>
+      </form>
+      <form id="ed-form-nova" class="ed-form" hidden>
+        <p>Oi, <strong id="ed-nova-nome"></strong>! É o seu primeiro acesso: crie uma senha de 6 números pra usar daqui pra frente.</p>
+        <label>Nova senha <input type="password" id="ed-nova1" inputmode="numeric" maxlength="6" required autocomplete="new-password" placeholder="••••••" /></label>
+        <label>Repita a senha <input type="password" id="ed-nova2" inputmode="numeric" maxlength="6" required autocomplete="new-password" placeholder="••••••" /></label>
+        <button type="submit" class="botao">Criar senha e entrar</button>
+        <p class="ed-msg" id="ed-nova-msg" role="status"></p>
+      </form>
+    </div>
+  </section>
+
+  <section class="ed-app" id="ed-app" hidden>
+    <div class="ed-topo">
+      <div>
+        <p class="ed-topo__ola">Olá, <strong id="ed-nome"></strong></p>
+        <div class="ed-topo__local">
+          <label for="ed-local" class="visually-hidden">Local</label>
+          <select id="ed-local"></select>
+          <a id="ed-ver-site" href="#" target="_blank" rel="noopener">Ver no site ↗</a>
+        </div>
+      </div>
+      <div class="ed-topo__dir">
+        <p class="ed-pendentes" id="ed-pendentes" hidden></p>
+        <button type="button" class="ed-link" id="ed-sair">Sair</button>
+      </div>
+    </div>
+    <div class="ed-corpo">
+      <nav class="ed-lateral" id="ed-lateral" aria-label="Seções do editor"></nav>
+      <div class="ed-conteudo" id="ed-conteudo"><p>Carregando...</p></div>
+    </div>
+  </section>
+
+  <div class="ed-barra" id="ed-barra" role="region" aria-label="Alterações não enviadas">
+    <span id="ed-barra-texto"></span>
+    <input type="text" id="ed-recado" maxlength="300" placeholder="Recado pra equipe (opcional)" aria-label="Recado pra equipe (opcional)" />
+    <button type="button" class="ed-btn ed-btn--borda" id="ed-descartar">Descartar</button>
+    <button type="button" class="ed-btn ed-btn--laranja" id="ed-enviar">Enviar pra publicar</button>
+  </div>
+  <div class="ed-aviso" id="ed-aviso" role="status"></div>
+</Layout>
+
+<script>
+  import { supabase } from '../lib/supabase';
+  import { mascaraTelefone } from '../lib/formularios';
+
+  const $ = (id: string) => document.getElementById(id) as any;
+  const esc = (t: any) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as any)[c]);
+  const copia = (o: any) => JSON.parse(JSON.stringify(o));
+
+  const MOTIVOS: Record<string, string> = {
+    nao_encontrado: 'Não achei responsável com esse WhatsApp. Confira o número (com DDD) ou fale com a gente.',
+    senha_errada: 'A senha (ou o código) não confere. Confira e tente de novo.',
+    sem_acesso: 'Seu acesso ainda não tem senha. Clique em "Esqueci a senha" que a equipe te manda uma senha provisória pelo WhatsApp.',
+    travado: 'Muitas tentativas erradas: o acesso foi travado por segurança. Fale com a gente pelo Contato que a gente destrava.',
+    senha_invalida: 'A senha precisa ter exatamente 6 números.',
+    sem_permissao: 'Esse local não está liberado pro seu acesso.',
+    nada_mudou: 'Não tem nenhuma alteração pra enviar.',
+    dados_invalidos: 'Algum campo ficou com valor inválido.',
+  };
+
+  // ------------------------------------------------------------ login
+  let credenciais = { whats: '', senha: '' };
+  let editor: any = null;
+  mascaraTelefone($('ed-whats'));
+  mascaraTelefone($('ed-esq-whats'));
+
+  $('ed-form-login').addEventListener('submit', async (e: Event) => {
+    e.preventDefault();
+    const msg = $('ed-msg');
+    const whats = $('ed-whats').value, senha = $('ed-senha').value;
+    if (!/^\d{6}$/.test(senha)) { msg.textContent = MOTIVOS.senha_invalida; return; }
+    msg.textContent = 'Conferindo...';
+    const { data: r, error } = await supabase.rpc('editor_entrar', { p_whatsapp: whats, p_senha: senha });
+    if (error || !r) { msg.textContent = 'Não consegui conferir agora. Tente de novo em instantes.'; return; }
+    if (!r.ok) { msg.textContent = MOTIVOS[r.motivo] ?? MOTIVOS.senha_errada; return; }
+    msg.textContent = '';
+    if (r.primeiro_acesso) {
+      $('ed-nova-nome').textContent = String(r.nome || '').split(' ')[0];
+      $('ed-form-login').hidden = true;
+      $('ed-form-nova').hidden = false;
+      $('ed-nova1').focus();
+      return;
+    }
+    entrar(r.editor, whats, senha);
+  });
+  $('ed-form-nova').addEventListener('submit', async (e: Event) => {
+    e.preventDefault();
+    const msg = $('ed-nova-msg'); const n1 = $('ed-nova1').value, n2 = $('ed-nova2').value;
+    if (!/^\d{6}$/.test(n1)) { msg.textContent = MOTIVOS.senha_invalida; return; }
+    if (n1 !== n2) { msg.textContent = 'As duas senhas não são iguais.'; return; }
+    msg.textContent = 'Salvando...';
+    const { data: r, error } = await supabase.rpc('editor_criar_senha', { p_whatsapp: $('ed-whats').value, p_codigo: $('ed-senha').value, p_senha_nova: n1 });
+    if (error || !r) { msg.textContent = 'Não consegui salvar agora. Tente de novo em instantes.'; return; }
+    if (!r.ok) { msg.textContent = MOTIVOS[r.motivo] ?? MOTIVOS.senha_errada; return; }
+    entrar(r.editor, $('ed-whats').value, n1);
+  });
+  $('ed-abrir-esqueci').addEventListener('click', () => {
+    $('ed-form-login').hidden = true; $('ed-form-esqueci').hidden = false;
+    $('ed-esq-whats').value = $('ed-whats').value; $('ed-esq-msg').textContent = '';
+  });
+  $('ed-voltar').addEventListener('click', () => { $('ed-form-esqueci').hidden = true; $('ed-form-login').hidden = false; });
+  $('ed-form-esqueci').addEventListener('submit', async (e: Event) => {
+    e.preventDefault();
+    const msg = $('ed-esq-msg');
+    if ($('ed-esq-whats').value.replace(/\D/g, '').length < 10) { msg.textContent = 'Digite o WhatsApp com DDD.'; return; }
+    msg.textContent = 'Enviando...';
+    const { error } = await supabase.rpc('editor_pedir_senha', { p_whatsapp: $('ed-esq-whats').value });
+    msg.textContent = error ? 'Não consegui enviar agora. Tente de novo em instantes.'
+      : 'Pedido recebido! Se esse WhatsApp estiver cadastrado, a equipe vai te mandar uma senha provisória por lá em breve.';
+  });
+  $('ed-sair').addEventListener('click', () => {
+    if (contarAlteracoes() > 0 && !confirmarSaida()) return;
+    location.reload();
+  });
+  function confirmarSaida() {
+    // sem window.confirm (bloqueado em alguns navegadores embutidos): pede um segundo clique
+    const b = $('ed-sair');
+    if (b.dataset.confirmar) return true;
+    b.dataset.confirmar = '1'; b.textContent = 'Sair sem enviar? Clique de novo';
+    setTimeout(() => { delete b.dataset.confirmar; b.textContent = 'Sair'; }, 4000);
+    return false;
+  }
+  window.addEventListener('beforeunload', (e) => { if (editor && contarAlteracoes() > 0) e.preventDefault(); });
+
+  async function entrar(dadosEditor: any, whats: string, senha: string) {
+    editor = dadosEditor; credenciais = { whats, senha };
+    $('ed-login').hidden = true; $('ed-app').hidden = false;
+    $('ed-nome').textContent = String(editor.nome || '').split(' ')[0];
+    const sel = $('ed-local');
+    sel.innerHTML = editor.locais.map((l: any) => `<option value="${l.id}">${esc(l.nome)}</option>`).join('');
+    sel.hidden = editor.locais.length < 2;
+    sel.onchange = () => carregarLocal(sel.value);
+    atualizarPendentes(editor.pendentes || 0);
+    if (editor.locais.length) await carregarLocal(editor.locais[0].id);
+    else $('ed-conteudo').innerHTML = '<p>Nenhum local liberado pro seu acesso ainda. Fale com a equipe Climbeiros.</p>';
+  }
+  function atualizarPendentes(n: number) {
+    const p = $('ed-pendentes');
+    p.hidden = !n;
+    p.textContent = n === 1 ? '1 envio aguardando aprovação' : `${n} envios aguardando aprovação`;
+  }
+
+  // ------------------------------------------------------------ dados
+  let base: any = null;   // como está no site
+  let atual: any = null;  // como está na tela
+  let secao = 'setor', setorId = '', aba = 'vias', fotoId = '', viaSel = '', desenhando = false;
+  let proximoTmp = 1;
+  // Só os campos combinados no exemplo aprovado (o banco também só aceita esses).
+  const CAMPOS_VIA = ['numero', 'nome', 'grau', 'chapas', 'altura_m', 'conquistadores', 'situacao'];
+  const GRAUS = ['3º', '3º Sup', '4º', '4º Sup', '5º', '5º Sup', '6º', '6º Sup', '7º A', '7º B', '7º C', '8º A', '8º B', '8º C', '9º A', '9º B', '9º C', '10º A', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'A0', 'A1', 'A2'];
+  const SITUACOES: [string, string][] = [['ativa', 'Ativa'], ['projeto', 'Projeto'], ['quebrada', 'Quebrada / interditada']];
+
+  async function carregarLocal(localId: string) {
+    $('ed-conteudo').innerHTML = '<p>Carregando...</p>';
+    const { data: local } = await supabase.from('locais').select('id, nome, slug, descricao, como_chegar, boas_praticas').eq('id', localId).single();
+    const { data: setores } = await supabase.from('setores').select('id, nome, slug, descricao').eq('local_id', localId).order('nome');
+    const idsSet = (setores ?? []).map((s: any) => s.id);
+    const [rotasR, fotosR] = await Promise.all([
+      idsSet.length ? supabase.from('rotas').select('id, setor_id, ordem, ' + CAMPOS_VIA.join(', ')).in('setor_id', idsSet).order('ordem') : { data: [] },
+      idsSet.length ? supabase.from('croqui_fotos').select('id, setor_id, titulo, imagem_url, largura, altura, ordem').in('setor_id', idsSet).order('ordem') : { data: [] },
+    ]) as any[];
+    const idsFotos = (fotosR.data ?? []).map((f: any) => f.id);
+    const { data: linhas } = idsFotos.length ? await supabase.from('croqui_linhas').select('foto_id, rota_id, pontos').in('foto_id', idsFotos) : { data: [] } as any;
+    const mapa: Record<string, any> = {};
+    (linhas ?? []).forEach((l: any) => { mapa[l.foto_id + '|' + l.rota_id] = l.pontos; });
+    base = {
+      local: { descricao: local?.descricao ?? '', como_chegar: local?.como_chegar ?? '', boas_praticas: local?.boas_praticas ?? { itens: [], fonte: null } },
+      nome: local?.nome, slug: local?.slug, id: localId,
+      setores: (setores ?? []).map((s: any) => ({ ...s, nomeCurto: s.nome.replace(new RegExp('^' + (local?.nome || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[-–:]\\s*', 'i'), '') })),
+      vias: (rotasR.data ?? []).map((r: any) => { const v: any = { id: r.id, setor_id: r.setor_id, ordem: r.ordem }; CAMPOS_VIA.forEach((c) => v[c] = r[c] ?? ''); return v; }),
+      fotos: fotosR.data ?? [],
+      linhas: mapa,
+    };
+    // ordem natural de setores: pela ordem do PDF/mapa não temos; usa nome
+    atual = copia(base);
+    atual.novas = [];
+    $('ed-ver-site').href = `/rotas/${base.slug}`;
+    secao = 'setor'; setorId = base.setores[0]?.id ?? ''; aba = 'vias'; fotoId = ''; viaSel = ''; desenhando = false;
+    render(); atualizarBarra();
+  }
+
+  // ------------------------------------------------------------ alterações
+  function viasDoSetor(sid: string) {
+    return [...atual.vias.filter((v: any) => v.setor_id === sid), ...atual.novas.filter((v: any) => v.setor_id === sid)];
+  }
+  function viaMudou(v: any) {
+    const b = base.vias.find((x: any) => x.id === v.id);
+    return b && CAMPOS_VIA.some((c) => String(b[c] ?? '') !== String(v[c] ?? ''));
+  }
+  function montarEnvio() {
+    const dados: any = {};
+    const loc: any = {};
+    if (atual.local.descricao !== base.local.descricao) loc.descricao = atual.local.descricao;
+    if (atual.local.como_chegar !== base.local.como_chegar) loc.como_chegar = atual.local.como_chegar;
+    const bp = { ...atual.local.boas_praticas, itens: (atual.local.boas_praticas.itens || []).map((t: string) => t.trim()).filter(Boolean) };
+    if (JSON.stringify(bp.itens) !== JSON.stringify(base.local.boas_praticas.itens || [])) loc.boas_praticas = bp;
+    if (Object.keys(loc).length) dados.local = loc;
+    const setores: any = {};
+    atual.setores.forEach((s: any) => {
+      const b = base.setores.find((x: any) => x.id === s.id); const d: any = {};
+      ['descricao'].forEach((c) => { if ((s[c] ?? '') !== (b[c] ?? '')) d[c] = s[c]; });
+      if (Object.keys(d).length) setores[s.id] = d;
+    });
+    if (Object.keys(setores).length) dados.setores = setores;
+    const vias: any = {};
+    atual.vias.forEach((v: any) => {
+      if (!viaMudou(v)) return;
+      const b = base.vias.find((x: any) => x.id === v.id); const d: any = {};
+      CAMPOS_VIA.forEach((c) => { if (String(b[c] ?? '') !== String(v[c] ?? '')) d[c] = v[c]; });
+      vias[v.id] = d;
+    });
+    if (Object.keys(vias).length) dados.vias = vias;
+    const novas = atual.novas.filter((v: any) => !v.enviada).map((v: any) => {
+      const d: any = { setor_id: v.setor_id }; CAMPOS_VIA.forEach((c) => { if (String(v[c] ?? '') !== '') d[c] = v[c]; });
+      d.linhas = atual.fotos.filter((f: any) => (atual.linhas[f.id + '|' + v.id] || []).length > 1)
+        .map((f: any) => ({ foto_id: f.id, pontos: atual.linhas[f.id + '|' + v.id] }));
+      return d;
+    });
+    if (novas.length) dados.novas = novas;
+    const linhas: any[] = [];
+    Object.keys(atual.linhas).forEach((k) => {
+      const [foto, rota] = k.split('|');
+      if (rota.startsWith('nova-')) return;
+      if (JSON.stringify(atual.linhas[k] || []) !== JSON.stringify(base.linhas[k] || [])) linhas.push({ foto_id: foto, rota_id: rota, pontos: atual.linhas[k] || [] });
+    });
+    if (linhas.length) dados.linhas = linhas;
+    return dados;
+  }
+  function contarAlteracoes() {
+    if (!atual) return 0;
+    const d = montarEnvio();
+    return (d.local ? Object.keys(d.local).length : 0) + Object.keys(d.setores || {}).length + Object.keys(d.vias || {}).length
+      + (d.novas || []).length + (d.linhas || []).length;
+  }
+  function atualizarBarra() {
+    const n = contarAlteracoes();
+    $('ed-barra-texto').textContent = n === 1 ? '1 alteração não enviada' : `${n} alterações não enviadas`;
+    $('ed-barra').classList.toggle('ed-barra--visivel', n > 0);
+  }
+  function avisar(msg: string, erro = false) {
+    const a = $('ed-aviso'); a.textContent = msg; a.classList.toggle('ed-aviso--erro', erro); a.classList.add('ed-aviso--visivel');
+    clearTimeout((avisar as any).t); (avisar as any).t = setTimeout(() => a.classList.remove('ed-aviso--visivel'), erro ? 7000 : 5000);
+  }
+  $('ed-descartar').addEventListener('click', () => {
+    const enviadas = atual.novas.filter((v: any) => v.enviada);
+    atual = copia(base); atual.novas = enviadas; desenhando = false; render(); atualizarBarra();
+  });
+  $('ed-enviar').addEventListener('click', async () => {
+    const dados = montarEnvio();
+    const semNome = (dados.novas || []).some((v: any) => !String(v.nome || '').trim());
+    if (semNome) { avisar('Toda via nova precisa de nome.', true); return; }
+    const b = $('ed-enviar'); b.disabled = true; b.textContent = 'Enviando...';
+    const { data: r, error } = await supabase.rpc('editor_enviar_edicao', {
+      p_whatsapp: credenciais.whats, p_senha: credenciais.senha, p_local_id: base.id, p_dados: dados, p_mensagem: $('ed-recado').value || null,
+    });
+    b.disabled = false; b.textContent = 'Enviar pra publicar';
+    if (error || !r) { avisar('Não consegui enviar agora. Tente de novo em instantes.', true); return; }
+    if (!r.ok) { avisar((MOTIVOS[r.motivo] ?? 'Não deu certo.') + (r.detalhe ? ' (' + r.detalhe + ')' : ''), true); return; }
+    // O que foi enviado vira a nova referência (o site muda quando a equipe aprovar).
+    const novasEnviadas = atual.novas.map((v: any) => ({ ...v, enviada: true }));
+    const linhasNovas: any = {}; Object.keys(atual.linhas).forEach((k) => { if (k.includes('|nova-')) linhasNovas[k] = atual.linhas[k]; });
+    base = copia({ ...atual, novas: undefined });
+    Object.keys(linhasNovas).forEach((k) => { base.linhas[k] = linhasNovas[k]; });
+    atual.novas = novasEnviadas;
+    $('ed-recado').value = '';
+    editor.pendentes = (editor.pendentes || 0) + 1; atualizarPendentes(editor.pendentes);
+    render(); atualizarBarra();
+    avisar('✓ Enviado! A equipe Climbeiros confere e publica. Depois da aprovação, o site atualiza em uns 2 minutos.');
+  });
+
+  // ------------------------------------------------------------ cores e grau
+  function corGrau(g: string): [string, string] {
+    const s = String(g || '').trim().toUpperCase();
+    if (/^A\d/.test(s)) return ['#9a9a9a', '#2a1f16'];
+    const n = parseInt(s, 10);
+    if (!n) return ['#fffdf7', '#2a1f16'];
+    if (n <= 4) return ['#f2d21b', '#2a1f16'];
+    if (n === 5) return ['#f6b950', '#2a1f16'];
+    if (n === 6) return ['#5e9e3f', '#fff'];
+    if (n === 7) return ['#d62828', '#fff'];
+    if (n === 8) return ['#1c8fd6', '#fff'];
+    return ['#7b3fa0', '#fff'];
+  }
+
+  // ------------------------------------------------------------ render
+  function render() {
+    const lat = $('ed-lateral');
+    lat.innerHTML = `
+      <button type="button" data-ir="local" aria-current="${secao === 'local'}">📝 Textos do local</button>
+      <p class="ed-lateral__titulo">Setores</p>
+      ${atual.setores.map((s: any) => `<button type="button" data-setor="${s.id}" aria-current="${secao === 'setor' && s.id === setorId}">${esc(s.nomeCurto)}<span class="ed-qtd">${viasDoSetor(s.id).length}</span></button>`).join('')}`;
+    lat.querySelectorAll('[data-ir]').forEach((b: any) => b.addEventListener('click', () => { secao = 'local'; desenhando = false; render(); }));
+    lat.querySelectorAll('[data-setor]').forEach((b: any) => b.addEventListener('click', () => { secao = 'setor'; setorId = b.dataset.setor; fotoId = ''; viaSel = ''; desenhando = false; render(); }));
+    const c = $('ed-conteudo');
+    if (secao === 'local') return renderLocal(c);
+    const s = atual.setores.find((x: any) => x.id === setorId);
+    if (!s) { c.innerHTML = '<p>Esse local ainda não tem setores.</p>'; return; }
+    const fotos = atual.fotos.filter((f: any) => f.setor_id === s.id);
+    c.innerHTML = `
+      <div class="ed-cab"><div><h2>${esc(s.nomeCurto)}</h2><p>${viasDoSetor(s.id).length} vias · ${fotos.length} ${fotos.length === 1 ? 'foto' : 'fotos'}</p></div>
+        <a class="ed-btn ed-btn--borda" href="/rotas/${base.slug}/${s.slug}" target="_blank" rel="noopener">Ver página do setor ↗</a></div>
+      <div class="ed-abas" role="tablist">
+        ${[['vias', 'Vias'], ['tracos', 'Traços na foto'], ['textos', 'Texto do setor']].map(([id, t]) => `<button class="ed-aba" role="tab" type="button" data-aba="${id}" aria-selected="${aba === id}">${t}</button>`).join('')}
+      </div>
+      <div id="ed-painel"></div>`;
+    c.querySelectorAll('[data-aba]').forEach((b: any) => b.addEventListener('click', () => { aba = b.dataset.aba; desenhando = false; render(); }));
+    const p = $('ed-painel');
+    if (aba === 'vias') renderVias(p, s);
+    else if (aba === 'tracos') renderTracos(p, s, fotos);
+    else renderTextoSetor(p, s);
+  }
+
+  function renderVias(p: any, s: any) {
+    const vias = viasDoSetor(s.id);
+    p.innerHTML = `
+      <p class="ed-dica">Clique em qualquer campo pra editar. Linhas alteradas ficam em laranja até você enviar.</p>
+      <datalist id="ed-graus">${GRAUS.map((g) => `<option value="${g}"></option>`).join('')}</datalist>
+      <div class="ed-cartao"><div class="ed-tabela-rolagem"><table class="ed-tabela">
+        <thead><tr><th></th><th>Nº</th><th>Nome</th><th>Grau</th><th>Chapas</th><th>Altura (m)</th><th>Conquistadores</th><th>Situação</th><th></th></tr></thead>
+        <tbody>${vias.map((v: any) => {
+          const nova = String(v.id).startsWith('nova-');
+          const cls = nova ? (v.enviada ? 'ed-enviada' : 'ed-nova') : (viaMudou(v) ? 'ed-alterada' : '');
+          const dis = v.enviada ? 'disabled' : '';
+          return `<tr class="${cls}" data-id="${v.id}">
+            <td><span class="ed-faixa" style="background:${corGrau(v.grau)[0]}"></span></td>
+            <td><input class="ed-campo ed-campo--n" data-k="numero" value="${esc(v.numero)}" aria-label="Número" ${dis}></td>
+            <td><input class="ed-campo" data-k="nome" value="${esc(v.nome)}" aria-label="Nome" placeholder="Nome da via" ${dis}>${v.enviada ? '<small class="ed-obs">enviada, aguardando aprovação</small>' : ''}</td>
+            <td><input class="ed-campo ed-campo--grau" data-k="grau" list="ed-graus" value="${esc(v.grau)}" aria-label="Grau" ${dis}></td>
+            <td><input class="ed-campo ed-campo--num" data-k="chapas" inputmode="numeric" value="${esc(v.chapas)}" aria-label="Chapas" ${dis}></td>
+            <td><input class="ed-campo ed-campo--num" data-k="altura_m" inputmode="decimal" value="${esc(v.altura_m)}" aria-label="Altura em metros" ${dis}></td>
+            <td><input class="ed-campo ed-campo--conq" data-k="conquistadores" value="${esc(v.conquistadores)}" aria-label="Conquistadores" ${dis}></td>
+            <td><select class="ed-campo" data-k="situacao" aria-label="Situação" ${dis}>${(SITUACOES.some(([k]) => k === (v.situacao || 'ativa')) ? SITUACOES : [...SITUACOES, [v.situacao, 'A confirmar']]).map(([k, t]) => `<option value="${k}" ${k === (v.situacao || 'ativa') ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
+            <td>${atual.fotos.some((f: any) => f.setor_id === s.id && (atual.linhas[f.id + '|' + v.id] || []).length > 1) ? '' : '<span class="ed-obs">sem traço</span>'}</td>
+          </tr>`;
+        }).join('')}</tbody></table></div>
+        <div class="ed-acoes"><button class="ed-btn ed-btn--verde" type="button" id="ed-nova-via">+ Incluir via nova</button></div>
+      </div>`;
+    p.querySelectorAll('tr[data-id] .ed-campo').forEach((el: any) => {
+      const ao = () => {
+        const id = el.closest('tr').dataset.id;
+        const v = atual.vias.find((x: any) => x.id === id) || atual.novas.find((x: any) => x.id === id);
+        v[el.dataset.k] = el.value;
+        const tr = el.closest('tr');
+        if (!String(id).startsWith('nova-')) tr.className = viaMudou(v) ? 'ed-alterada' : '';
+        if (el.dataset.k === 'grau') tr.querySelector('.ed-faixa').style.background = corGrau(v.grau)[0];
+        atualizarBarra();
+      };
+      el.addEventListener('input', ao); el.addEventListener('change', ao);
+    });
+    $('ed-nova-via').addEventListener('click', () => {
+      const id = 'nova-' + (proximoTmp++);
+      const numeros = viasDoSetor(s.id).map((v: any) => parseInt(v.numero, 10)).filter((n: number) => n > 0);
+      atual.novas.push({ id, setor_id: s.id, numero: String((numeros.length ? Math.max(...numeros) : 0) + 1), nome: '', grau: '', chapas: '', altura_m: '', conquistadores: '', situacao: 'ativa' });
+      render(); atualizarBarra();
+      (document.querySelector(`tr[data-id="${id}"] [data-k="nome"]`) as any)?.focus();
+    });
+  }
+
+  // ------------------------------------------------------------ traços
+  function caminho(pts: number[][]) {
+    if (!pts || !pts.length) return '';
+    let d = `M ${pts[0][0]} ${pts[0][1]}`;
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+      d += i === 1 ? ` L ${(x0 + x1) / 2} ${(y0 + y1) / 2}` : ` Q ${x0} ${y0} ${(x0 + x1) / 2} ${(y0 + y1) / 2}`;
+    }
+    const u = pts[pts.length - 1];
+    return `${d} L ${u[0]} ${u[1]}`;
+  }
+  function renderTracos(p: any, s: any, fotos: any[]) {
+    if (!fotos.length) { p.innerHTML = '<p class="ed-dica">Esse setor ainda não tem foto de croqui. Mande a foto pra equipe que a gente coloca aqui.</p>'; return; }
+    if (!fotos.find((f) => f.id === fotoId)) fotoId = fotos[0].id;
+    const foto = fotos.find((f) => f.id === fotoId);
+    const vbH = Math.round(1000 * foto.altura / foto.largura);
+    const vias = viasDoSetor(s.id);
+    if (!vias.find((v: any) => v.id === viaSel)) viaSel = vias[0]?.id ?? '';
+    const v = vias.find((x: any) => x.id === viaSel);
+    const chave = fotoId + '|' + viaSel;
+    const pts = atual.linhas[chave] || [];
+    const bloqueada = v?.enviada;
+    p.innerHTML = `
+      ${fotos.length > 1 ? `<div class="ed-fotos">${fotos.map((f) => `<button type="button" class="ed-btn ${f.id === fotoId ? 'ed-btn--verde' : 'ed-btn--borda'}" data-foto="${f.id}">${esc(f.titulo || 'Foto ' + f.ordem)}</button>`).join('')}</div>` : ''}
+      <p class="ed-dica">${desenhando
+        ? `<strong>Desenhando a via ${esc(v?.numero)}:</strong> clique na foto de baixo pra cima, seguindo o caminho da via. O primeiro clique é a base (onde fica o número). Clique em "Pronto" quando chegar na parada.`
+        : 'Escolha uma via na lista. Arraste as bolinhas laranja pra ajustar o caminho. A bolinha cheia é a base da via.'}</p>
+      <div class="ed-tracos">
+        <div>
+          <div class="ed-foto ${desenhando ? 'ed-foto--desenhando' : ''}" id="ed-foto">
+            <img src="${esc(foto.imagem_url)}" alt="Foto do setor" width="${foto.largura}" height="${foto.altura}">
+            <svg viewBox="0 0 1000 ${vbH}" id="ed-svg"></svg>
+          </div>
+          <div class="ed-ferramentas">
+            ${!v ? '' : bloqueada ? '<span class="ed-obs">Via enviada, aguardando aprovação.</span>' : desenhando
+              ? `<button class="ed-btn ed-btn--borda" type="button" id="ed-t-desfazer" ${pts.length ? '' : 'disabled'}>↶ Desfazer último ponto</button>
+                 <button class="ed-btn ed-btn--verde" type="button" id="ed-t-pronto">✓ Pronto</button>
+                 <span class="ed-obs">${pts.length} ${pts.length === 1 ? 'ponto' : 'pontos'}</span>`
+              : `<button class="ed-btn ed-btn--borda" type="button" id="ed-t-redesenhar">✎ ${pts.length ? 'Redesenhar do zero' : 'Desenhar traço'}</button>
+                 <button class="ed-btn ed-btn--perigo" type="button" id="ed-t-apagar" ${pts.length ? '' : 'disabled'}>Apagar traço desta foto</button>
+                 <span class="ed-obs">Via ${esc(v.numero)} · ${esc(v.nome || 'sem nome')} · ${esc(v.grau)}</span>`}
+          </div>
+        </div>
+        <div class="ed-lista-tracos">
+          ${vias.map((x: any) => { const [cor, txt] = corGrau(x.grau); const tem = (atual.linhas[fotoId + '|' + x.id] || []).length > 1; return `
+            <button type="button" data-via="${x.id}" aria-pressed="${x.id === viaSel}">
+              <span class="ed-num" style="background:${cor};color:${txt}">${esc(x.numero)}</span>
+              <span>${esc(x.nome || 'Via nova')}<small>${esc(x.grau)}${tem ? '' : ' · sem traço nesta foto'}</small></span>
+            </button>`; }).join('')}
+        </div>
+      </div>`;
+    p.querySelectorAll('[data-foto]').forEach((b: any) => b.addEventListener('click', () => { fotoId = b.dataset.foto; desenhando = false; render(); }));
+    p.querySelectorAll('[data-via]').forEach((b: any) => b.addEventListener('click', () => { viaSel = b.dataset.via; desenhando = false; render(); }));
+    const ir = (id: string, fn: () => void) => { const el = $(id); el && el.addEventListener('click', fn); };
+    ir('ed-t-redesenhar', () => { atual.linhas[chave] = []; desenhando = true; render(); atualizarBarra(); });
+    ir('ed-t-apagar', () => { atual.linhas[chave] = []; render(); atualizarBarra(); });
+    ir('ed-t-desfazer', () => { (atual.linhas[chave] || []).pop(); render(); atualizarBarra(); });
+    ir('ed-t-pronto', () => { desenhando = false; render(); });
+    $('ed-foto').addEventListener('click', (e: MouseEvent) => {
+      if (!desenhando) return;
+      atual.linhas[chave] = [...(atual.linhas[chave] || []), paraSvg(e, vbH)];
+      render(); atualizarBarra();
+    });
+    desenharSvg(vias, vbH, chave);
+  }
+  function paraSvg(e: { clientX: number; clientY: number }, vbH: number) {
+    const r = $('ed-svg').getBoundingClientRect();
+    return [Math.round((e.clientX - r.left) / r.width * 1000), Math.round((e.clientY - r.top) / r.height * vbH)];
+  }
+  function desenharSvg(vias: any[], vbH: number, chave: string) {
+    const svg = $('ed-svg'); const NS = 'http://www.w3.org/2000/svg';
+    const el = (tag: string, attrs: Record<string, any>, pai: any) => { const e = document.createElementNS(NS, tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, String(v))); pai.appendChild(e); return e; };
+    svg.innerHTML = '';
+    [...vias].sort((a, b) => Number(a.id === viaSel) - Number(b.id === viaSel)).forEach((v) => {
+      const pts = atual.linhas[fotoId + '|' + v.id] || [];
+      if (!pts.length) return;
+      const [cor, txt] = corGrau(v.grau);
+      const ativa = v.id === viaSel;
+      const g = el('g', { class: 'ed-via ' + (ativa ? 'ed-via--ativa' : 'ed-via--apagada') }, svg);
+      const d = caminho(pts);
+      el('path', { d, class: 'ed-via__contorno' }, g);
+      el('path', { d, class: 'ed-via__traco', stroke: cor }, g);
+      const b = pts[0];
+      el('circle', { cx: b[0], cy: Math.min(b[1], vbH - 13), r: 12, fill: cor, stroke: '#2a1f16', 'stroke-width': 2.5 }, g);
+      const t = el('text', { x: b[0], y: Math.min(b[1], vbH - 13) + 1, fill: txt }, g); t.textContent = v.numero;
+      if (!ativa || v.enviada) return;
+      pts.forEach((pt: number[], i: number) => {
+        const c = el('circle', { cx: pt[0], cy: pt[1], r: i === 0 ? 8 : 6.5, class: 'ed-ponto' + (i === 0 ? ' ed-ponto--inicio' : '') }, svg) as any;
+        if (desenhando) return;
+        c.addEventListener('pointerdown', (e: PointerEvent) => {
+          e.preventDefault(); e.stopPropagation(); c.setPointerCapture(e.pointerId);
+          const mover = (ev: PointerEvent) => {
+            const novo = [...atual.linhas[chave]]; novo[i] = paraSvg(ev, vbH); atual.linhas[chave] = novo;
+            const path = caminho(novo); g.querySelectorAll('path').forEach((p: any) => p.setAttribute('d', path));
+            c.setAttribute('cx', novo[i][0]); c.setAttribute('cy', novo[i][1]);
+          };
+          const soltar = () => { c.removeEventListener('pointermove', mover); c.removeEventListener('pointerup', soltar); render(); atualizarBarra(); };
+          c.addEventListener('pointermove', mover); c.addEventListener('pointerup', soltar);
+        });
+      });
+    });
+  }
+
+  // ------------------------------------------------------------ textos
+  function renderTextoSetor(p: any, s: any) {
+    p.innerHTML = `<div class="ed-cartao ed-form-grid">
+      <div><label for="ed-s-desc">Descrição do setor</label><textarea class="ed-campo" id="ed-s-desc">${esc(s.descricao)}</textarea></div>
+    </div>`;
+    $('ed-s-desc').addEventListener('input', (e: any) => { s.descricao = e.target.value; atualizarBarra(); });
+  }
+  function renderLocal(c: any) {
+    const l = atual.local; l.boas_praticas = l.boas_praticas || { itens: [], fonte: null }; l.boas_praticas.itens = l.boas_praticas.itens || [];
+    c.innerHTML = `
+      <div class="ed-cab"><div><h2>Textos do local</h2><p>${esc(base.nome)} · aparecem na página do local</p></div></div>
+      <div class="ed-cartao ed-form-grid">
+        <div><label for="ed-l-desc">Descrição</label><textarea class="ed-campo" id="ed-l-desc">${esc(l.descricao)}</textarea></div>
+        <div><label for="ed-l-chegar">Como chegar</label><textarea class="ed-campo" id="ed-l-chegar">${esc(l.como_chegar)}</textarea></div>
+        <div><label>Antes de escalar (regras do local)</label>
+          <div class="ed-regras">${l.boas_praticas.itens.map((r: string, i: number) => `<div class="ed-regra"><input class="ed-campo" data-i="${i}" value="${esc(r)}" aria-label="Regra ${i + 1}"><button class="ed-icone" type="button" data-tirar="${i}" aria-label="Tirar esta regra">✕</button></div>`).join('')}</div>
+          <div class="ed-acoes"><button class="ed-btn ed-btn--borda" type="button" id="ed-nova-regra">+ Incluir regra</button></div>
+        </div>
+      </div>`;
+    $('ed-l-desc').addEventListener('input', (e: any) => { l.descricao = e.target.value; atualizarBarra(); });
+    $('ed-l-chegar').addEventListener('input', (e: any) => { l.como_chegar = e.target.value; atualizarBarra(); });
+    c.querySelectorAll('.ed-regra .ed-campo').forEach((el: any) => el.addEventListener('input', () => { l.boas_praticas.itens[Number(el.dataset.i)] = el.value; atualizarBarra(); }));
+    c.querySelectorAll('[data-tirar]').forEach((b: any) => b.addEventListener('click', () => { l.boas_praticas.itens.splice(Number(b.dataset.tirar), 1); render(); atualizarBarra(); }));
+    $('ed-nova-regra').addEventListener('click', () => { l.boas_praticas.itens.push(''); render(); const t = c.querySelectorAll('.ed-regra .ed-campo'); t[t.length - 1]?.focus(); });
+  }
+</script>
+
+<style is:global>
+  .ed-login { min-height: 70vh; display: grid; place-items: center; padding: 40px 16px; background: linear-gradient(160deg, var(--verde-escuro), #2e4029); }
+  .ed-login[hidden], .ed-app[hidden] { display: none; }
+  .ed-login__caixa { width: min(460px, 100%); background: var(--branco); border-radius: 16px; padding: 28px; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+  .ed-login__caixa h1 { font-size: 1.8rem; margin: 0 0 12px; }
+  .ed-form { display: flex; flex-direction: column; gap: 12px; }
+  .ed-form[hidden] { display: none; }
+  .ed-form p { margin: 0; }
+  .ed-form label { display: flex; flex-direction: column; gap: 4px; font-family: var(--fonte-display); text-transform: uppercase; font-size: .78rem; letter-spacing: .04em; color: var(--verde-escuro); }
+  .ed-form input { font-family: var(--fonte-corpo); font-size: 1rem; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(42,31,22,.25); text-transform: none; }
+  .ed-form .botao { align-self: flex-start; }
+  .ed-msg { color: var(--laranja); font-weight: 600; min-height: 1em; }
+  .ed-ajuda { font-size: .88rem; }
+  .ed-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--laranja); text-decoration: underline; cursor: pointer; }
+
+  .ed-app { padding: 0 0 120px; }
+  .ed-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 24px; background: var(--creme-claro); border-bottom: 1px solid rgba(42,31,22,.12); }
+  .ed-topo__ola { margin: 0; font-size: .9rem; }
+  .ed-topo__local { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+  .ed-topo__local select { font: inherit; padding: 6px 10px; border-radius: 8px; }
+  .ed-topo__dir { display: flex; gap: 16px; align-items: center; }
+  .ed-pendentes { margin: 0; font-size: .85rem; background: #fff6e8; border: 1px solid rgba(218,115,38,.4); padding: 4px 10px; border-radius: 999px; }
+  .ed-corpo { display: grid; grid-template-columns: 240px 1fr; min-height: 60vh; }
+  .ed-lateral { background: var(--branco); border-right: 1px solid rgba(42,31,22,.12); padding: 14px 10px; }
+  .ed-lateral button { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 9px 10px; cursor: pointer; font: inherit; font-size: .92rem; color: var(--marrom); }
+  .ed-lateral button:hover { background: #f6efd9; }
+  .ed-lateral button[aria-current="true"] { background: var(--creme-claro); font-weight: 600; color: var(--verde-escuro); }
+  .ed-lateral__titulo { font-family: var(--fonte-display); text-transform: uppercase; font-size: .75rem; letter-spacing: .06em; opacity: .7; margin: 14px 8px 6px; }
+  .ed-qtd { float: right; font-size: .78rem; opacity: .6; }
+  .ed-conteudo { padding: 22px 26px; min-width: 0; }
+  .ed-cab { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .ed-cab h2 { margin: 0; font-size: 1.8rem; }
+  .ed-cab p { margin: 2px 0 0; opacity: .7; font-size: .9rem; }
+  .ed-abas { display: flex; gap: 4px; border-bottom: 2px solid rgba(42,31,22,.12); margin-bottom: 16px; flex-wrap: wrap; }
+  .ed-aba { background: none; border: 0; padding: 10px 14px; cursor: pointer; font-family: var(--fonte-display); text-transform: uppercase; color: rgba(42,31,22,.6); border-bottom: 3px solid transparent; margin-bottom: -2px; }
+  .ed-aba[aria-selected="true"] { color: var(--verde-escuro); border-color: var(--laranja); }
+  .ed-dica { font-size: .88rem; background: #eef3ea; border: 1px solid #cfdcc6; border-radius: 10px; padding: 10px 12px; margin: 0 0 14px; }
+  .ed-cartao { background: var(--branco); border: 1px solid rgba(42,31,22,.12); border-radius: 12px; padding: 16px; }
+  .ed-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 16px; border-radius: 999px; border: 2px solid transparent; cursor: pointer; font: inherit; font-weight: 600; font-size: .9rem; text-decoration: none; }
+  .ed-btn--laranja { background: var(--laranja); color: #fff; }
+  .ed-btn--verde { background: var(--verde-escuro); color: #fff; }
+  .ed-btn--borda { background: var(--branco); border-color: rgba(42,31,22,.2); color: var(--marrom); }
+  .ed-btn--perigo { background: var(--branco); border-color: #c0392b; color: #a8281a; }
+  .ed-btn:disabled { opacity: .45; cursor: not-allowed; }
+  .ed-acoes { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .ed-obs { font-size: .8rem; opacity: .75; display: block; }
+
+  .ed-tabela-rolagem { overflow-x: auto; }
+  .ed-tabela { width: 100%; border-collapse: collapse; font-size: .88rem; min-width: 860px; }
+  .ed-tabela th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; opacity: .7; padding: 6px; border-bottom: 1px solid rgba(42,31,22,.12); }
+  .ed-tabela td { padding: 5px; border-bottom: 1px solid rgba(42,31,22,.08); vertical-align: middle; }
+  .ed-campo { font: inherit; font-size: .88rem; padding: 7px 8px; border-radius: 8px; border: 1.5px solid rgba(42,31,22,.2); background: #fff; width: 100%; color: var(--marrom); }
+  .ed-campo:disabled { background: #f3f0e6; }
+  .ed-campo--n { width: 56px; text-align: center; }
+  .ed-campo--num { width: 70px; }
+  .ed-campo--grau { width: 86px; }
+  .ed-campo--conq { min-width: 220px; }
+  textarea.ed-campo { min-height: 90px; resize: vertical; }
+  .ed-faixa { width: 8px; height: 30px; border-radius: 4px; display: inline-block; border: 1px solid rgba(42,31,22,.2); }
+  tr.ed-alterada td { background: #fff3e0; }
+  tr.ed-nova td { background: #eef5ea; }
+  tr.ed-enviada td { background: #f3f0e6; }
+  .ed-form-grid { display: grid; gap: 16px; }
+  .ed-form-grid label { display: block; font-weight: 600; font-size: .88rem; margin-bottom: 6px; }
+  .ed-regras { display: flex; flex-direction: column; gap: 8px; }
+  .ed-regra { display: flex; gap: 8px; }
+  .ed-icone { width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid rgba(42,31,22,.15); background: var(--branco); cursor: pointer; flex: 0 0 auto; }
+
+  .ed-fotos { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .ed-tracos { display: grid; grid-template-columns: 1fr 250px; gap: 16px; align-items: start; }
+  .ed-foto { position: relative; line-height: 0; border-radius: 12px; overflow: hidden; background: #444; user-select: none; touch-action: none; }
+  .ed-foto img { width: 100%; height: auto; display: block; pointer-events: none; }
+  .ed-foto svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .ed-foto--desenhando { cursor: crosshair; outline: 3px solid var(--laranja); }
+  .ed-via path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .ed-via__contorno { stroke: rgba(20,14,8,.85); stroke-width: 7.5; }
+  .ed-via__traco { stroke-width: 4; }
+  .ed-via--apagada { opacity: .3; }
+  .ed-via--ativa .ed-via__contorno { stroke-width: 10; }
+  .ed-via text { font-family: var(--fonte-display); font-weight: 700; font-size: 13px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .ed-ponto { fill: #fffdf7; stroke: var(--laranja); stroke-width: 3; cursor: grab; }
+  .ed-ponto--inicio { fill: var(--laranja); }
+  .ed-ferramentas { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+  .ed-lista-tracos { display: flex; flex-direction: column; gap: 6px; max-height: 620px; overflow: auto; }
+  .ed-lista-tracos button { display: flex; align-items: center; gap: 10px; text-align: left; background: var(--branco); border: 1.5px solid rgba(42,31,22,.12); border-radius: 10px; padding: 8px 10px; cursor: pointer; font: inherit; color: var(--marrom); }
+  .ed-lista-tracos button[aria-pressed="true"] { border-color: var(--verde-escuro); background: #f3f7ef; }
+  .ed-lista-tracos small { display: block; opacity: .65; font-size: .75rem; }
+  .ed-num { min-width: 28px; height: 28px; padding: 0 4px; border-radius: 999px; display: inline-grid; place-items: center; font-family: var(--fonte-display); font-weight: 700; font-size: .85rem; border: 2px solid var(--marrom); flex: 0 0 auto; }
+
+  .ed-barra { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(160%); transition: transform .25s; z-index: 50;
+    background: var(--marrom); color: var(--creme-claro); border-radius: 16px; padding: 10px 12px 10px 18px; display: flex; align-items: center; gap: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.3); width: min(760px, calc(100% - 24px)); flex-wrap: wrap; }
+  .ed-barra--visivel { transform: translateX(-50%) translateY(0); }
+  .ed-barra span { font-size: .9rem; }
+  .ed-barra input { flex: 1; min-width: 160px; font: inherit; font-size: .88rem; padding: 8px 10px; border-radius: 8px; border: 0; }
+  .ed-barra .ed-btn--borda { background: transparent; color: var(--creme-claro); border-color: rgba(240,226,178,.4); }
+  .ed-aviso { position: fixed; top: 84px; left: 50%; transform: translateX(-50%) translateY(-300%); transition: transform .25s; background: #2f6b3a; color: #fff; padding: 12px 18px; border-radius: 12px; z-index: 60; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,.25); max-width: calc(100% - 24px); }
+  .ed-aviso--erro { background: #a8281a; }
+  .ed-aviso--visivel { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 860px) {
+    .ed-corpo { grid-template-columns: 1fr; }
+    .ed-lateral { border-right: 0; border-bottom: 1px solid rgba(42,31,22,.12); display: flex; gap: 6px; overflow-x: auto; padding: 8px; }
+    .ed-lateral button { white-space: nowrap; width: auto; }
+    .ed-lateral__titulo, .ed-qtd { display: none; }
+    .ed-tracos { grid-template-columns: 1fr; }
+    .ed-conteudo { padding: 16px 12px; }
+  }
+</style>

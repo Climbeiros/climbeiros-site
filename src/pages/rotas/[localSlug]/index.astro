@@ -549,6 +549,9 @@ const jsonLdLocal = local
             </form>
           </details>
         </details>
+        {!local.croqui_so_externo && (
+          <p class="link-editor"><a href="/editor">É responsável por este croqui? Entre no editor</a></p>
+        )}
       </div>
     </section>
   ) : (
@@ -1072,4 +1075,6 @@ const jsonLdLocal = local
   .estrelas-input input:checked ~ label,
   .estrelas-input label:hover,
   .estrelas-input label:hover ~ label { color: var(--amarelo); }
+  .link-editor { margin: 28px 0 0; text-align: center; font-size: .82rem; opacity: .7; }
+  .link-editor a { color: inherit; }
 </style>
