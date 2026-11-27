@@ -50,6 +50,10 @@ const { data: setores } = local
       .order('lado')
       .order('nome') as { data: Setor[] | null }
   : { data: null };
+// Ordem natural ("Setor 2" antes de "Setor 10"), dentro de cada lado.
+const ordemNatural = (x: string | null | undefined, y: string | null | undefined) =>
+  (x ?? '').localeCompare(y ?? '', 'pt-BR', { numeric: true, sensitivity: 'base' });
+setores?.sort((a, b) => ordemNatural(a.lado, b.lado) || ordemNatural(a.nome, b.nome));
 
 // Croqui em PDF do local (pro botão no topo da página, ao lado de "Salvar offline").
 // Vem dos croquis em PDF dos setores ou das referências do próprio local.
@@ -59,7 +63,7 @@ const { data: croquisPdf } = (setores ?? []).length
   : { data: null };
 const pdfLocal = [
   ...(croquisPdf ?? []).map((c) => c.url),
-  ...(local?.croqui_referencias ?? []).map((c) => c.url).filter((u) => /\.pdf($|[?#])/i.test(u)),
+  ...(local?.croqui_referencias ?? []).map((c) => c.url).filter((u) => /\.pdf($|[?#])/i.test(u) || /drive\.google\.com\/file\//i.test(u)),
 ].find(Boolean) ?? null;
 
 // Mapa dos setores (imagem aérea com cada setor clicável), quando o local tiver.

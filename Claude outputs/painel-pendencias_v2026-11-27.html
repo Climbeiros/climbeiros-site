@@ -1,0 +1,1604 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Painel de Pend&#234;ncias</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #f2f4f2;
+    --surface: #ffffff;
+    --surface-2: #eaece9;
+    --border: #dbdfda;
+    --text: #1a211e;
+    --muted: #5d6660;
+    --accent: #ff5a1f;
+    --accent-ink: #ffffff;
+    --ok: #2f9e63;
+    --ok-bg: #e5f5ec;
+    --warn: #b9790f;
+    --warn-bg: #fbf1dd;
+    --crit: #c53d1f;
+    --crit-bg: #fbe7e0;
+    --info: #2b6cb0;
+    --info-bg: #e3eefa;
+    --evt: #6d3fc0;
+    --evt-bg: #efe8fb;
+    --shadow: 0 1px 2px rgba(20, 30, 25, 0.06), 0 8px 24px -12px rgba(20, 30, 25, 0.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --evt: #b79af0; --evt-bg: #2a1f4066;
+      --bg: #141a17; --surface: #1c2420; --surface-2: #232c27; --border: #313c35;
+      --text: #ecf1ee; --muted: #9aa79f; --accent: #ff7a45; --accent-ink: #1a0e08;
+      --ok: #5fd996; --ok-bg: #16332338; --warn: #f0b955; --warn-bg: #3a2c1038;
+      --crit: #ff8266; --crit-bg: #3a1a1038; --info: #7fb2ec; --info-bg: #14263a66;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --evt: #b79af0; --evt-bg: #2a1f4066;
+    --bg: #141a17; --surface: #1c2420; --surface-2: #232c27; --border: #313c35;
+    --text: #ecf1ee; --muted: #9aa79f; --accent: #ff7a45; --accent-ink: #1a0e08;
+    --ok: #5fd996; --ok-bg: #16332338; --warn: #f0b955; --warn-bg: #3a2c1038;
+    --crit: #ff8266; --crit-bg: #3a1a1038; --info: #7fb2ec; --info-bg: #14263a66;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    padding: 28px 16px 64px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  .topbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
+  h1 { margin: 0; font-size: 26px; font-weight: 700; text-wrap: balance; }
+  .hello { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+  .hello b { color: var(--text); }
+  .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .updated { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--muted); }
+
+  button { font-family: inherit; }
+  .btn {
+    font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); padding: 7px 12px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    transition: border-color 0.15s ease, filter 0.15s ease;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn.ok { border-color: var(--ok); background: var(--ok-bg); color: var(--ok); }
+  .btn.crit { border-color: var(--crit); background: var(--crit-bg); color: var(--crit); }
+  .btn.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+  .btn.small { font-size: 12px; padding: 5px 10px; }
+  .btn:focus-visible, .filter-tile:focus-visible, .chip:focus-visible, .tab:focus-visible, input:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+  .tab {
+    background: none; border: none; border-bottom: 2px solid transparent; padding: 10px 14px;
+    font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; margin-bottom: -1px;
+  }
+  .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .chip {
+    font-size: 13px; font-weight: 500; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); padding: 6px 12px; cursor: pointer;
+  }
+  .chip .n { font-family: "IBM Plex Mono", monospace; color: var(--muted); margin-left: 4px; }
+  .chip[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; margin-bottom: 22px; }
+  .filter-tile {
+    text-align: left; cursor: pointer; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; color: var(--text); display: flex; flex-direction: column; gap: 6px;
+  }
+  .filter-tile:hover { border-color: var(--accent); }
+  .filter-tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .filter-tile .count { font-family: "IBM Plex Mono", monospace; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .filter-tile .label { font-size: 12px; color: var(--muted); }
+  .filter-tile.all .count { color: var(--accent); }
+
+  .section-heading {
+    display: flex; align-items: baseline; gap: 8px; margin: 22px 0 10px;
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+  }
+  .section-heading .n { background: var(--surface-2); border-radius: 999px; padding: 1px 8px; font-weight: 600; }
+
+  .card-list { display: flex; flex-direction: column; gap: 10px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow);
+    display: flex; gap: 14px; align-items: flex-start; justify-content: space-between;
+  }
+  .card.mine { border-left-color: var(--accent); }
+  .card.other { border-left-color: var(--info); }
+  .card.waiting { border-left-color: var(--warn); }
+  .card-main { min-width: 0; flex: 1; }
+  .card-photo {
+    width: 96px; height: 96px; flex-shrink: 0; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border); background: var(--surface-2); cursor: zoom-in;
+  }
+  .card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card-title { font-weight: 600; font-size: 15px; margin: 0 0 4px; text-wrap: balance; }
+  .card-detail { margin: 0 0 8px; font-size: 14px; opacity: 0.9; overflow-wrap: break-word; max-width: 65ch; }
+  .card-meta { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--muted); }
+  .badge {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    border-radius: 999px; padding: 2px 9px; background: var(--surface-2); color: var(--muted); white-space: nowrap;
+  }
+  .badge.tipo { background: var(--warn-bg); color: var(--warn); }
+  .badge.mine { background: var(--accent); color: var(--accent-ink); }
+  .badge.other { background: var(--info-bg); color: var(--info); }
+  .badge.waiting { background: var(--warn-bg); color: var(--warn); }
+  .badge.old { background: var(--crit-bg); color: var(--crit); }
+  .badge.free { background: var(--ok-bg); color: var(--ok); }
+  .badge.tipo.evento { background: var(--evt-bg); color: var(--evt); }
+  .badge.dup { background: var(--crit-bg); color: var(--crit); }
+
+  /* Eventos da agenda */
+  .filter-tile.evento .count { color: var(--evt); }
+  .filter-tile.evento { border-top: 3px solid var(--evt); }
+  .evt-info { margin: 0 0 8px; padding: 0; list-style: none; font-size: 14px; display: flex; flex-direction: column; gap: 3px; max-width: 65ch; }
+  .evt-info li { overflow-wrap: break-word; }
+  .evt-info .k { color: var(--muted); font-size: 12px; font-family: "IBM Plex Mono", monospace; margin-right: 6px; }
+  .evt-desc { margin: 4px 0 8px; font-size: 14px; opacity: 0.9; max-width: 65ch; overflow-wrap: break-word; }
+  .evt-fonte {
+    margin: 8px 0; padding: 8px 10px; border-radius: 8px; background: var(--evt-bg);
+    font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; max-width: 65ch;
+  }
+  .evt-fonte a { color: var(--evt); font-weight: 600; text-decoration: none; border-bottom: 1px solid currentColor; overflow-wrap: anywhere; }
+  .evt-fonte .sem { color: var(--crit); font-weight: 600; }
+  .evt-form .evt-input {
+    width: 100%; font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  .evt-form .evt-row > div { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 8px; }
+  .evt-form .evt-check { font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .evt-form .evt-input:focus-visible, .evt-form input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .evt-dup {
+    margin: 8px 0; padding: 8px 10px; border-radius: 8px; background: var(--crit-bg); color: var(--crit);
+    font-size: 13px; font-weight: 600; max-width: 65ch;
+  }
+
+  .obs {
+    margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--surface-2);
+    font-size: 13px; white-space: pre-wrap; overflow-wrap: break-word; max-width: 65ch;
+  }
+  .obs b { font-weight: 600; }
+
+  .inline-form { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; max-width: 520px; }
+  .inline-form label { font-size: 13px; font-weight: 600; }
+  .inline-form textarea {
+    width: 100%; min-height: 72px; resize: vertical; font: inherit; font-size: 14px;
+    padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  .inline-form .row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .email-link {
+    font-size: 12px; font-weight: 600; color: var(--muted); text-decoration: none;
+    border-bottom: 1px dashed var(--muted); white-space: nowrap;
+  }
+  .whats-link { border-color: #2e8b57; color: #2e8b57; }
+  .email-link:hover { color: var(--accent); border-color: var(--accent); }
+
+  .empty, .state-msg {
+    background: var(--surface); border: 1px dashed var(--border); border-radius: 12px;
+    padding: 32px 20px; text-align: center; color: var(--muted);
+  }
+  .empty .big { font-size: 32px; margin-bottom: 6px; }
+  .state-msg { margin-top: 14px; padding: 14px 18px; }
+  .state-msg.error { border-color: var(--crit); color: var(--crit); background: var(--crit-bg); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px;
+    font-size: 14px; font-weight: 600; box-shadow: var(--shadow); z-index: 60;
+  }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 8px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .stat .count { font-family: "IBM Plex Mono", monospace; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat .label { font-size: 12px; color: var(--muted); }
+
+  .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-family: "IBM Plex Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; }
+  td { font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+
+  .log { display: flex; flex-direction: column; gap: 6px; }
+  .log-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .log-text { font-size: 14px; min-width: 0; }
+  .log-text .when { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--muted); margin-left: 6px; }
+  .log-text .det { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; overflow-wrap: break-word; }
+
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(10, 14, 12, 0.82); display: flex; align-items: center;
+    justify-content: center; padding: 24px; cursor: zoom-out; z-index: 50;
+  }
+  .lightbox img { max-width: min(90vw, 900px); max-height: 88vh; border-radius: 8px; box-shadow: var(--shadow); }
+
+  .key-form {
+    max-width: 420px; margin: 60px auto; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; box-shadow: var(--shadow);
+  }
+  .key-form p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .key-form input {
+    width: 100%; font-family: "IBM Plex Mono", monospace; font-size: 13px; padding: 10px 12px;
+    border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin: 10px 0 14px;
+  }
+  .key-form .btn { width: 100%; justify-content: center; padding: 10px 16px; }
+  .key-error { color: var(--crit); font-size: 13px; margin: -6px 0 12px; }
+
+
+  /* ---------- Mapeamento ---------- */
+  .mp-intro { font-size: 14px; color: var(--muted); margin: 0 0 14px; max-width: 70ch; }
+  .mp-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .mp-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .mp-kpi .count { font-family: "IBM Plex Mono", monospace; font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .mp-kpi .label { font-size: 12px; color: var(--muted); }
+  .mp-kpi .sub { font-size: 12px; color: var(--muted); font-family: "IBM Plex Mono", monospace; }
+  .pct { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .pct > span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+  .pct.ok > span { background: var(--ok); }
+  .pct.mid > span { background: var(--warn); }
+  .pct-cell { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .pct-cell .pct { width: 64px; }
+  .pct-cell .v { min-width: 38px; text-align: right; font-family: "IBM Plex Mono", monospace; font-size: 13px; }
+  .pct-cell .na { color: var(--muted); font-size: 12px; }
+  .pct-cell .n { color: var(--muted); font-size: 12px; font-family: "IBM Plex Mono", monospace; white-space: nowrap; }
+  .mp-table tr.clicavel { cursor: pointer; }
+  .mp-table tr.clicavel:hover td { background: var(--surface-2); }
+  .mp-map { height: 380px; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; background: var(--surface-2); }
+  .mp-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+  .mp-legend label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .mp-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--border); }
+  .badge.cand-origem { background: var(--info-bg); color: var(--info); }
+  .badge.cand-tipo { background: var(--evt-bg); color: var(--evt); }
+  .badge.cand-st-aprovado { background: var(--warn-bg); color: var(--warn); }
+  .badge.cand-st-cadastrado { background: var(--ok-bg); color: var(--ok); }
+  .badge.cand-st-descartado, .badge.cand-st-ja_existe { background: var(--surface-2); color: var(--muted); }
+  .cand-links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 8px; font-size: 13px; }
+  .cand-links a { color: var(--info); font-weight: 600; text-decoration: none; border-bottom: 1px solid currentColor; overflow-wrap: anywhere; }
+  .cand-form { max-width: 640px; }
+  .cand-form .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+  .cand-form .grid2 > div { display: flex; flex-direction: column; gap: 4px; }
+  .cand-form .evt-input { width: 100%; font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+  .mp-add { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .mp-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin: 22px 0 10px; }
+  .mp-bar .section-heading { margin: 0; }
+  .reg-list { display: flex; flex-direction: column; gap: 6px; }
+  .reg-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+  .reg-item.off { opacity: 0.6; }
+  .reg-item .meta { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--muted); }
+  .reg-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-top: 8px; }
+  .reg-form > div { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+  .reg-form .evt-input { font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+  .exec-item { font-size: 13px; color: var(--muted); padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .exec-item:last-child { border-bottom: none; }
+  .exec-item b { color: var(--text); }
+  @media (max-width: 560px) { .cand-form .grid2 { grid-template-columns: 1fr; } .mp-map { height: 300px; } }
+
+  [hidden] { display: none !important; }
+
+  @media (max-width: 560px) {
+    .card { flex-direction: column; }
+    .card-side { align-items: stretch; width: 100%; }
+    .btn-row { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <p class="eyebrow">Climbeiros</p>
+      <h1>Pend&#234;ncias de aprova&#231;&#227;o</h1>
+      <p class="hello" id="hello" hidden></p>
+    </div>
+    <div class="topbar-actions" id="top-actions" hidden>
+      <span class="updated" id="updated"></span>
+      <button class="btn" id="refresh-btn" type="button">&#8635; Atualizar</button>
+      <button class="btn" id="logout-btn" type="button">Trocar chave</button>
+    </div>
+  </div>
+
+  <div id="key-gate" class="key-form" hidden>
+    <p class="eyebrow" style="margin-bottom:10px;">Acesso</p>
+    <p>Cole a sua chave pessoal de acesso. Ela fica salva s&#243; neste navegador e identifica quem est&#225; fazendo cada a&#231;&#227;o.</p>
+    <input id="key-input" type="password" placeholder="sua chave de acesso" autocomplete="off" />
+    <p class="key-error" id="key-error" hidden>Chave n&#227;o reconhecida. Confira e tente de novo.</p>
+    <button class="btn primary" id="key-submit" type="button">Entrar</button>
+  </div>
+
+  <div id="app" hidden>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="pendencias" aria-selected="true" type="button">Pend&#234;ncias</button>
+      <button class="tab" role="tab" data-tab="historico" aria-selected="false" type="button">Hist&#243;rico</button>
+      <button class="tab" role="tab" data-tab="mapeamento" aria-selected="false" type="button">Mapeamento</button>
+    </div>
+
+    <div id="tab-pendencias">
+      <div class="chips" id="status-chips"></div>
+      <div class="tiles" id="tiles"></div>
+      <div id="list-area"></div>
+    </div>
+
+    <div id="tab-historico" hidden></div>
+    <div id="tab-mapeamento" hidden></div>
+  </div>
+
+  <div id="state-msg" class="state-msg" hidden></div>
+</div>
+
+<script>
+(function () {
+  const FUNCTION_URL = "https://ctbetvnlojkpiwrruvie.supabase.co/functions/v1/pendencias-dashboard";
+  // Chave publica (anon) do Supabase: pode ficar no arquivo. A chave pessoal NAO fica aqui.
+  const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0YmV0dm5sb2prcGl3cnJ1dmllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyNzIwMjgsImV4cCI6MjEwMDg0ODAyOH0.CfPiDPGUVn0KXwLMZBWdU-kTCDAqtuZvTeWAxCs_RKg";
+  const KEY_LS = "pendencias_key";
+  const DIAS_PARADO = 7; // a partir de quantos dias o item ganha o selo "parado"
+
+  const LABELS = {
+    avaliacao_academia: "Avaliação de academia",
+    avaliacao_setor: "Avaliação de local",
+    foto_avaliacao_setor: "Foto de avaliação",
+    foto_galeria: "Foto da galeria",
+    cadastro_guia: "Cadastro de guia",
+    cadastro_parceiro: "Cadastro de parceiro",
+    cadastro_hospedagem: "Cadastro de hospedagem",
+    cadastro_academia: "Cadastro de academia",
+    envio_croqui: "Envio de croqui",
+    mensagem_contato: "Mensagem de contato",
+    feedback: "Feedback do site",
+    avaliacao_guia: "Avaliação de guia",
+    evento_agenda: "Evento",
+    anuncio_desapego: "Anúncio do Desapego",
+    edicao_guia: "Edição de perfil (guia)",
+    reset_senha_guia: "Pedido de nova senha (guia)",
+    edicao_croqui: "Edição de croqui (editor)",
+    reset_senha_editor: "Pedido de nova senha (editor de croqui)",
+  };
+  // Pedidos de nova senha: guias entram em /cursos, editores de croqui em /editor.
+  const RESET_SENHA = {
+    reset_senha_guia: 'É só entrar em climbeiros.com.br/cursos, clicar em "Editar meu perfil" e entrar com:',
+    reset_senha_editor: "É só entrar em climbeiros.com.br/editor e entrar com:",
+  };
+  const EDICAO_CROQUI = "edicao_croqui";
+  const EVENTO = "evento_agenda";
+  const ACOES = {
+    assumiu: "assumiu",
+    liberou: "liberou",
+    aprovou: "aprovou",
+    rejeitou: "rejeitou",
+    aguardando_retorno: "marcou como aguardando retorno",
+    retomou: "retomou",
+    anotou: "anotou uma observação em",
+    reabriu: "reabriu",
+    editou: "editou os dados de",
+  };
+  const STATUS = [
+    ["todas", "Todas"],
+    ["livres", "Livres"],
+    ["comigo", "Comigo"],
+    ["outras", "Com outra pessoa"],
+    ["aguardando", "Aguardando retorno"],
+  ];
+
+  const $ = function (id) { return document.getElementById(id); };
+  const els = {
+    keyGate: $("key-gate"), keyInput: $("key-input"), keySubmit: $("key-submit"), keyError: $("key-error"),
+    app: $("app"), hello: $("hello"), topActions: $("top-actions"), updated: $("updated"),
+    refreshBtn: $("refresh-btn"), logoutBtn: $("logout-btn"),
+    statusChips: $("status-chips"), tiles: $("tiles"), listArea: $("list-area"),
+    tabPend: $("tab-pendencias"), tabHist: $("tab-historico"), tabMapa: $("tab-mapeamento"), stateMsg: $("state-msg"),
+  };
+
+  const state = {
+    quem: null, itens: [], totais: [], historico: [], horas: 48,
+    tab: "pendencias", tipo: "all", status: "todas",
+    form: null,   // { key, tipo: "nota" | "rejeitar" | "aguardar" }
+    busy: false,
+  };
+
+  // ---------- chave ----------
+  let memKey = "";
+  function getKey() {
+    if (memKey) return memKey;
+    try { return localStorage.getItem(KEY_LS) || ""; } catch (e) { return ""; }
+  }
+  function setKey(k) {
+    memKey = k;
+    try { if (k) localStorage.setItem(KEY_LS, k); else localStorage.removeItem(KEY_LS); } catch (e) {}
+  }
+  // Uma chave vinda pelo endereco (?key=) e salva e some da barra de endereco,
+  // pra nao ficar sobrepondo a chave digitada depois.
+  (function lerChaveDaUrl() {
+    try {
+      const u = new URL(window.location.href);
+      const k = u.searchParams.get("key");
+      if (k) {
+        setKey(k);
+        u.searchParams.delete("key");
+        history.replaceState(null, "", u.toString());
+      }
+    } catch (e) {}
+  })();
+
+  // ---------- utilidades ----------
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function relTime(iso) {
+    const d = new Date(iso);
+    const mins = Math.round((Date.now() - d.getTime()) / 60000);
+    if (mins < 1) return "agora";
+    if (mins < 60) return "há " + mins + " min";
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return "há " + hours + "h";
+    const days = Math.round(hours / 24);
+    if (days < 30) return "há " + days + "d";
+    return d.toLocaleDateString("pt-BR");
+  }
+  function idadeDias(iso) { return (Date.now() - new Date(iso).getTime()) / 86400000; }
+  function nomeMes(ymd) {
+    const p = String(ymd).split("-");
+    const meses = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+    return meses[Number(p[1]) - 1] + "/" + p[0];
+  }
+  function chave(item) { return item.origem + "|" + item.id; }
+  function isEmail(s) { return typeof s === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim()); }
+  function mailtoFor(item) {
+    const subject = "Sobre seu envio para o Climbeiros: " + (LABELS[item.origem] || item.origem);
+    const t = item.titulo || "";
+    const nome = t.indexOf(": ") >= 0 ? t.slice(t.indexOf(": ") + 2) : "";
+    const body = "Oi" + (nome ? " " + nome : "") + ",\n\n";
+    return "mailto:" + encodeURIComponent(item.contato.trim()) +
+      "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+  }
+  // Pedido de nova senha: monta o link do WhatsApp com a mensagem e a senha provisória.
+  function whatsResetFor(item) {
+    const t = item.titulo || "";
+    const nome = (t.indexOf(": ") >= 0 ? t.slice(t.indexOf(": ") + 2) : "").trim();
+    const primeiro = nome.split(" ")[0] || "";
+    const m = String(item.detalhe || "").match(/\b(\d{6})\b/);
+    let tel = String(item.contato || "").replace(/\D/g, "");
+    if (!m || tel.length < 10) return "";
+    if (!(tel.length >= 12 && tel.indexOf("55") === 0)) tel = "55" + tel;
+    const msg = "Oi" + (primeiro ? ", " + primeiro : "") + "! Aqui é do Climbeiros. Recebemos seu pedido de nova senha.\n\n" +
+      (RESET_SENHA[item.origem] || RESET_SENHA.reset_senha_guia) + "\n\n" +
+      "WhatsApp: " + (item.contato || "").trim() + "\n" +
+      "Código de acesso: *" + m[1] + "* (senha provisória)\n\n" +
+      "Aí é só criar sua nova senha de 6 números. Se não foi você que pediu, pode ignorar esta mensagem: sua senha atual continua valendo.";
+    return "https://wa.me/" + tel + "?text=" + encodeURIComponent(msg);
+  }
+  function showState(msg, isError) {
+    els.stateMsg.hidden = false;
+    els.stateMsg.textContent = msg;
+    els.stateMsg.className = "state-msg" + (isError ? " error" : "");
+  }
+  function hideState() { els.stateMsg.hidden = true; }
+  function toast(msg) {
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, 2200);
+  }
+
+  // ---------- API ----------
+  async function api(options, query) {
+    const res = await fetch(FUNCTION_URL + "?key=" + encodeURIComponent(getKey()) + (query || ""), Object.assign({
+      headers: { "Authorization": "Bearer " + ANON_KEY, "apikey": ANON_KEY, "Content-Type": "application/json" },
+    }, options || {}));
+    let data = {};
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok) {
+      const err = new Error(data.mensagem || data.error || ("erro " + res.status));
+      err.code = res.status;
+      err.data = data;
+      throw err;
+    }
+    return data;
+  }
+
+  async function acao(item, nome, extra) {
+    if (state.busy) return;
+    state.busy = true;
+    hideState();
+    try {
+      await api({ method: "POST", body: JSON.stringify(Object.assign({ origem: item.origem, id: item.id, acao: nome }, extra || {})) });
+      state.form = null;
+      const msgs = {
+        aprovar: "Aprovado", rejeitar: "Rejeitado", assumir: "Agora está com você", liberar: "Item liberado",
+        anotar: "Observação salva", editar: "Dados do evento salvos", aguardar: "Marcado como aguardando retorno", retomar: "Item retomado", reabrir: "Item reaberto",
+      };
+      toast(msgs[nome] || "Feito");
+    } catch (e) {
+      if (e.code === 409 && e.data && e.data.error === "em_revisao" && !(extra && extra.forcar)) {
+        state.busy = false;
+        const ok = window.confirm(e.data.por + " está revisando este item. Quer seguir mesmo assim?");
+        if (ok) return acao(item, nome, Object.assign({}, extra || {}, { forcar: true }));
+      } else if (e.code === 409 && e.data && e.data.error === "ja_resolvido") {
+        showState("Alguém já resolveu esse item. A lista foi atualizada.", true);
+      } else if (e.code === 401) {
+        state.busy = false;
+        return mostrarChave(true);
+      } else {
+        showState("Não consegui concluir: " + e.message, true);
+      }
+    } finally {
+      state.busy = false;
+    }
+    await load(true);
+  }
+
+  // ---------- filtros ----------
+  function passaStatus(i, s) {
+    if (s === "livres") return !i.em_revisao_por && !i.aguardando_retorno;
+    if (s === "comigo") return i.em_revisao_por === state.quem;
+    if (s === "outras") return !!i.em_revisao_por && i.em_revisao_por !== state.quem;
+    if (s === "aguardando") return !!i.aguardando_retorno;
+    return true;
+  }
+  function itensFiltrados() {
+    return state.itens
+      .filter(function (i) { return passaStatus(i, state.status); })
+      .filter(function (i) { return state.tipo === "all" || i.origem === state.tipo; })
+      .sort(function (a, b) {
+        // aguardando retorno vai pro fim; o resto, do mais antigo pro mais novo
+        if (!!a.aguardando_retorno !== !!b.aguardando_retorno) return a.aguardando_retorno ? 1 : -1;
+        return new Date(a.enviado_em) - new Date(b.enviado_em);
+      });
+  }
+
+  // ---------- render: pendencias ----------
+  function renderChips() {
+    els.statusChips.innerHTML = STATUS.map(function (s) {
+      const n = state.itens.filter(function (i) { return passaStatus(i, s[0]); }).length;
+      return '<button class="chip" type="button" data-status="' + s[0] + '" aria-pressed="' + (state.status === s[0]) + '">' +
+        esc(s[1]) + '<span class="n">' + n + '</span></button>';
+    }).join("");
+  }
+
+  function renderTiles() {
+    const base = state.itens.filter(function (i) { return passaStatus(i, state.status); });
+    const porTipo = {};
+    base.forEach(function (i) { porTipo[i.origem] = (porTipo[i.origem] || 0) + 1; });
+    const html = ['<button class="filter-tile all" type="button" data-tipo="all" aria-pressed="' + (state.tipo === "all") + '">' +
+      '<span class="count">' + base.length + '</span><span class="label">Todos os tipos</span></button>'];
+    Object.keys(porTipo).sort(function (a, b) { return porTipo[b] - porTipo[a]; }).forEach(function (o) {
+      html.push('<button class="filter-tile' + (o === EVENTO ? ' evento' : '') + '" type="button" data-tipo="' + esc(o) + '" aria-pressed="' + (state.tipo === o) + '">' +
+        '<span class="count">' + porTipo[o] + '</span><span class="label">' + esc(LABELS[o] || o) + '</span></button>');
+    });
+    els.tiles.innerHTML = html.join("");
+  }
+
+  function formHtml(item) {
+    const f = state.form;
+    if (!f || f.key !== chave(item)) return "";
+    if (f.tipo === "nota") {
+      return '<div class="inline-form"><label for="f-txt">Observação interna (só vocês veem)</label>' +
+        '<textarea id="f-txt" maxlength="2000">' + esc(item.observacoes || "") + '</textarea>' +
+        '<div class="row"><button class="btn primary small" type="button" data-submit="anotar">Salvar</button>' +
+        '<button class="btn small" type="button" data-cancel>Cancelar</button></div></div>';
+    }
+    if (f.tipo === "editar") {
+      const ev = item.evento || {};
+      const campo = function (id, rotulo, valor, extra) {
+        return '<label for="f-' + id + '">' + rotulo + '</label>' +
+          '<input class="evt-input" id="f-' + id + '" value="' + esc(valor || "") + '" ' + (extra || "") + '>';
+      };
+      const otipos = [["academia", "Academia"], ["comunidade", "Comunidade"], ["climbeiros", "Climbeiros"]];
+      return '<div class="inline-form evt-form">' +
+        campo("titulo", "Título *", ev.titulo, 'maxlength="200"') +
+        campo("organizador", "Organizador *", ev.organizador, 'maxlength="200"') +
+        '<label for="f-organizador_tipo">Tipo de organizador *</label>' +
+        '<select class="evt-input" id="f-organizador_tipo">' + otipos.map(function (o) {
+          return '<option value="' + o[0] + '"' + (ev.organizador_tipo === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+        }).join("") + '</select>' +
+        campo("tipo", "Tipo de evento", ev.tipo, 'list="tipos-evento" maxlength="60"') +
+        '<datalist id="tipos-evento">' + ["Competição", "Curso", "Encontro", "Festa", "Festival", "Mutirão", "Programação especial", "Trip"]
+          .map(function (t) { return '<option value="' + t + '">'; }).join("") + '</datalist>' +
+        '<div class="row evt-row">' +
+          '<div>' + campo("data", "Data *", ev.data, 'type="date"') + '</div>' +
+          '<div>' + campo("horario", "Horário", ev.horario, 'maxlength="80" placeholder="Ex.: 19h às 23h"') + '</div>' +
+        '</div>' +
+        '<label class="evt-check"><input type="checkbox" id="f-data_a_confirmar"' + (ev.data_a_confirmar ? ' checked' : '') + '> Data a confirmar</label>' +
+        campo("local", "Local", ev.local, 'maxlength="300"') +
+        '<label for="f-descricao">Descrição</label>' +
+        '<textarea id="f-descricao" maxlength="2000">' + esc(ev.descricao || "") + '</textarea>' +
+        campo("link", "Link da fonte", ev.link, 'type="url" placeholder="https://..."') +
+        '<div class="row"><button class="btn primary small" type="button" data-submit="editar">Salvar alterações</button>' +
+        '<button class="btn small" type="button" data-cancel>Cancelar</button></div></div>';
+    }
+    if (f.tipo === "rejeitar") {
+      return '<div class="inline-form"><label for="f-txt">Motivo da rejeição (fica no histórico)</label>' +
+        '<textarea id="f-txt" maxlength="500" placeholder="Ex.: spam, foto fora do tema, duplicado"></textarea>' +
+        '<div class="row"><button class="btn crit small" type="button" data-submit="rejeitar">Confirmar rejeição</button>' +
+        '<button class="btn small" type="button" data-cancel>Cancelar</button></div></div>';
+    }
+    if (f.tipo === "aguardar") {
+      return '<div class="inline-form"><label for="f-txt">Aguardando o quê? (opcional)</label>' +
+        '<textarea id="f-txt" maxlength="500" placeholder="Ex.: pedi o Cadastur por e-mail"></textarea>' +
+        '<div class="row"><button class="btn primary small" type="button" data-submit="aguardar">Marcar como aguardando</button>' +
+        '<button class="btn small" type="button" data-cancel>Cancelar</button></div></div>';
+    }
+    return "";
+  }
+
+  // Eventos: o "detalhe" vem do banco em partes separadas por " | "
+  // (data, Organizador:, Tipo:, Local:, descrição, Link:, Origem:, aviso de duplicado).
+  function eventoHtml(item) {
+    const partes = String(item.detalhe || "").split(" | ");
+    const campos = {}; const desc = []; let dup = "";
+    const chaves = ["Organizador", "Tipo", "Local", "Link", "Origem"];
+    partes.forEach(function (p, idx) {
+      if (idx === 0) { campos.Data = p; return; }
+      if (p.indexOf("⚠") === 0) { dup = p.replace(/^⚠\s*/, ""); return; }
+      const k = chaves.find(function (c) { return p.indexOf(c + ": ") === 0; });
+      if (k) campos[k] = p.slice(k.length + 2); else desc.push(p);
+    });
+    const linha = function (rotulo, valor) {
+      return valor ? '<li><span class="k">' + rotulo + '</span>' + esc(valor) + '</li>' : '';
+    };
+    const link = campos.Link && /^https?:\/\//i.test(campos.Link) ? campos.Link : "";
+    return '<ul class="evt-info">' +
+        linha("Quando", campos.Data) + linha("Organizador", campos.Organizador) +
+        linha("Tipo", campos.Tipo) + linha("Local", campos.Local) +
+      '</ul>' +
+      (desc.length ? '<p class="evt-desc">' + esc(desc.join(" | ")) + '</p>' : '') +
+      '<div class="evt-fonte"><span class="k">Fonte</span>' +
+        (link ? '<a href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">Abrir publicação original ↗</a>'
+              : '<span class="sem">Sem link de fonte, confira antes de publicar</span>') +
+        '<span>' + esc(campos.Origem || "cadastrado manualmente") + '</span>' +
+      '</div>' +
+      (dup ? '<div class="evt-dup">⚠ ' + esc(dup) + '</div>' : '');
+  }
+
+  function cardHtml(item) {
+    const ehEvento = item.origem === EVENTO;
+    const mine = item.em_revisao_por && item.em_revisao_por === state.quem;
+    const other = item.em_revisao_por && !mine;
+    const cls = mine ? " mine" : other ? " other" : item.aguardando_retorno ? " waiting" : "";
+    const dias = idadeDias(item.enviado_em);
+
+    let statusBadges = "";
+    if (mine) statusBadges += '<span class="badge mine">Com você</span>';
+    else if (other) statusBadges += '<span class="badge other">Em revisão por ' + esc(item.em_revisao_por) + ' (' + relTime(item.em_revisao_desde) + ')</span>';
+    else statusBadges += '<span class="badge free">Livre</span>';
+    if (item.aguardando_retorno) statusBadges += '<span class="badge waiting">Aguardando retorno</span>';
+    if (dias >= DIAS_PARADO && !item.aguardando_retorno) statusBadges += '<span class="badge old">Parado há ' + Math.floor(dias) + ' dias</span>';
+
+    let botoes = "";
+    if (ehEvento && item.evento) botoes += '<button class="btn small" type="button" data-form="editar">✎ Editar dados</button>';
+    if (mine) botoes += '<button class="btn small" type="button" data-act="liberar">Liberar</button>';
+    else botoes += '<button class="btn small" type="button" data-act="assumir">' + (other ? "Assumir no lugar" : "Assumir") + '</button>';
+    botoes += '<button class="btn small" type="button" data-form="nota">' + (item.observacoes ? "Editar observação" : "Observação") + '</button>';
+    botoes += item.aguardando_retorno
+      ? '<button class="btn small" type="button" data-act="retomar">Retomar</button>'
+      : '<button class="btn small" type="button" data-form="aguardar">Aguardando retorno</button>';
+
+    return '<div class="card' + cls + '" data-key="' + esc(chave(item)) + '">' +
+      (item.imagem_url ? '<div class="card-photo" data-full="' + esc(item.imagem_url) + '"><img src="' + esc(item.imagem_url) + '" loading="lazy" alt=""></div>' : '') +
+      '<div class="card-main">' +
+        '<p class="card-title">' + esc(item.titulo) + '</p>' +
+        (ehEvento ? eventoHtml(item) :
+          (item.detalhe ? '<p class="card-detail">' + esc(item.detalhe) + '</p>' : '')) +
+        '<div class="card-meta">' +
+          '<span class="badge tipo' + (ehEvento ? ' evento' : '') + '">' + esc(LABELS[item.origem] || item.origem) + '</span>' +
+          (ehEvento && String(item.detalhe || "").indexOf("⚠") >= 0 ? '<span class="badge dup">Possível duplicado</span>' : '') +
+          (item.contato ? '<span>' + esc(item.contato) + '</span>' : '') +
+          '<span>' + (ehEvento ? 'cadastrado ' : 'enviado ') + relTime(item.enviado_em) + '</span>' +
+        '</div>' +
+        '<div class="card-meta" style="margin-top:8px">' + statusBadges + '</div>' +
+        (item.observacoes ? '<div class="obs"><b>Observação:</b> ' + esc(item.observacoes) + '</div>' : '') +
+        formHtml(item) +
+      '</div>' +
+      '<div class="card-side">' +
+        (isEmail(item.contato) ? '<a class="email-link" href="' + esc(mailtoFor(item)) + '">✉ Responder por e-mail</a>' : '') +
+        (RESET_SENHA[item.origem] && whatsResetFor(item)
+          ? '<a class="email-link whats-link" href="' + esc(whatsResetFor(item)) + '" target="_blank" rel="noopener">💬 Enviar no WhatsApp</a>' : '') +
+        '<div class="btn-row">' + botoes + '</div>' +
+        '<div class="btn-row">' +
+          '<button class="btn crit" type="button" data-form="rejeitar">Rejeitar</button>' +
+          '<button class="btn ok" type="button" data-act="aprovar">' + (ehEvento ? 'Publicar no site' : RESET_SENHA[item.origem] ? 'Marcar como enviado' : item.origem === EDICAO_CROQUI ? 'Aprovar e publicar' : 'Aprovar') + '</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderList() {
+    const items = itensFiltrados();
+    if (items.length === 0) {
+      els.listArea.innerHTML = '<div class="empty"><div class="big">✓</div>Nada por aqui com esse filtro.</div>';
+      return;
+    }
+    els.listArea.innerHTML =
+      '<div class="section-heading">Do mais antigo para o mais novo <span class="n">' + items.length + '</span></div>' +
+      '<div class="card-list">' + items.map(cardHtml).join("") + '</div>';
+    const ta = document.getElementById("f-txt");
+    if (ta) ta.focus();
+  }
+
+  function renderPendencias() { renderChips(); renderTiles(); renderList(); }
+
+  // ---------- render: historico ----------
+  function renderHistorico() {
+    const totais = state.totais || [];
+    const soma = function (campo, filtro) {
+      return totais.filter(filtro || function () { return true; })
+        .reduce(function (s, r) { return s + Number(r[campo] || 0); }, 0);
+    };
+    const agora = new Date();
+    const mesAtual = agora.getFullYear() + "-" + String(agora.getMonth() + 1).padStart(2, "0");
+    const doMes = function (r) { return String(r.mes).slice(0, 7) === mesAtual; };
+
+    const porMes = {};
+    totais.forEach(function (r) {
+      const m = String(r.mes).slice(0, 10);
+      porMes[m] = porMes[m] || { recebidos: 0, aprovados: 0, rejeitados: 0, pendentes: 0 };
+      ["recebidos", "aprovados", "rejeitados", "pendentes"].forEach(function (c) { porMes[m][c] += Number(r[c] || 0); });
+    });
+    const porTipo = {};
+    totais.forEach(function (r) {
+      porTipo[r.origem] = porTipo[r.origem] || { recebidos: 0, aprovados: 0, rejeitados: 0, pendentes: 0 };
+      ["recebidos", "aprovados", "rejeitados", "pendentes"].forEach(function (c) { porTipo[r.origem][c] += Number(r[c] || 0); });
+    });
+    const linha = function (nome, v) {
+      return '<tr><td>' + esc(nome) + '</td><td>' + v.recebidos + '</td><td>' + v.aprovados + '</td><td>' + v.rejeitados + '</td><td>' + v.pendentes + '</td></tr>';
+    };
+    const cab = '<tr><th></th><th>Recebidos</th><th>Aprovados</th><th>Rejeitados</th><th>Pendentes</th></tr>';
+
+    // ultima acao de cada item (historico vem do mais novo pro mais antigo)
+    const ultima = {};
+    (state.historico || []).forEach(function (h) {
+      const k = h.origem + "|" + h.item_id;
+      if (!ultima[k]) ultima[k] = h.id;
+    });
+
+    const log = (state.historico || []).map(function (h) {
+      const k = h.origem + "|" + h.item_id;
+      const podeReabrir = (h.acao === "aprovou" || h.acao === "rejeitou") && ultima[k] === h.id &&
+        !(h.acao === "aprovou" && (h.origem === "cadastro_academia" || h.origem === EDICAO_CROQUI));
+      return '<div class="log-item"><div class="log-text"><b>' + esc(h.feito_por) + '</b> ' + esc(ACOES[h.acao] || h.acao) +
+        ' <span class="badge tipo">' + esc(LABELS[h.origem] || h.origem) + '</span>' +
+        '<span class="when">' + relTime(h.feito_em) + '</span>' +
+        (h.detalhe ? '<span class="det">' + esc(h.detalhe) + '</span>' : '') + '</div>' +
+        (podeReabrir ? '<button class="btn small" type="button" data-reabrir="' + esc(k) + '">Reabrir</button>' : '') +
+        '</div>';
+    }).join("");
+
+    els.tabHist.innerHTML =
+      '<div class="stats">' +
+        '<div class="stat"><div class="count">' + soma("recebidos") + '</div><div class="label">Recebidos no total</div></div>' +
+        '<div class="stat"><div class="count">' + soma("recebidos", doMes) + '</div><div class="label">Recebidos este mês</div></div>' +
+        '<div class="stat"><div class="count">' + soma("aprovados") + '</div><div class="label">Aprovados</div></div>' +
+        '<div class="stat"><div class="count">' + soma("rejeitados") + '</div><div class="label">Rejeitados</div></div>' +
+        '<div class="stat"><div class="count">' + soma("pendentes") + '</div><div class="label">Pendentes agora</div></div>' +
+      '</div>' +
+      '<div class="section-heading">Por mês</div>' +
+      '<div class="table-wrap"><table>' + cab +
+        Object.keys(porMes).sort().reverse().map(function (m) { return linha(nomeMes(m), porMes[m]); }).join("") +
+      '</table></div>' +
+      '<div class="section-heading">Por tipo (desde o início)</div>' +
+      '<div class="table-wrap"><table>' + cab +
+        Object.keys(porTipo).sort(function (a, b) { return porTipo[b].recebidos - porTipo[a].recebidos; })
+          .map(function (o) { return linha(LABELS[o] || o, porTipo[o]); }).join("") +
+      '</table></div>' +
+      '<div class="section-heading">Últimas ações no painel</div>' +
+      (log ? '<div class="log">' + log + '</div>' :
+        '<div class="empty">Ainda não há ações registradas. Elas aparecem aqui a partir de agora.</div>');
+  }
+
+  function render() {
+    els.tabPend.hidden = state.tab !== "pendencias";
+    els.tabHist.hidden = state.tab !== "historico";
+    els.tabMapa.hidden = state.tab !== "mapeamento";
+    document.querySelectorAll(".tab").forEach(function (t) {
+      t.setAttribute("aria-selected", String(t.getAttribute("data-tab") === state.tab));
+    });
+    if (state.tab === "pendencias") renderPendencias();
+    else if (state.tab === "historico") renderHistorico();
+    else if (mp.data) renderMapeamento();
+    else els.tabMapa.innerHTML = '<div class="empty">Carregando o mapeamento...</div>';
+  }
+
+  // ---------- carregar ----------
+  function mostrarChave(erro) {
+    els.app.hidden = true;
+    els.hello.hidden = true;
+    els.topActions.hidden = true;
+    els.keyGate.hidden = false;
+    els.keyError.hidden = !erro;
+    els.keyInput.value = "";
+    els.keyInput.focus();
+  }
+
+  async function load(forcar) {
+    // Nao atualiza sozinho enquanto alguem esta escrevendo uma observacao ou motivo.
+    if (!forcar && (state.form || state.busy)) return;
+    if (!getKey()) return mostrarChave(false);
+    els.refreshBtn.disabled = true;
+    try {
+      const data = await api();
+      state.quem = data.quem;
+      state.itens = data.itens || [];
+      state.totais = data.totais || [];
+      state.historico = data.historico || [];
+      state.horas = data.revisao_horas || 48;
+      els.keyGate.hidden = true;
+      els.app.hidden = false;
+      els.topActions.hidden = false;
+      els.hello.hidden = false;
+      els.hello.innerHTML = "Olá, <b>" + esc(state.quem) + "</b>. Itens assumidos ficam reservados por " + state.horas + "h.";
+      els.updated.textContent = "atualizado " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      if (state.form && !state.itens.some(function (i) { return chave(i) === state.form.key; })) state.form = null;
+      render();
+    } catch (e) {
+      if (e.code === 401) mostrarChave(true);
+      else showState("Não consegui carregar as pendências: " + e.message, true);
+    } finally {
+      els.refreshBtn.disabled = false;
+    }
+  }
+
+  // ---------- eventos ----------
+  function itemDoCard(el) {
+    const card = el.closest(".card");
+    if (!card) return null;
+    const k = card.getAttribute("data-key");
+    return state.itens.find(function (i) { return chave(i) === k; }) || null;
+  }
+
+  els.statusChips.addEventListener("click", function (e) {
+    const b = e.target.closest("[data-status]");
+    if (!b) return;
+    state.status = b.getAttribute("data-status");
+    state.tipo = "all";
+    renderPendencias();
+  });
+  els.tiles.addEventListener("click", function (e) {
+    const b = e.target.closest("[data-tipo]");
+    if (!b) return;
+    state.tipo = b.getAttribute("data-tipo");
+    renderTiles(); renderList();
+  });
+  document.querySelectorAll(".tab").forEach(function (t) {
+    t.addEventListener("click", function () {
+      state.tab = t.getAttribute("data-tab"); state.form = null; mp.form = null; render();
+      if (state.tab === "mapeamento") loadMapa(true);
+    });
+  });
+
+  els.listArea.addEventListener("click", function (e) {
+    const photo = e.target.closest(".card-photo");
+    if (photo) return openLightbox(photo.getAttribute("data-full"));
+
+    const item = itemDoCard(e.target);
+    if (!item) return;
+
+    const act = e.target.closest("[data-act]");
+    if (act) {
+      const nome = act.getAttribute("data-act");
+      if (nome === "assumir" && item.em_revisao_por && item.em_revisao_por !== state.quem) {
+        if (!window.confirm("Assumir este item no lugar de " + item.em_revisao_por + "?")) return;
+        return acao(item, "assumir", { forcar: true });
+      }
+      return acao(item, nome);
+    }
+
+    const abrir = e.target.closest("[data-form]");
+    if (abrir) {
+      const tipo = abrir.getAttribute("data-form");
+      const k = chave(item);
+      state.form = (state.form && state.form.key === k && state.form.tipo === tipo) ? null : { key: k, tipo: tipo };
+      return renderList();
+    }
+
+    if (e.target.closest("[data-cancel]")) { state.form = null; return renderList(); }
+
+    const sub = e.target.closest("[data-submit]");
+    if (sub) {
+      const nome = sub.getAttribute("data-submit");
+      const ta = document.getElementById("f-txt");
+      const valor = ta ? ta.value.trim() : "";
+      if (nome === "anotar") return acao(item, "anotar", { texto: valor });
+      if (nome === "editar") {
+        const v = function (id) { const el = document.getElementById("f-" + id); return el ? el.value : ""; };
+        const campos = {
+          titulo: v("titulo"), organizador: v("organizador"), organizador_tipo: v("organizador_tipo"),
+          tipo: v("tipo"), data: v("data"), horario: v("horario"), local: v("local"),
+          descricao: v("descricao"), link: v("link"),
+          data_a_confirmar: !!(document.getElementById("f-data_a_confirmar") || {}).checked,
+        };
+        const faltando = ["titulo", "organizador", "data"].filter(function (c) { return !campos[c].trim(); });
+        if (faltando.length) { showState("Preencha os campos obrigatórios: título, organizador e data.", true); return; }
+        return acao(item, "editar", { campos: campos });
+      }
+      return acao(item, nome, { motivo: valor });
+    }
+  });
+
+  els.tabHist.addEventListener("click", function (e) {
+    const b = e.target.closest("[data-reabrir]");
+    if (!b) return;
+    const k = b.getAttribute("data-reabrir");
+    const sep = k.indexOf("|");
+    const item = { origem: k.slice(0, sep), id: k.slice(sep + 1) };
+    if (!window.confirm("Reabrir este item? Ele volta para a lista de pendências.")) return;
+    acao(item, "reabrir");
+  });
+
+  function openLightbox(url) {
+    const overlay = document.createElement("div");
+    overlay.className = "lightbox";
+    overlay.innerHTML = '<img src="' + esc(url) + '" alt="">';
+    function fechar() { overlay.remove(); document.removeEventListener("keydown", onEsc); }
+    function onEsc(ev) { if (ev.key === "Escape") fechar(); }
+    overlay.addEventListener("click", fechar);
+    document.addEventListener("keydown", onEsc);
+    document.body.appendChild(overlay);
+  }
+
+  els.refreshBtn.addEventListener("click", function () {
+    state.form = null; mp.form = null;
+    if (state.tab === "mapeamento") loadMapa(true); else load(true);
+  });
+  els.logoutBtn.addEventListener("click", function () { setKey(""); state.form = null; mostrarChave(false); });
+  els.keySubmit.addEventListener("click", function () {
+    const v = els.keyInput.value.trim();
+    if (!v) return;
+    setKey(v);
+    load(true);
+  });
+  els.keyInput.addEventListener("keydown", function (e) { if (e.key === "Enter") els.keySubmit.click(); });
+
+  // ==================================================================
+  // Aba Mapeamento: KPIs de abrangencia, mapa, candidatos e regioes
+  // ==================================================================
+  const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+  const TIPO_CAND = { academia: "Academia", local: "Local", setor: "Setor", croqui: "Croqui" };
+  const TIPOS_ESCALADA = ["Esportiva", "Boulder", "Trad", "Multipitch"];
+  function faltaLocal(c) {
+    const f = [];
+    if (!c.cidade) f.push("cidade");
+    if (c.latitude == null || c.longitude == null) f.push("coordenadas");
+    if (!c.descricao_publica) f.push("descrição para o site");
+    if (!c.tipos || !c.tipos.length) f.push("tipo de escalada");
+    return f;
+  }
+  const ORIGEM_CAND = { claude: "Busca automática", manual: "Pesquisa manual", site: "Sugestão do site" };
+  const STATUS_CAND = [
+    ["pendente", "Para revisar"],
+    ["aprovado", "Aprovados, falta cadastrar"],
+    ["cadastrado", "Cadastrados"],
+    ["ja_existe", "Já existiam"],
+    ["descartado", "Descartados"],
+  ];
+  const ACOES_MAPA = {
+    adicionou: "adicionou", aprovou: "aprovou", rejeitou: "descartou", ja_existe: "marcou como já existente",
+    cadastrou: "marcou como cadastrado", reabriu: "reabriu", anotou: "anotou em", editou: "editou", regiao: "alterou as regiões:",
+    assumiu: "assumiu", liberou: "liberou", foto: "mexeu na foto de",
+  };
+
+  const mp = {
+    data: null, busy: false,
+    estado: "all", status: "pendente", tipo: "all", quem: "todos",
+    form: null,      // { key: id | "novo", tipo: "editar" | "nota" | "descartar" | "cadastrado" | "novo" }
+    regForm: false,
+    camadas: { academias: true, locais: true, candidatos: true },
+    map: null, layer: null,
+  };
+
+  function normNome(s) {
+    return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
+  }
+  function pctHtml(v, n) {
+    const qtd = n == null ? "" : '<span class="n">' + esc(n) + '</span>';
+    if (v == null || isNaN(v)) return '<span class="pct-cell">' + qtd + '<span class="na">sem dados</span></span>';
+    const cls = v >= 80 ? " ok" : v >= 50 ? " mid" : "";
+    return '<span class="pct-cell">' + qtd + '<span class="pct' + cls + '"><span style="width:' + v + '%"></span></span><span class="v">' + v + '%</span></span>';
+  }
+  function pct(num, den) { return den > 0 ? Math.round(100 * num / den) : null; }
+
+  // Soma as linhas da view (uma por cidade) num agrupamento por estado ou cidade.
+  function agrupar(linhas, chaveFn) {
+    const g = {};
+    linhas.forEach(function (r) {
+      const k = chaveFn(r);
+      const a = g[k] = g[k] || { nome: k, academias: 0, locais: 0, setores: 0, locais_com_croqui: 0, academias_pendentes: 0, locais_setores_pendentes: 0, locais_pendentes: 0, croquis_pendentes: 0 };
+      Object.keys(a).forEach(function (c) { if (c !== "nome") a[c] += Number(r[c] || 0); });
+    });
+    return Object.keys(g).map(function (k) {
+      const a = g[k];
+      a.pct_academias = pct(a.academias, a.academias + a.academias_pendentes);
+      a.pct_rotas = pct(a.locais + a.setores, a.locais + a.setores + a.locais_setores_pendentes);
+      a.pct_croquis = pct(a.locais_com_croqui, a.locais + a.locais_pendentes + a.croquis_pendentes);
+      a.pendentes = a.academias_pendentes + a.locais_setores_pendentes + a.croquis_pendentes;
+      return a;
+    });
+  }
+
+  function candidatosDoFiltro() {
+    const d = mp.data;
+    return (d.candidatos || []).filter(function (c) {
+      return (mp.estado === "all" || c.estado === mp.estado);
+    });
+  }
+
+  function parecidoCom(c) {
+    const d = mp.data; const n = normNome(c.nome);
+    if (n.length < 4) return null;
+    const lista = c.tipo === "academia" ? d.academias : d.locais;
+    const achou = (lista || []).find(function (x) {
+      if (x.estado && c.estado && String(x.estado).toUpperCase() !== c.estado) return false;
+      const m = normNome(x.nome);
+      return m && (m === n || m.indexOf(n) >= 0 || n.indexOf(m) >= 0);
+    });
+    return achou ? achou.nome : null;
+  }
+
+  function renderKpis() {
+    const d = mp.data;
+    const linhas = (d.cobertura || []).filter(function (r) { return mp.estado === "all" || r.estado === mp.estado; });
+    const t = agrupar(linhas, function () { return "total"; })[0] ||
+      { academias: 0, locais: 0, setores: 0, pct_academias: null, pct_rotas: null, pct_croquis: null, pendentes: 0, academias_pendentes: 0, locais_setores_pendentes: 0 };
+    const ult = (d.execucoes || [])[0];
+    const kpi = function (rotulo, v, sub) {
+      return '<div class="mp-kpi"><span class="label">' + rotulo + '</span><span class="count">' + (v == null ? "–" : v + "%") + '</span>' +
+        (v == null ? '' : '<span class="pct' + (v >= 80 ? ' ok' : v >= 50 ? ' mid' : '') + '"><span style="width:' + v + '%"></span></span>') +
+        '<span class="sub">' + sub + '</span></div>';
+    };
+    return '<div class="mp-kpis">' +
+      kpi("Abrangência de academias", t.pct_academias, t.academias + " no site · " + t.academias_pendentes + " a revisar") +
+      kpi("Abrangência de rotas", t.pct_rotas, (t.locais + t.setores) + " locais/setores · " + t.locais_setores_pendentes + " a revisar") +
+      kpi("Locais com croqui", t.pct_croquis, t.locais_com_croqui + " de " + (t.locais + (t.locais_pendentes || 0) + (t.croquis_pendentes || 0)) + " locais") +
+      '<div class="mp-kpi"><span class="label">Última busca automática</span><span class="count" style="font-size:18px">' +
+        (ult ? relTime(ult.rodou_em) : "ainda não rodou") + '</span><span class="sub">' +
+        (ult ? esc((ult.regioes || "") + " · " + ult.novos + " novos de " + ult.encontrados) : "a primeira será feita junto com vocês") + '</span></div>' +
+    '</div>';
+  }
+
+  function renderTabela() {
+    const d = mp.data;
+    const porCidade = mp.estado !== "all";
+    const linhas = (d.cobertura || []).filter(function (r) { return !porCidade || r.estado === mp.estado; });
+    const grupos = agrupar(linhas, function (r) { return porCidade ? r.cidade : r.estado; })
+      .sort(function (a, b) { return (b.academias + b.locais + b.pendentes) - (a.academias + a.locais + a.pendentes); });
+    const cab = '<tr><th>' + (porCidade ? "Cidade" : "Estado") + '</th><th>Academias</th><th>Rotas (locais + setores)</th><th>Croquis</th><th>A revisar</th></tr>';
+    const corpo = grupos.map(function (g) {
+      return '<tr' + (porCidade ? '' : ' class="clicavel" data-uf="' + esc(g.nome) + '"') + '>' +
+        '<td><b>' + esc(g.nome) + '</b></td>' +
+        '<td>' + pctHtml(g.pct_academias, g.academias + " de " + (g.academias + g.academias_pendentes)) + '</td>' +
+        '<td>' + pctHtml(g.pct_rotas, (g.locais + g.setores) + " de " + (g.locais + g.setores + g.locais_setores_pendentes)) + '</td>' +
+        '<td>' + pctHtml(g.pct_croquis, g.locais_com_croqui + " de " + (g.locais + g.locais_pendentes + g.croquis_pendentes)) + '</td>' +
+        '<td>' + (g.pendentes || "") + '</td></tr>';
+    }).join("");
+    return '<div class="section-heading">' + (porCidade ? "Abrangência por cidade em " + esc(mp.estado) : "Abrangência por estado (clique para abrir as cidades)") + '</div>' +
+      '<div class="table-wrap"><table class="mp-table">' + cab + corpo + '</table></div>' +
+      '<p class="mp-intro" style="margin-top:8px">Abrangência = cadastrados no site ÷ (cadastrados + encontrados ainda não cadastrados). É sempre "do que já sabemos que existe": quando a busca acha coisa nova, a porcentagem cai, e isso é a régua ficando mais honesta.</p>';
+  }
+
+  function renderMapaBox() {
+    const d = mp.data;
+    const semCoord = (d.academias || []).filter(function (a) {
+      return (mp.estado === "all" || String(a.estado || "").toUpperCase() === mp.estado) && (a.latitude == null || a.longitude == null);
+    }).length;
+    const chk = function (k, rotulo, cor) {
+      return '<label><input type="checkbox" data-camada="' + k + '"' + (mp.camadas[k] ? ' checked' : '') + '>' +
+        '<span class="mp-dot" style="background:' + cor + '"></span>' + rotulo + '</label>';
+    };
+    return '<div class="section-heading">Mapa</div><div class="mp-map" id="mp-map"></div>' +
+      '<div class="mp-legend">' +
+        chk("academias", "Academias no site", "var(--accent)") +
+        chk("locais", "Locais no site", "var(--ok)") +
+        chk("candidatos", "Encontrados (a revisar)", "var(--evt)") +
+        (semCoord ? '<span>· ' + semCoord + ' academia(s) ainda sem coordenadas, fora do mapa</span>' : '') +
+      '</div>';
+  }
+
+  function corVar(nome) { return getComputedStyle(document.documentElement).getPropertyValue(nome).trim() || "#888"; }
+
+  function desenharMapa() {
+    const box = document.getElementById("mp-map");
+    if (!box) return;
+    if (typeof L === "undefined") { box.innerHTML = '<div class="empty">Carregando o mapa...</div>'; setTimeout(desenharMapa, 500); return; }
+    if (mp.map && mp.map.getContainer() !== box) { mp.map.remove(); mp.map = null; }
+    if (!mp.map) {
+      mp.map = L.map(box, { scrollWheelZoom: false }).setView([-15.8, -47.9], 4);
+      // O painel e aberto como arquivo local, sem endereco de site. Os servidores
+      // do OpenStreetMap bloqueiam pedidos assim, entao o fundo vem da CARTO
+      // (mesmos dados do OpenStreetMap, servidor que aceita esse uso).
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+        maxZoom: 19, subdomains: "abcd",
+        attribution: "&copy; OpenStreetMap &copy; CARTO",
+      }).addTo(mp.map);
+    }
+    if (mp.layer) mp.layer.remove();
+    mp.layer = L.layerGroup().addTo(mp.map);
+    const d = mp.data; const pontos = [];
+    const doEstado = function (x) { return mp.estado === "all" || String(x.estado || "").toUpperCase() === mp.estado; };
+    const pino = function (x, cor, rotulo, tracejado) {
+      const lat = Number(x.latitude), lng = Number(x.longitude);
+      if (x.latitude == null || x.longitude == null || !isFinite(lat) || !isFinite(lng)) return;
+      L.circleMarker([lat, lng], {
+        radius: 7, color: "#fff", weight: 2, fillColor: cor, fillOpacity: tracejado ? 0.75 : 0.95,
+        dashArray: tracejado ? "3" : null,
+      }).bindPopup("<b>" + esc(x.nome) + "</b><br>" + esc(rotulo) + (x.cidade ? " · " + esc(x.cidade) : "")).addTo(mp.layer);
+      pontos.push([lat, lng]);
+    };
+    if (mp.camadas.academias) (d.academias || []).filter(doEstado).forEach(function (a) { pino(a, corVar("--accent"), "Academia no site"); });
+    if (mp.camadas.locais) (d.locais || []).filter(doEstado).forEach(function (l) { pino(l, corVar("--ok"), "Local no site"); });
+    if (mp.camadas.candidatos) (d.candidatos || []).filter(function (c) { return doEstado(c) && (c.status === "pendente" || c.status === "aprovado"); })
+      .forEach(function (c) { pino(c, corVar("--evt"), (TIPO_CAND[c.tipo] || c.tipo) + " encontrado", true); });
+    setTimeout(function () {
+      mp.map.invalidateSize();
+      if (pontos.length) mp.map.fitBounds(pontos, { padding: [30, 30], maxZoom: 11 });
+      else mp.map.setView([-15.8, -47.9], 4);
+    }, 50);
+  }
+
+  function campoCand(id, rotulo, valor, extra) {
+    return '<div><label for="c-' + id + '">' + rotulo + '</label><input class="evt-input" id="c-' + id + '" value="' + esc(valor == null ? "" : valor) + '" ' + (extra || "") + '></div>';
+  }
+  function formCandidato(c, novo) {
+    c = c || { tipo: "academia", estado: mp.estado !== "all" ? mp.estado : "" };
+    return '<div class="inline-form cand-form"><div class="grid2">' +
+      '<div><label for="c-tipo">Tipo *</label><select class="evt-input" id="c-tipo">' + Object.keys(TIPO_CAND).map(function (t) {
+        return '<option value="' + t + '"' + (c.tipo === t ? ' selected' : '') + '>' + TIPO_CAND[t] + '</option>'; }).join("") + '</select></div>' +
+      campoCand("nome", "Nome *", c.nome, 'maxlength="200"') +
+      '<div><label for="c-estado">Estado *</label><select class="evt-input" id="c-estado"><option value="">Escolha</option>' + UFS.map(function (u) {
+        return '<option' + (c.estado === u ? ' selected' : '') + '>' + u + '</option>'; }).join("") + '</select></div>' +
+      campoCand("cidade", "Cidade", c.cidade, 'maxlength="120"') +
+      campoCand("endereco", "Endereço ou referência", c.endereco, 'maxlength="300"') +
+      campoCand("modalidades", "Modalidades (academias)", c.modalidades, 'maxlength="200" placeholder="Boulder, Top rope, Guiada"') +
+      campoCand("instagram", "Instagram", c.instagram, 'maxlength="200" placeholder="@perfil"') +
+      campoCand("website", "Site", c.website, 'type="url" placeholder="https://..."') +
+      campoCand("link", "Onde encontrou (link)", c.link, 'type="url" placeholder="https://..."') +
+      '<div></div>' +
+      campoCand("latitude", "Latitude", c.latitude, 'inputmode="decimal" placeholder="-22.95"') +
+      campoCand("longitude", "Longitude", c.longitude, 'inputmode="decimal" placeholder="-43.21"') +
+      '</div>' +
+      '<div id="c-grupo-local" class="cand-form"' + (c.tipo === "local" ? '' : ' hidden') + '>' +
+        '<p class="card-title" style="margin:10px 0 4px">O que vai aparecer na página do Local</p>' +
+        '<div class="grid2">' +
+          campoCand("regiao", "Região", c.regiao, 'maxlength="120" placeholder="Ex.: Serra da Mantiqueira"') +
+          '<div><span style="font-size:13px;font-weight:600">Tipo de escalada *</span><div class="row">' + TIPOS_ESCALADA.map(function (t) {
+            return '<label class="evt-check" style="font-weight:500"><input type="checkbox" data-c-tipo value="' + t + '"' + ((c.tipos || []).indexOf(t) >= 0 ? ' checked' : '') + '> ' + t + '</label>';
+          }).join("") + '</div></div>' +
+        '</div>' +
+        '<label for="c-descricao_publica">Descrição para o site *</label>' +
+        '<textarea id="c-descricao_publica" maxlength="2000" placeholder="2 ou 3 frases no tom Climbeiros: o que é, que tipo de escalada, o que esperar">' + esc(c.descricao_publica || "") + '</textarea>' +
+        '<label for="c-como_chegar">Como chegar</label>' +
+        '<textarea id="c-como_chegar" maxlength="2000">' + esc(c.como_chegar || "") + '</textarea>' +
+        '<div class="grid2">' +
+          campoCand("croqui_url", "Link do croqui (só link, nunca cópia)", c.croqui_url, 'type="url" placeholder="https://..."') +
+          campoCand("croqui_rotulo", "Nome do croqui / crédito", c.croqui_rotulo, 'maxlength="200" placeholder="Ex.: Guia de Fulano, TheCrag"') +
+        '</div>' +
+      '</div>' +
+      '<label for="c-detalhe">Notas internas da pesquisa (não vão pro site)</label>' +
+      '<textarea id="c-detalhe" maxlength="2000">' + esc(c.detalhe || "") + '</textarea>' +
+      '<div class="row"><button class="btn primary small" type="button" data-mp-submit="' + (novo ? "adicionar" : "editar") + '">' + (novo ? "Adicionar à lista" : "Salvar alterações") + '</button>' +
+      '<button class="btn small" type="button" data-mp-cancel>Cancelar</button></div></div>';
+  }
+  function lerFormCandidato() {
+    const v = function (id) { const el = document.getElementById("c-" + id); return el ? el.value : ""; };
+    const campos = {};
+    ["tipo", "nome", "estado", "cidade", "endereco", "modalidades", "instagram", "website", "link", "latitude", "longitude", "detalhe"]
+      .forEach(function (k) { campos[k] = v(k); });
+    if (campos.tipo === "local") {
+      ["regiao", "descricao_publica", "como_chegar", "croqui_url", "croqui_rotulo"].forEach(function (k) { campos[k] = v(k); });
+      campos.tipos = Array.prototype.slice.call(document.querySelectorAll("[data-c-tipo]:checked")).map(function (x) { return x.value; });
+    }
+    return campos;
+  }
+
+  function formAcaoCand(c) {
+    const f = mp.form;
+    if (!f || f.key !== c.id) return "";
+    if (f.tipo === "editar") return formCandidato(c, false);
+    if (f.tipo === "nota") {
+      return '<div class="inline-form"><label for="mp-txt">Observação interna</label><textarea id="mp-txt" maxlength="2000">' + esc(c.observacoes || "") + '</textarea>' +
+        '<div class="row"><button class="btn primary small" type="button" data-mp-submit="anotar">Salvar</button><button class="btn small" type="button" data-mp-cancel>Cancelar</button></div></div>';
+    }
+    if (f.tipo === "foto") {
+      return '<div class="inline-form">' +
+        '<label for="mp-foto-arquivo">Enviar foto do computador</label>' +
+        '<input type="file" id="mp-foto-arquivo" accept="image/jpeg,image/png,image/webp">' +
+        '<label for="mp-foto-url">ou colar o link de uma imagem</label>' +
+        '<input class="evt-input" id="mp-foto-url" type="url" placeholder="https://... (endereço direto da imagem)" style="font:inherit;font-size:14px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)">' +
+        '<p style="margin:0;font-size:12px;color:var(--muted)">A foto é guardada no nosso Storage, então o link não quebra mesmo se a imagem original sair do ar. Use foto própria ou com autorização de quem tirou (academia, fotógrafo).</p>' +
+        '<div class="row"><button class="btn primary small" type="button" data-mp-submit="foto">Salvar foto</button>' +
+        (c.imagem_url ? '<button class="btn crit small" type="button" data-mp-submit="remover_foto">Remover foto</button>' : '') +
+        '<button class="btn small" type="button" data-mp-cancel>Cancelar</button></div></div>';
+    }
+    if (f.tipo === "descartar") {
+      return '<div class="inline-form"><label for="mp-txt">Por que descartar? (fica no histórico; o item não volta nas próximas buscas)</label>' +
+        '<textarea id="mp-txt" maxlength="500" placeholder="Ex.: fechou, não é de escalada, é só uma loja"></textarea>' +
+        '<div class="row"><button class="btn crit small" type="button" data-mp-submit="descartar">Confirmar descarte</button><button class="btn small" type="button" data-mp-cancel>Cancelar</button></div></div>';
+    }
+    if (f.tipo === "cadastrado") {
+      return '<div class="inline-form"><label for="mp-txt">Já cadastrou no site? Anote onde (opcional)</label>' +
+        '<textarea id="mp-txt" maxlength="500" placeholder="Ex.: virou o setor X dentro do Local Y"></textarea>' +
+        '<div class="row"><button class="btn ok small" type="button" data-mp-submit="cadastrado">Marcar como cadastrado</button><button class="btn small" type="button" data-mp-cancel>Cancelar</button></div></div>';
+    }
+    return "";
+  }
+
+  function cardCandidato(c) {
+    const aberto = c.status === "pendente" || c.status === "aprovado";
+    const parecido = aberto ? parecidoCom(c) : null;
+    const semCoord = c.latitude == null || c.longitude == null;
+    const ig = c.instagram ? String(c.instagram).replace(/^@/, "") : "";
+    const igUrl = ig ? (/^https?:\/\//i.test(ig) ? ig : "https://instagram.com/" + ig) : "";
+    const links = [];
+    if (c.link) links.push('<a href="' + esc(c.link) + '" target="_blank" rel="noopener noreferrer">Abrir fonte ↗</a>');
+    if (c.website) links.push('<a href="' + esc(c.website) + '" target="_blank" rel="noopener noreferrer">Site ↗</a>');
+    if (igUrl) links.push('<a href="' + esc(igUrl) + '" target="_blank" rel="noopener noreferrer">Instagram ↗</a>');
+    const busca = "https://www.google.com/maps/search/" + encodeURIComponent([c.nome, c.cidade, c.estado].filter(Boolean).join(" "));
+    links.push('<a href="' + esc(busca) + '" target="_blank" rel="noopener noreferrer">Ver no Google Maps ↗</a>');
+
+    let botoes = ""; let principais = "";
+    if (aberto) {
+      botoes += '<button class="btn small" type="button" data-mp-form="editar">✎ Editar</button>';
+      if (c.tipo === "academia" || c.tipo === "local") {
+        botoes += '<button class="btn small" type="button" data-mp-form="foto">' + (c.imagem_url ? "Trocar foto" : "+ Foto") + '</button>';
+      }
+      botoes += '<button class="btn small" type="button" data-mp-form="nota">' + (c.observacoes ? "Editar observação" : "Observação") + '</button>';
+      botoes += '<button class="btn small" type="button" data-mp-act="ja_existe">Já existe no site</button>';
+      principais += '<button class="btn crit" type="button" data-mp-form="descartar">Descartar</button>';
+      if (c.status === "pendente") {
+        principais += (c.tipo === "academia" || c.tipo === "local")
+          ? '<button class="btn ok" type="button" data-mp-act="aprovar">Aprovar e publicar</button>'
+          : '<button class="btn ok" type="button" data-mp-act="aprovar">Aprovar</button>';
+      } else {
+        principais += '<button class="btn ok" type="button" data-mp-form="cadastrado">Marcar como cadastrado</button>';
+      }
+    } else if (!(c.status === "cadastrado" && (c.tipo === "academia" || c.tipo === "local") && c.vinculo_id)) {
+      principais += '<button class="btn small" type="button" data-mp-act="reabrir">Reabrir</button>';
+    }
+
+    const mine = aberto && c.em_revisao_por && c.em_revisao_por === state.quem;
+    const other = aberto && c.em_revisao_por && !mine;
+    let reserva = "";
+    if (aberto) {
+      if (mine) reserva = '<span class="badge mine">Com você</span>';
+      else if (other) reserva = '<span class="badge other">Em revisão por ' + esc(c.em_revisao_por) + ' (' + relTime(c.em_revisao_desde) + ')</span>';
+      else reserva = '<span class="badge free">Livre</span>';
+      botoes = (mine ? '<button class="btn small" type="button" data-mp-act="liberar">Liberar</button>'
+                     : '<button class="btn small" type="button" data-mp-act="assumir">' + (other ? "Assumir no lugar" : "Assumir") + '</button>') + botoes;
+    }
+    const st = STATUS_CAND.find(function (s) { return s[0] === c.status; });
+    return '<div class="card' + (mine ? ' mine' : other ? ' other' : '') + '" data-mp-id="' + esc(c.id) + '">' +
+      (c.imagem_url ? '<div class="card-photo" data-full="' + esc(c.imagem_url) + '"><img src="' + esc(c.imagem_url) + '" loading="lazy" alt=""></div>' : '') +
+      '<div class="card-main">' +
+        '<p class="card-title">' + esc(c.nome) + '</p>' +
+        '<p class="card-detail">' + esc([c.cidade, c.estado].filter(Boolean).join(" / ")) + (c.endereco ? " · " + esc(c.endereco) : "") +
+          (c.modalidades ? '<br><span class="k" style="color:var(--muted);font-size:12px">Modalidades</span> ' + esc(c.modalidades) : "") + '</p>' +
+        (c.tipo === "local" && c.descricao_publica ? '<p class="card-detail"><span style="color:var(--muted);font-size:12px">No site:</span> ' + esc(c.descricao_publica) + '</p>' : '') +
+        (c.tipo === "local" && c.tipos && c.tipos.length ? '<p class="card-detail">' + c.tipos.map(function (t) { return '<span class="badge">' + esc(t) + '</span>'; }).join(" ") + '</p>' : '') +
+        (c.detalhe ? '<p class="card-detail"><span style="color:var(--muted);font-size:12px">Notas:</span> ' + esc(c.detalhe) + '</p>' : '') +
+        ((c.tipo === "academia" || c.tipo === "local") && aberto && !c.imagem_url ? '<p class="card-detail" style="font-size:12px;color:var(--muted)">Sem foto (opcional, mas o card no site fica mais bonito com uma).</p>' : '') +
+        (c.tipo === "local" && aberto && faltaLocal(c).length ? '<div class="evt-dup" style="background:var(--warn-bg);color:var(--warn)">Para publicar, falta: ' + esc(faltaLocal(c).join(", ")) + '. Use ✎ Editar.</div>' : '') +
+        '<div class="cand-links">' + links.join("") + '</div>' +
+        (parecido ? '<div class="evt-dup">⚠ Parecido com "' + esc(parecido) + '", que já está no site. Confira antes de aprovar.</div>' : '') +
+        '<div class="card-meta">' +
+          '<span class="badge cand-tipo">' + esc(TIPO_CAND[c.tipo] || c.tipo) + '</span>' +
+          '<span class="badge cand-origem">' + esc(ORIGEM_CAND[c.origem] || c.origem) + (c.criado_por ? " · " + esc(c.criado_por) : "") + '</span>' +
+          (c.status !== "pendente" && st ? '<span class="badge cand-st-' + esc(c.status) + '">' + esc(st[1]) + '</span>' : '') +
+          (semCoord && aberto ? '<span class="badge">sem coordenadas</span>' : '') +
+          '<span>encontrado ' + relTime(c.criado_em) + '</span>' + reserva +
+          (c.atualizado_por && !aberto ? '<span>por ' + esc(c.atualizado_por) + '</span>' : '') +
+        '</div>' +
+        (c.observacoes ? '<div class="obs"><b>Observação:</b> ' + esc(c.observacoes) + '</div>' : '') +
+        formAcaoCand(c) +
+      '</div>' +
+      '<div class="card-side">' +
+        (botoes ? '<div class="btn-row">' + botoes + '</div>' : '') +
+        (principais ? '<div class="btn-row">' + principais + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderCandidatos() {
+    const base = candidatosDoFiltro();
+    const doStatus = base.filter(function (c) { return c.status === mp.status; });
+    const passaQuem = function (c) {
+      if (mp.quem === "livres") return !c.em_revisao_por;
+      if (mp.quem === "comigo") return c.em_revisao_por === state.quem;
+      if (mp.quem === "outras") return !!c.em_revisao_por && c.em_revisao_por !== state.quem;
+      return true;
+    };
+    const aberto = mp.status === "pendente" || mp.status === "aprovado";
+    const lista = doStatus.filter(function (c) { return mp.tipo === "all" || c.tipo === mp.tipo; })
+      .filter(function (c) { return !aberto || passaQuem(c); })
+      .sort(function (a, b) { return mp.status === "pendente" ? new Date(a.criado_em) - new Date(b.criado_em) : new Date(b.atualizado_em || b.criado_em) - new Date(a.atualizado_em || a.criado_em); });
+
+    const chips = STATUS_CAND.map(function (s) {
+      const n = base.filter(function (c) { return c.status === s[0]; }).length;
+      return '<button class="chip" type="button" data-mp-status="' + s[0] + '" aria-pressed="' + (mp.status === s[0]) + '">' + esc(s[1]) + '<span class="n">' + n + '</span></button>';
+    }).join("");
+    const porTipo = {};
+    doStatus.forEach(function (c) { porTipo[c.tipo] = (porTipo[c.tipo] || 0) + 1; });
+    const tiles = '<button class="filter-tile all" type="button" data-mp-tipo="all" aria-pressed="' + (mp.tipo === "all") + '"><span class="count">' + doStatus.length + '</span><span class="label">Todos os tipos</span></button>' +
+      Object.keys(TIPO_CAND).filter(function (t) { return porTipo[t]; }).map(function (t) {
+        return '<button class="filter-tile" type="button" data-mp-tipo="' + t + '" aria-pressed="' + (mp.tipo === t) + '"><span class="count">' + porTipo[t] + '</span><span class="label">' + TIPO_CAND[t] + '</span></button>';
+      }).join("");
+
+    const novo = mp.form && mp.form.key === "novo"
+      ? '<div class="mp-add"><p class="card-title">Adicionar um candidato da sua pesquisa</p>' + formCandidato(null, true) + '</div>' : '';
+
+    return '<div class="mp-bar"><div class="section-heading">Encontrados</div>' +
+        '<button class="btn primary small" type="button" data-mp-novo>+ Adicionar candidato</button></div>' +
+      novo +
+      '<div class="chips">' + chips + '</div>' +
+      (aberto ? '<div class="chips">' + [["todos", "Todos"], ["livres", "Livres"], ["comigo", "Comigo"], ["outras", "Com outra pessoa"]].map(function (q) {
+        const n = doStatus.filter(function (c) {
+          return q[0] === "todos" || (q[0] === "livres" ? !c.em_revisao_por : q[0] === "comigo" ? c.em_revisao_por === state.quem : (!!c.em_revisao_por && c.em_revisao_por !== state.quem));
+        }).length;
+        return '<button class="chip" type="button" data-mp-quem="' + q[0] + '" aria-pressed="' + (mp.quem === q[0]) + '">' + q[1] + '<span class="n">' + n + '</span></button>';
+      }).join("") + '</div>' : '') +
+      '<div class="tiles">' + tiles + '</div>' +
+      (lista.length ? '<div class="card-list">' + lista.map(cardCandidato).join("") + '</div>'
+        : '<div class="empty"><div class="big">✓</div>' + (mp.status === "pendente" ? "Nada para revisar aqui." : "Nada por aqui com esse filtro.") + '</div>');
+  }
+
+  function renderRegioes() {
+    const d = mp.data;
+    const regs = (d.regioes || []).map(function (r) {
+      const o = [r.buscar_academias ? "academias" : null, r.buscar_locais ? "locais, setores e croquis" : null].filter(Boolean).join(" + ");
+      return '<div class="reg-item' + (r.ativo ? '' : ' off') + '"><div><b>' + esc(r.estado) + (r.cidade ? " / " + esc(r.cidade) : " (estado inteiro)") + '</b>' +
+        '<div class="meta">prioridade ' + r.prioridade + ' · busca ' + esc(o || "nada") + ' · ' + (r.ultima_busca ? "última busca " + relTime(r.ultima_busca) : "ainda não buscado") + '</div></div>' +
+        '<button class="btn small" type="button" data-reg-toggle="' + esc(r.id) + '">' + (r.ativo ? "Pausar" : "Reativar") + '</button></div>';
+    }).join("");
+    const form = mp.regForm
+      ? '<div class="reg-form">' +
+          '<div><label for="r-estado">Estado</label><select class="evt-input" id="r-estado">' + UFS.map(function (u) { return '<option>' + u + '</option>'; }).join("") + '</select></div>' +
+          '<div><label for="r-cidade">Cidade (vazio = estado todo)</label><input class="evt-input" id="r-cidade" maxlength="120"></div>' +
+          '<div><label for="r-prio">Prioridade</label><select class="evt-input" id="r-prio"><option>1</option><option>2</option><option>3</option></select></div>' +
+          '<div><label class="evt-check"><input type="checkbox" id="r-acad" checked> Academias</label><label class="evt-check"><input type="checkbox" id="r-loc" checked> Locais e croquis</label></div>' +
+          '<button class="btn primary small" type="button" data-reg-salvar>Salvar região</button>' +
+          '<button class="btn small" type="button" data-reg-cancel>Cancelar</button>' +
+        '</div>'
+      : '';
+    const exe = (d.execucoes || []).map(function (e) {
+      return '<div class="exec-item"><b>' + relTime(e.rodou_em) + '</b> · ' + esc(e.regioes || "") + ' · ' + e.novos + ' novos de ' + e.encontrados + ' vistos' +
+        (e.resumo ? '<br>' + esc(e.resumo) : '') + '</div>';
+    }).join("");
+    return '<div class="mp-bar"><div class="section-heading">Onde a busca automática procura</div>' +
+        (mp.regForm ? '' : '<button class="btn small" type="button" data-reg-novo>+ Região</button>') + '</div>' +
+      '<div class="reg-list">' + (regs || '<div class="empty">Nenhuma região em foco.</div>') + '</div>' + form +
+      '<div class="section-heading">Últimas buscas</div>' +
+      (exe ? '<div class="table-wrap" style="padding:4px 12px">' + exe + '</div>' : '<div class="empty">A busca automática ainda não rodou.</div>');
+  }
+
+  function renderLogMapa() {
+    const log = (mp.data.historico || []).slice(0, 20).map(function (h) {
+      return '<div class="log-item"><div class="log-text"><b>' + esc(h.feito_por) + '</b> ' + esc(ACOES_MAPA[h.acao] || h.acao) +
+        '<span class="when">' + relTime(h.feito_em) + '</span>' + (h.detalhe ? '<span class="det">' + esc(h.detalhe) + '</span>' : '') + '</div></div>';
+    }).join("");
+    return '<div class="section-heading">Últimas ações no mapeamento</div>' +
+      (log ? '<div class="log">' + log + '</div>' : '<div class="empty">Nenhuma ação ainda.</div>');
+  }
+
+  function renderMapeamento() {
+    const d = mp.data;
+    const estados = {};
+    (d.cobertura || []).forEach(function (r) { if (r.estado && r.estado !== "??") estados[r.estado] = true; });
+    (d.regioes || []).forEach(function (r) { estados[r.estado] = true; });
+    const chipsUf = '<button class="chip" type="button" data-mp-uf="all" aria-pressed="' + (mp.estado === "all") + '">Brasil</button>' +
+      Object.keys(estados).sort().map(function (u) {
+        return '<button class="chip" type="button" data-mp-uf="' + esc(u) + '" aria-pressed="' + (mp.estado === u) + '">' + esc(u) + '</button>';
+      }).join("");
+    const focoTxt = document.activeElement && document.activeElement.id;
+    els.tabMapa.innerHTML =
+      '<p class="mp-intro">Tudo que a busca automática, vocês e o público encontrarem cai aqui para revisar. O que já está no site entra na conta sozinho.</p>' +
+      '<div class="chips">' + chipsUf + '</div>' +
+      renderKpis() + renderTabela() + renderMapaBox() + renderCandidatos() + renderRegioes() + renderLogMapa();
+    desenharMapa();
+    const ta = document.getElementById("mp-txt") || (mp.form && document.getElementById("c-nome"));
+    if (ta && !focoTxt) ta.focus();
+  }
+
+  async function loadMapa(forcar) {
+    if (!forcar && (mp.form || mp.regForm || mp.busy)) return;
+    if (!getKey()) return mostrarChave(false);
+    els.refreshBtn.disabled = true;
+    try {
+      const data = await api(null, "&aba=mapeamento");
+      mp.data = data;
+      state.quem = data.quem;
+      els.updated.textContent = "atualizado " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      if (mp.form && mp.form.key !== "novo" && !(data.candidatos || []).some(function (c) { return c.id === mp.form.key; })) mp.form = null;
+      hideState();
+      if (state.tab === "mapeamento") renderMapeamento();
+    } catch (e) {
+      if (e.code === 401) mostrarChave(true);
+      else showState("Não consegui carregar o mapeamento: " + e.message, true);
+    } finally {
+      els.refreshBtn.disabled = false;
+    }
+  }
+
+  async function acaoMapa(corpo, msgOk) {
+    if (mp.busy) return;
+    mp.busy = true; hideState();
+    let ok = false;
+    try {
+      const r = await api({ method: "POST", body: JSON.stringify(Object.assign({ modulo: "mapeamento" }, corpo)) });
+      mp.form = null; mp.regForm = false; ok = true;
+      toast(r && r.publicado ? (r.slug ? "Local publicado em /rotas/" + r.slug + ". O site atualiza em alguns minutos." : "Academia publicada. O site atualiza em alguns minutos.") : msgOk);
+    } catch (e) {
+      if (e.code === 401) { mp.busy = false; return mostrarChave(true); }
+      if (e.code === 409 && e.data && e.data.error === "em_revisao" && !corpo.forcar) {
+        mp.busy = false;
+        if (window.confirm(e.data.por + " está revisando este item. Quer seguir mesmo assim?")) {
+          return acaoMapa(Object.assign({}, corpo, { forcar: true }), msgOk);
+        }
+        return loadMapa(true);
+      }
+      showState("Não consegui concluir: " + e.message, true);
+      if (state.tab === "mapeamento" && mp.data) renderMapeamento();
+    } finally {
+      mp.busy = false;
+    }
+    if (ok) await loadMapa(true);
+  }
+
+  // Reduz a foto para no máximo 1600px e converte para JPG antes de enviar,
+  // pra ficar leve no site e caber no limite de 5 MB.
+  function prepararFoto(arquivo) {
+    return new Promise(function (resolve, reject) {
+      if (!/^image\/(jpeg|png|webp)$/.test(arquivo.type)) return reject(new Error("Use uma imagem JPG, PNG ou WEBP."));
+      const leitor = new FileReader();
+      leitor.onerror = function () { reject(new Error("Não consegui ler o arquivo.")); };
+      leitor.onload = function () {
+        const img = new Image();
+        img.onerror = function () { reject(new Error("Esse arquivo não parece ser uma imagem válida.")); };
+        img.onload = function () {
+          const max = 1600;
+          const escala = Math.min(1, max / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * escala);
+          canvas.height = Math.round(img.height * escala);
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.85).split(",")[1]);
+        };
+        img.src = leitor.result;
+      };
+      leitor.readAsDataURL(arquivo);
+    });
+  }
+
+  els.tabMapa.addEventListener("click", function (e) {
+    const foto = e.target.closest(".card-photo");
+    if (foto) return openLightbox(foto.getAttribute("data-full"));
+    const uf = e.target.closest("[data-mp-uf]") || e.target.closest("tr[data-uf]");
+    if (uf) {
+      mp.estado = uf.getAttribute("data-mp-uf") || uf.getAttribute("data-uf");
+      mp.tipo = "all"; mp.form = null;
+      return renderMapeamento();
+    }
+    const st = e.target.closest("[data-mp-status]");
+    if (st) { mp.status = st.getAttribute("data-mp-status"); mp.tipo = "all"; mp.form = null; return renderMapeamento(); }
+    const qm = e.target.closest("[data-mp-quem]");
+    if (qm) { mp.quem = qm.getAttribute("data-mp-quem"); return renderMapeamento(); }
+    const tp = e.target.closest("[data-mp-tipo]");
+    if (tp) { mp.tipo = tp.getAttribute("data-mp-tipo"); return renderMapeamento(); }
+
+    if (e.target.closest("[data-mp-novo]")) { mp.form = mp.form && mp.form.key === "novo" ? null : { key: "novo", tipo: "novo" }; return renderMapeamento(); }
+    if (e.target.closest("[data-mp-cancel]")) { mp.form = null; return renderMapeamento(); }
+
+    if (e.target.closest("[data-reg-novo]")) { mp.regForm = true; return renderMapeamento(); }
+    if (e.target.closest("[data-reg-cancel]")) { mp.regForm = false; return renderMapeamento(); }
+    if (e.target.closest("[data-reg-salvar]")) {
+      return acaoMapa({ acao: "regiao_salvar", regiao: {
+        estado: document.getElementById("r-estado").value, cidade: document.getElementById("r-cidade").value,
+        prioridade: document.getElementById("r-prio").value, ativo: true,
+        buscar_academias: document.getElementById("r-acad").checked, buscar_locais: document.getElementById("r-loc").checked,
+      } }, "Região salva");
+    }
+    const tg = e.target.closest("[data-reg-toggle]");
+    if (tg) {
+      const r = (mp.data.regioes || []).find(function (x) { return x.id === tg.getAttribute("data-reg-toggle"); });
+      if (!r) return;
+      return acaoMapa({ acao: "regiao_salvar", regiao: Object.assign({}, r, { ativo: !r.ativo }) }, r.ativo ? "Região pausada" : "Região reativada");
+    }
+
+    const sub = e.target.closest("[data-mp-submit]");
+    const card = e.target.closest("[data-mp-id]");
+    if (sub) {
+      const nome = sub.getAttribute("data-mp-submit");
+      if (nome === "adicionar") {
+        const campos = lerFormCandidato();
+        if (!campos.nome.trim() || !campos.estado) { showState("Preencha pelo menos o nome e o estado.", true); return; }
+        return acaoMapa({ acao: "adicionar", campos: campos }, "Adicionado à lista");
+      }
+      if (!card) return;
+      const id = card.getAttribute("data-mp-id");
+      const ta = document.getElementById("mp-txt"); const txt = ta ? ta.value.trim() : "";
+      if (nome === "editar") return acaoMapa({ acao: "editar", id: id, campos: lerFormCandidato() }, "Alterações salvas");
+      if (nome === "anotar") return acaoMapa({ acao: "anotar", id: id, texto: txt }, "Observação salva");
+      if (nome === "remover_foto") return acaoMapa({ acao: "remover_foto", id: id }, "Foto removida");
+      if (nome === "foto") {
+        const arq = (document.getElementById("mp-foto-arquivo") || {}).files;
+        const url = ((document.getElementById("mp-foto-url") || {}).value || "").trim();
+        if (arq && arq.length) {
+          sub.disabled = true; sub.textContent = "Enviando...";
+          return prepararFoto(arq[0]).then(function (b64) {
+            return acaoMapa({ acao: "foto", id: id, arquivo: b64, mime: "image/jpeg" }, "Foto salva");
+          }).catch(function (err) { showState(err.message, true); sub.disabled = false; sub.textContent = "Salvar foto"; });
+        }
+        if (url) { sub.disabled = true; sub.textContent = "Baixando..."; return acaoMapa({ acao: "foto", id: id, url: url }, "Foto salva"); }
+        showState("Escolha um arquivo ou cole o link de uma imagem.", true);
+        return;
+      }
+      if (nome === "descartar") return acaoMapa({ acao: "descartar", id: id, motivo: txt }, "Descartado");
+      if (nome === "cadastrado") return acaoMapa({ acao: "cadastrado", id: id, motivo: txt }, "Marcado como cadastrado");
+      return;
+    }
+    if (!card) return;
+    const id = card.getAttribute("data-mp-id");
+    const abrir = e.target.closest("[data-mp-form]");
+    if (abrir) {
+      const tipo = abrir.getAttribute("data-mp-form");
+      mp.form = (mp.form && mp.form.key === id && mp.form.tipo === tipo) ? null : { key: id, tipo: tipo };
+      return renderMapeamento();
+    }
+    const act = e.target.closest("[data-mp-act]");
+    if (act) {
+      const nome = act.getAttribute("data-mp-act");
+      const c = (mp.data.candidatos || []).find(function (x) { return x.id === id; });
+      if (nome === "aprovar" && c && c.tipo === "local" && faltaLocal(c).length) {
+        showState("Antes de publicar este Local, preencha em Editar: " + faltaLocal(c).join(", ") + ".", true);
+        return;
+      }
+      if (nome === "aprovar" && c && (c.tipo === "academia" || c.tipo === "local") &&
+        !window.confirm('Publicar "' + c.nome + '" no site' + (c.tipo === "local" ? ' (nova página em Rotas & Setores)' : ' (página de academias)') + '?')) return;
+      if (nome === "assumir" && c && c.em_revisao_por && c.em_revisao_por !== state.quem) {
+        if (!window.confirm("Assumir este item no lugar de " + c.em_revisao_por + "?")) return;
+        return acaoMapa({ acao: "assumir", id: id, forcar: true }, "Agora está com você");
+      }
+      const msgs = { aprovar: "Aprovado", ja_existe: "Marcado como já existente", reabrir: "Reaberto", assumir: "Agora está com você", liberar: "Item liberado" };
+      return acaoMapa({ acao: nome, id: id }, msgs[nome] || "Feito");
+    }
+  });
+  els.tabMapa.addEventListener("change", function (e) {
+    if (e.target && e.target.id === "c-tipo") {
+      const g = document.getElementById("c-grupo-local");
+      if (g) g.hidden = e.target.value !== "local";
+    }
+    const cam = e.target.closest("[data-camada]");
+    if (cam) { mp.camadas[cam.getAttribute("data-camada")] = cam.checked; desenharMapa(); }
+  });
+
+  load(true);
+  setInterval(function () { if (state.tab === "mapeamento") loadMapa(false); else load(false); }, 60000);
+})();
+</script>
+</body>
+</html>

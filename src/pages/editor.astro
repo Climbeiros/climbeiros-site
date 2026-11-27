@@ -186,6 +186,7 @@ import Layout from '../layouts/Layout.astro';
     $('ed-conteudo').innerHTML = '<p>Carregando...</p>';
     const { data: local } = await supabase.from('locais').select('id, nome, slug, descricao, como_chegar, boas_praticas').eq('id', localId).single();
     const { data: setores } = await supabase.from('setores').select('id, nome, slug, descricao').eq('local_id', localId).order('nome');
+    setores?.sort((a: any, b: any) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true }));
     const idsSet = (setores ?? []).map((s: any) => s.id);
     const [rotasR, fotosR] = await Promise.all([
       idsSet.length ? supabase.from('rotas').select('id, setor_id, ordem, ' + CAMPOS_VIA.join(', ')).in('setor_id', idsSet).order('ordem') : { data: [] },
